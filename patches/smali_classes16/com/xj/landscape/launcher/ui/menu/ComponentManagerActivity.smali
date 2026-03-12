@@ -76,7 +76,7 @@
     goto :name_loop
     :name_loop_end
     new-instance v7, Landroid/widget/ArrayAdapter;
-    const v8, 0x01090001
+    sget v8, Landroid/R$layout;->simple_list_item_1:I
     invoke-direct {v7, p0, v8, v6}, Landroid/widget/ArrayAdapter;-><init>(Landroid/content/Context;I[Ljava/lang/Object;)V
     iget-object v8, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->listView:Landroid/widget/ListView;
     invoke-virtual {v8, v7}, Landroid/widget/ListView;->setAdapter(Landroid/widget/ListAdapter;)V
@@ -107,7 +107,7 @@
     const-string v2, "\u2190 Back"
     aput-object v2, v0, v1
     new-instance v1, Landroid/widget/ArrayAdapter;
-    const v2, 0x01090001
+    sget v2, Landroid/R$layout;->simple_list_item_1:I
     invoke-direct {v1, p0, v2, v0}, Landroid/widget/ArrayAdapter;-><init>(Landroid/content/Context;I[Ljava/lang/Object;)V
     iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->listView:Landroid/widget/ListView;
     invoke-virtual {v2, v1}, Landroid/widget/ListView;->setAdapter(Landroid/widget/ListAdapter;)V

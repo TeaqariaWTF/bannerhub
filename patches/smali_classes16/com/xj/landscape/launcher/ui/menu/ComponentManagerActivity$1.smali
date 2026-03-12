@@ -3,22 +3,20 @@
 .implements Ljava/lang/Runnable;
 
 # Background thread: calls WcpExtractor.extract(), posts result to UI via Handler
-# On success, saves injected filename to SharedPreferences keyed by component folder name
+# On success, queries the injected filename and saves it to SharedPreferences
 
 .field final this$0:Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;
 .field final val$uri:Landroid/net/Uri;
 .field final val$componentDir:Ljava/io/File;
 .field final val$handler:Landroid/os/Handler;
-.field final val$filename:Ljava/lang/String;
 
-.method constructor <init>(Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;Landroid/net/Uri;Ljava/io/File;Landroid/os/Handler;Ljava/lang/String;)V
+.method constructor <init>(Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;Landroid/net/Uri;Ljava/io/File;Landroid/os/Handler;)V
     .locals 0
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
     iput-object p1, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;->this$0:Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;
     iput-object p2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;->val$uri:Landroid/net/Uri;
     iput-object p3, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;->val$componentDir:Ljava/io/File;
     iput-object p4, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;->val$handler:Landroid/os/Handler;
-    iput-object p5, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;->val$filename:Ljava/lang/String;
     return-void
 .end method
 
@@ -38,9 +36,11 @@
     :try_end
     .catch Ljava/lang/Throwable; {:try_start .. :try_end} :catch_t
 
-    # Success: save injected filename to SharedPreferences
-    # v0=activity, v1=handler, v3=componentDir (still valid after extract)
-    iget-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;->val$filename:Ljava/lang/String;
+    # Success: query filename from URI using activity helper, then save to SharedPreferences
+    # v0=activity, v1=handler, v2=uri, v3=componentDir are all still valid
+    invoke-virtual {v0, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->getFileName(Landroid/net/Uri;)Ljava/lang/String;
+    move-result-object v5
+
     const-string v2, "bh_injected"
     const/4 v4, 0x0
     invoke-virtual {v0, v2, v4}, Landroid/app/Activity;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;

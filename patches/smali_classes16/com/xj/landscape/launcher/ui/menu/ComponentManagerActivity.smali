@@ -342,16 +342,12 @@
 .end method
 
 .method public injectFile(Landroid/net/Uri;)V
-    .locals 5
+    .locals 4
 
     # v0 = component dir
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->components:[Ljava/io/File;
     iget v1, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->selectedIndex:I
     aget-object v0, v0, v1
-
-    # v4 = display name of the file being injected
-    invoke-virtual {p0, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->getFileName(Landroid/net/Uri;)Ljava/lang/String;
-    move-result-object v4
 
     # v1 = Handler(mainLooper)
     invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
@@ -359,9 +355,9 @@
     new-instance v2, Landroid/os/Handler;
     invoke-direct {v2, v1}, Landroid/os/Handler;-><init>(Landroid/os/Looper;)V
 
-    # v1 = background worker runnable (with filename)
+    # v1 = background worker runnable
     new-instance v1, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;
-    invoke-direct {v1, p0, p1, v0, v2, v4}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;-><init>(Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;Landroid/net/Uri;Ljava/io/File;Landroid/os/Handler;Ljava/lang/String;)V
+    invoke-direct {v1, p0, p1, v0, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1;-><init>(Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;Landroid/net/Uri;Ljava/io/File;Landroid/os/Handler;)V
 
     # Start background thread
     new-instance v3, Ljava/lang/Thread;

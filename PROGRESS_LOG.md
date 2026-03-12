@@ -130,7 +130,36 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — Multiple crash/build fixes (v1.0.7 through v2.0.3-pre)
+**Commits:** several | **Tags:** v1.0.7 → v2.0.3-pre
+#### What changed
+- **v1.0.7**: Moved ComponentManagerActivity to smali_classes16 (classes11 was near dex index limit)
+- **v1.0.8**: Fixed VerifyError — DIRECTORY_DOWNLOADS static field ref; removed double new-array in copyDir()
+- **v1.0.9**: Fixed ArrayAdapter crash — replaced hardcoded layout ID with `sget Landroid/R$layout;->simple_list_item_1:I`
+- **v1.0.10**: Fixed invoke-virtual 6-arg crash — `ContentResolver.query()` now uses `invoke-virtual/range`
+- **v1.0.11**: Fixed "inject failed" with path-as-error — query `_display_name` instead of `getLastPathSegment()`
+- **v2.0.0**: Stable release with working component list, backup, and raw-file inject
+- **v2.0.1-pre → v2.0.3-pre**: WCP/ZIP extraction pipeline — added WcpExtractor.smali (zstd tar + XZ tar + ZIP), bundled commons-compress + aircompressor + xz JARs via d8 dex injection into APK (baksmali approach abandoned — no executable JAR available); extraction runs but crashes with FATAL EXCEPTION (Error not caught by Exception handler)
+
+---
+
+### [fix] — Background thread + Throwable catch for WCP extraction
+**Commit:** `7ad71f4` | **Tag:** v2.0.4-pre
+#### What changed
+- `injectFile()` now spawns a `java.lang.Thread` for extraction — UI thread is never blocked (fixes long black screen on large WCP files)
+- `ComponentManagerActivity$1.smali` (new): background Runnable — calls `WcpExtractor.extract()`, catches `Throwable` (not just `Exception`), posts result to main thread via `Handler(Looper.getMainLooper())`
+- `ComponentManagerActivity$2.smali` (new): UI Runnable — shows success/failure Toast and refreshes component list on main thread
+- Previously `Error` subclasses (e.g. `NoClassDefFoundError` if library dex missing, `OutOfMemoryError`) bypassed the `Exception` catch entirely and crashed the app
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali` — injectFile() rewritten
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity$1.smali` — new
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity$2.smali` — new
+
+---
+
 ## Planned Work
 
-- [ ] Verify v1.0.6 build success — confirm Components appears in side menu and launches correctly
+- [ ] Confirm v2.0.4-pre WCP extraction works end-to-end (no more black screen or crash)
+- [ ] If library dex still doesn't load (NoClassDefFoundError), investigate dex injection ordering or try alternative classloading approach
+- [ ] Once WCP injection confirmed working, cut stable v2.1.0 release
 - [ ] Explore contributing functional patches to `playday3008/gamehub-patches` PR #13

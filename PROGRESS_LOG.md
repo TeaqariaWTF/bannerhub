@@ -157,9 +157,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — XZ extraction fix + clear before inject
+**Commit:** `fb5592d` | **Tag:** v2.0.5-pre
+#### What changed
+- WcpExtractor: replaced `org.tukaani.xz.XZInputStream` with `org.apache.commons.compress.compressors.xz.XZCompressorInputStream` — d8 conversion of xz-1.9.jar produced dex where the constructor `<init>(InputStream)V` was not found at runtime (`NoSuchMethodError`). commons-compress wraps tukaani internally and its constructor is found correctly.
+- WcpExtractor: added `clearDir()` static method that recursively deletes all files/subdirs in the component directory before injection. Called at the top of `extract()` so stale files (e.g. from a previous ZIP inject) are removed first.
+- Both ZIP and WCP (zstd + XZ) paths now start with a clean slate.
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/WcpExtractor.smali`
+
+---
+
 ## Planned Work
 
-- [ ] Confirm v2.0.4-pre WCP extraction works end-to-end (no more black screen or crash)
-- [ ] If library dex still doesn't load (NoClassDefFoundError), investigate dex injection ordering or try alternative classloading approach
-- [ ] Once WCP injection confirmed working, cut stable v2.1.0 release
+- [ ] Confirm v2.0.5-pre WCP (XZ + zstd) extraction works end-to-end
+- [ ] Once both ZIP and WCP confirmed working, cut stable v2.1.0 release
 - [ ] Explore contributing functional patches to `playday3008/gamehub-patches` PR #13

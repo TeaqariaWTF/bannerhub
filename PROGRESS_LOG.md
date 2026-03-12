@@ -111,7 +111,26 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [patch] — Option B: Embedded Component Manager in side menu
+**Commit:** `d2f17e9` | **Tag:** v1.0.6 (in progress)
+#### What changed
+- Added "Components" item (ID=9) to `HomeLeftMenuDialog` side nav menu
+- Extended packed-switch table in `HomeLeftMenuDialog.o1()` to handle ID 9 → launches `ComponentManagerActivity`
+- New `ComponentManagerActivity` (pure smali, no Kotlin compile needed):
+  - Extends `AppCompatActivity`, implements `AdapterView$OnItemClickListener`
+  - Lists GameHub component folders from `getFilesDir()/usr/home/components/` in a ListView
+  - Per-component options: Inject file (SAF `ACTION_OPEN_DOCUMENT`), Backup to `Downloads/BannerHub/{name}/`
+  - Backup uses recursive `copyDir()` — no root required
+  - Back press from options list returns to component list
+- `AndroidManifest.xml`: declared `ComponentManagerActivity` with `sensorLandscape` orientation
+#### Files touched
+- `patches/smali_classes5/com/xj/landscape/launcher/ui/menu/HomeLeftMenuDialog.smali` — MenuItem add + pswitch_9 + table extension
+- `patches/smali_classes11/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali` — new file
+- `patches/AndroidManifest.xml` — activity declaration
+
+---
+
 ## Planned Work
 
-- [ ] Option B: Embed BCI component manager as a full in-app tab (requires Kotlin compile → smali merge pipeline)
+- [ ] Verify v1.0.6 build success — confirm Components appears in side menu and launches correctly
 - [ ] Explore contributing functional patches to `playday3008/gamehub-patches` PR #13

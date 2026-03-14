@@ -5,6 +5,8 @@ on:
   push:
     tags:
       - 'v*'
+      - '!v*-pre*'
+      - '!v*-beta*'
 
 jobs:
   build:

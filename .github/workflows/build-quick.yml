@@ -1,0 +1,94 @@
+name: Build APK (Quick — Normal only)
+
+on:
+  push:
+    tags:
+      - 'v*-pre*'
+      - 'v*-beta*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download original APK
+        run: |
+          gh release download base-apk --pattern "*.apk" -D base/ -R ${{ github.repository }}
+          ls base/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install apktool
+        run: |
+          APKTOOL_VER=2.9.3
+          mkdir -p $HOME/bin
+          wget -q "https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VER}/apktool_${APKTOOL_VER}.jar" -O $HOME/bin/apktool.jar
+          wget -q "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool" -O $HOME/bin/apktool
+          chmod +x $HOME/bin/apktool
+          echo "$HOME/bin" >> $GITHUB_PATH
+          java -jar $HOME/bin/apktool.jar --version
+
+      - name: Decompile APK
+        run: |
+          APK=$(ls base/*.apk | head -1)
+          echo "Decompiling: $APK"
+          java -jar $HOME/bin/apktool.jar d "$APK" -o apktool_out -f
+
+      - name: Remove uncompilable apktool artifacts
+        run: |
+          rm -f apktool_out/res/values/raws.xml
+          sed -i '/firebase_common_keep\|firebase_crashlytics_keep/d' apktool_out/res/values/public.xml
+
+      - name: Apply patches
+        run: |
+          if [ -d "patches" ] && [ "$(ls -A patches)" ]; then
+            echo "Applying patches..."
+            cp -r patches/. apktool_out/
+            echo "Patches applied."
+          else
+            echo "No patches to apply."
+          fi
+
+      - name: Rebuild and Sign (Normal variant only)
+        run: |
+          echo "Building Normal variant (gamehub.lite)..."
+
+          # Rebuild
+          java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
+
+          # Align
+          ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/zipalign -f -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
+
+          # Sign
+          ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/apksigner sign \
+            --key testkey.pk8 \
+            --cert testkey.x509.pem \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --out "Bannerhub-5.3.5-Revanced-Normal.apk" \
+            rebuilt-aligned.apk
+
+          echo "Done: Bannerhub-5.3.5-Revanced-Normal.apk ($(du -sh Bannerhub-5.3.5-Revanced-Normal.apk | cut -f1))"
+
+      - name: Get tag name
+        id: tag
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "name=manual-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: Bannerhub ${{ steps.tag.outputs.name }}
+          prerelease: ${{ contains(steps.tag.outputs.name, '-') }}
+          files: Bannerhub-5.3.5-Revanced-Normal.apk

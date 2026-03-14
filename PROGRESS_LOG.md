@@ -4,6 +4,37 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## v2.2.1 — feat: RTS touch controls (2026-03-14)
+**Commit:** `b1a0945` | **Tag:** `v2.2.1`
+
+### What changed
+- Ported RTS touch controls from gamehub-lite PR #73 (Nightwalker743) to bannerhub's 5.3.5 ReVanced base
+- All smali class numbers corrected (5.1.0 classes4/5 → 5.3.5 classes9/14/15/16)
+- Obfuscated method names hand-mapped for 5.3.5 throughout
+- `shape_radius`/`shape_solidColor` XML attributes renamed to `xj_shape_radius`/`xj_shape_solidColor` for 5.3.5 compat
+- Added `CloudProgressStyle` stub to satisfy aapt2 strict link validation triggered by new layout files
+- Removed WinUIBridge.smali replacement to avoid classes9.dex 65535 reference overflow
+- New files placed in smali_classes16 (free slot)
+
+### Features added
+- Tap to click, drag for box selection, long press right-click, double-tap double-click
+- Two-finger pan for camera, pinch-to-zoom (mouse wheel)
+- Toggle switch in Settings > Controls tab (in-game sidebar)
+- Gesture settings dialog with configurable action picker
+
+### Files touched
+- `patches/smali_classes14/com/xj/winemu/sidebar/SidebarControlsFragment.smali`
+- `patches/smali_classes15/com/xj/winemu/WineActivity.smali`
+- `patches/smali_classes15/com/xj/pcvirtualbtn/inputcontrols/InputControlsManager.smali`
+- `patches/smali_classes15/com/winemu/core/controller/X11Controller.smali`
+- `patches/smali_classes16/` — 16 new RTS smali files
+- `patches/res/layout/` — 4 layout files (winemu_sidebar_controls_fragment + 3 RTS dialogs)
+- `patches/res/drawable/`, `patches/res/color/` — RTS checkbox/dialog drawables
+- `patches/res/values/ids.xml`, `strings.xml`, `styles.xml`, `public.xml`
+- `README.md`
+
+---
+
 ## Session 6 — 2026-03-13
 
 ### [planned] — Backlog / Upcoming Work

@@ -1,6 +1,6 @@
 # BannerHub
 
-Rebuild pipeline for **GameHub 5.3.5 ReVanced Normal** using apktool. Applies smali and resource patches to add a Component Manager and BCI launcher button directly inside GameHub.
+Rebuild pipeline for **GameHub 5.3.5 ReVanced** using apktool. Applies smali and resource patches to add a Component Manager, BCI launcher button, RTS touch controls, and UI tweaks directly inside GameHub.
 
 ## Features
 
@@ -19,6 +19,17 @@ Accessible via GameHub's left side menu → **Components**.
 ### BCI Launcher Button
 Tap the banner icon in GameHub's top-right toolbar to open **BannersComponentInjector** (`com.banner.inject`). Shows a toast if it is not installed.
 
+### RTS Touch Controls
+Accessible via **Settings → Controls tab** in the in-game sidebar overlay. Toggle on to enable a gesture overlay for PC/RTS games:
+
+- **Tap to click** — moves cursor and left-clicks at tap position
+- **Drag for box selection** — holds LMB during drag to draw a selection box
+- **Long press for right-click** — 300ms hold triggers right-click
+- **Double-tap for double-click** — two taps within 250ms / 50px
+- **Two-finger pan** — drags the camera (configurable action)
+- **Pinch-to-zoom** — mouse wheel scroll (configurable action)
+- **Gesture settings dialog** — customizable action picker for two-finger pan and pinch
+
 ### UI Tweaks
 - "My" tab renamed to "My Games"
 
@@ -32,19 +43,23 @@ No external library injection — the Component Manager uses GameHub's own bundl
 
 ## Installation
 
-1. Download `Gamehub-rebuilt.apk` from the [latest stable release](https://github.com/The412Banner/bannerhub/releases/latest).
-2. Uninstall any existing copy of the same GameHub package first.
-3. Install the APK.
+Download the APK matching your target package from the [latest stable release](https://github.com/The412Banner/bannerhub/releases/latest):
 
-> Built on GameHub 5.3.5 ReVanced Normal. Coexists with other GameHub variants (Lite, AnTuTu, etc.).
+| APK | Package | Use for |
+|-----|---------|---------|
+| `Bannerhub-5.3.5-Revanced-Normal.apk` | `gamehub.lite` | Standard GameHub Lite |
+| `Bannerhub-5.3.5-Revanced-PuBG.apk` | `com.tencent.ig` | GameHub Lite PuBG |
+| `Bannerhub-5.3.5-Revanced-AnTuTu.apk` | `com.antutu.ABenchMark` | GameHub Lite AnTuTu |
+| `Bannerhub-5.3.5-Revanced-Ludashi.apk` | `com.ludashi.aibench` | GameHub Lite Ludashi |
+| `Bannerhub-5.3.5-Revanced-Genshin.apk` | `com.mihoyo.genshinimpact` | GameHub Lite Genshin |
+
+All APKs are signed with AOSP testkey (v1/v2/v3). Coexists with the original GameHub app.
 
 ## Triggering a build
 
-- Push a `v*` tag: `git tag v2.1.0 && git push origin refs/tags/v2.1.0`
+- Push a `v*` tag: `git tag v2.2.1 && git push origin refs/tags/v2.2.1`
 - Or: **Actions → Build APK → Run workflow**
 
 ## Signing
 
-Signed with the committed `keystore.jks` (debug key).
-- Alias: `bannerhub`
-- Password: `bannerhub123`
+Signed with AOSP testkey (`testkey.pk8` / `testkey.x509.pem`), v1 + v2 + v3 signatures.

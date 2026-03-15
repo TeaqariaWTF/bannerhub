@@ -1156,6 +1156,31 @@ Root cause: Some ZIPs (e.g. StevenMX `Turnip_v26.1.0_R4.zip`) contain `vulkan.ad
 
 ---
 
+## Entry 024 — Shrink RTS gesture settings dialog ~20% (v2.2.9-pre)
+**Date:** 2026-03-15  |  **Commit:** `bb3d420`  |  **Tag:** v2.2.9-pre
+
+### Changes
+Navigation bar and status bar were overlapping the RTS gesture settings dialog, blocking users from tapping buttons (especially Close).
+
+- All 6 gesture row heights: `@dimen/dp_48` → `38dp` inline (21% reduction per row)
+- Close button height: `@dimen/mw_44dp` → `35dp` (20% reduction)
+- Dialog `paddingBottom`: `@dimen/mw_16dp` → `12dp`
+- Title `marginTop`: `@dimen/mw_14dp` → `11dp`
+- ScrollView `marginTop`: `@dimen/mw_16dp` → `12dp`
+- Close button `marginTop`: `@dimen/mw_16dp` → `12dp`
+
+Uses inline dp values — no patches/dimens.xml exists, so new dimen references would require adding one.
+
+Total height reduction: 6×(48−38) + (44−35) + margin savings ≈ 75dp+ freed.
+
+### Files touched
+- `[MOD]` `patches/res/layout/rts_gesture_config_dialog.xml`
+
+### CI result
+✅ Passed — run `23114552262` (3m41s)
+
+---
+
 ## Entry 023 — Remove component option (v2.2.8-pre)
 **Date:** 2026-03-15  |  **Commit:** `5b39138`  |  **Tag:** v2.2.8-pre
 

@@ -4,6 +4,20 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.2.9-pre — Shrink RTS gesture settings dialog ~20% (2026-03-15)
+**Commit:** `bb3d420`  |  **Tag:** v2.2.9-pre  |  **CI run:** `23114552262` (3m41s ✓)
+
+### What changed
+- All 6 gesture rows: 48dp → 38dp height
+- Close button: 44dp → 35dp height
+- Top margins and bottom padding trimmed proportionally (14→11dp, 16→12dp)
+- Fixes navigation bar and status bar overlapping the dialog and blocking buttons
+
+### Files touched
+- `patches/res/layout/rts_gesture_config_dialog.xml`
+
+---
+
 ## [pre] — v2.2.8-pre — Add Remove option to Component Manager (2026-03-15)
 **Commit:** `5b39138`  |  **Tag:** v2.2.8-pre  |  **CI run:** `23114139058` (3m41s ✓)
 

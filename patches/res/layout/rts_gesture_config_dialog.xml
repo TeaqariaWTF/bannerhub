@@ -12,9 +12,9 @@
         android:layout_width="@dimen/mw_460dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:paddingBottom="@dimen/mw_16dp"
+        android:paddingBottom="12dp"
         android:background="@drawable/rts_dialog_background">
-        
+
         <!-- Title -->
         <TextView
             android:textSize="@dimen/mw_16sp"
@@ -23,14 +23,14 @@
             android:layout_gravity="center_horizontal"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/mw_14dp"
+            android:layout_marginTop="11dp"
             android:text="@string/rts_gesture_settings_title" />
-        
+
         <!-- Scrollable content -->
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/mw_16dp"
+            android:layout_marginTop="12dp"
             android:layout_marginHorizontal="@dimen/mw_24dp">
             
             <LinearLayout
@@ -42,7 +42,7 @@
                 <LinearLayout
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_48"
+                    android:layout_height="38dp"
                     android:gravity="center_vertical">
                     <androidx.appcompat.widget.AppCompatCheckBox
                         android:id="@id/rts_gesture_tap_checkbox"
@@ -70,7 +70,7 @@
                 <LinearLayout
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_48"
+                    android:layout_height="38dp"
                     android:gravity="center_vertical">
                     <androidx.appcompat.widget.AppCompatCheckBox
                         android:id="@id/rts_gesture_long_press_checkbox"
@@ -98,7 +98,7 @@
                 <LinearLayout
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_48"
+                    android:layout_height="38dp"
                     android:gravity="center_vertical">
                     <androidx.appcompat.widget.AppCompatCheckBox
                         android:id="@id/rts_gesture_double_tap_checkbox"
@@ -126,7 +126,7 @@
                 <LinearLayout
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_48"
+                    android:layout_height="38dp"
                     android:gravity="center_vertical">
                     <androidx.appcompat.widget.AppCompatCheckBox
                         android:id="@id/rts_gesture_drag_checkbox"
@@ -154,7 +154,7 @@
                 <LinearLayout
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_48"
+                    android:layout_height="38dp"
                     android:gravity="center_vertical">
                     <androidx.appcompat.widget.AppCompatCheckBox
                         android:id="@id/rts_gesture_pinch_checkbox"
@@ -187,7 +187,7 @@
                 <LinearLayout
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/dp_48"
+                    android:layout_height="38dp"
                     android:gravity="center_vertical">
                     <androidx.appcompat.widget.AppCompatCheckBox
                         android:id="@id/rts_gesture_two_finger_checkbox"
@@ -227,7 +227,7 @@
             android:focusableInTouchMode="true"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/mw_16dp"
+            android:layout_marginTop="12dp"
             android:layout_marginHorizontal="@dimen/mw_60dp">
             <TextView
                 android:textSize="@dimen/mw_14sp"
@@ -235,7 +235,7 @@
                 android:gravity="center"
                 android:id="@id/tvClose"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/mw_44dp"
+                android:layout_height="35dp"
                 android:text="@string/comm_close"
                 android:background="#ff3b82f6" />
         </com.xj.common.view.focus.focus.view.FocusableFrameLayout>

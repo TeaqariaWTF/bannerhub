@@ -15,22 +15,61 @@
 .end method
 
 .method protected onCreate(Landroid/os/Bundle;)V
-    .locals 2
+    .locals 5
+    # v0=LinearLayout  v1=TextView/float  v2=ListView  v3=LayoutParams/tmp  v4=int/float tmp
+    # p1 reused as scratch after super call
+
     invoke-super {p0, p1}, Landroidx/appcompat/app/AppCompatActivity;->onCreate(Landroid/os/Bundle;)V
-    new-instance v0, Landroid/widget/ListView;
-    invoke-direct {v0, p0}, Landroid/widget/ListView;-><init>(Landroid/content/Context;)V
-    iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->listView:Landroid/widget/ListView;
+
+    # ── ListView ──────────────────────────────────────────────
+    new-instance v2, Landroid/widget/ListView;
+    invoke-direct {v2, p0}, Landroid/widget/ListView;-><init>(Landroid/content/Context;)V
+    iput-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->listView:Landroid/widget/ListView;
+    invoke-virtual {v2, p0}, Landroid/widget/AbsListView;->setOnItemClickListener(Landroid/widget/AdapterView$OnItemClickListener;)V
+    # clip-to-padding false so list scrolls behind nav bar padding without items being cut off
+    const/4 v3, 0x0
+    invoke-virtual {v2, v3}, Landroid/view/ViewGroup;->setClipToPadding(Z)V
+
+    # ── Title TextView ────────────────────────────────────────
+    new-instance v1, Landroid/widget/TextView;
+    invoke-direct {v1, p0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+    const-string v3, "Banners Component Manager"
+    invoke-virtual {v1, v3}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    # text size 18sp
+    const/high16 v3, 0x41900000
+    invoke-virtual {v1, v3}, Landroid/widget/TextView;->setTextSize(F)V
+    # text color white
+    const v3, -0x1
+    invoke-virtual {v1, v3}, Landroid/widget/TextView;->setTextColor(I)V
+    # padding: 48px left/right, 24px top/bottom
+    const/16 v3, 0x30
+    const/16 v4, 0x18
+    invoke-virtual {v1, v3, v4, v3, v4}, Landroid/widget/TextView;->setPadding(IIII)V
+
+    # ── LinearLayout (vertical root) ──────────────────────────
+    new-instance v0, Landroid/widget/LinearLayout;
+    invoke-direct {v0, p0}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
+    const/4 v3, 0x1
+    invoke-virtual {v0, v3}, Landroid/widget/LinearLayout;->setOrientation(I)V
+    # fitsSystemWindows on root: pads for status bar + nav bar automatically
+    invoke-virtual {v0, v3}, Landroid/view/View;->setFitsSystemWindows(Z)V
+
+    # add TextView with MATCH_PARENT x WRAP_CONTENT
+    new-instance v3, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v4, -0x1
+    const/4 p1, -0x2
+    invoke-direct {v3, v4, p1}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    invoke-virtual {v0, v1, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    # add ListView with MATCH_PARENT x 0dp, weight=1 (fills remaining space)
+    new-instance v3, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v4, -0x1
+    const/4 p1, 0x0
+    const/high16 v1, 0x3f800000
+    invoke-direct {v3, v4, p1, v1}, Landroid/widget/LinearLayout$LayoutParams;-><init>(IIF)V
+    invoke-virtual {v0, v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
     invoke-virtual {p0, v0}, Landroidx/appcompat/app/AppCompatActivity;->setContentView(Landroid/view/View;)V
-    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->listView:Landroid/widget/ListView;
-    invoke-virtual {v0, p0}, Landroid/widget/AbsListView;->setOnItemClickListener(Landroid/widget/AdapterView$OnItemClickListener;)V
-    # Pad for status bar (top) and navigation bar (bottom)
-    const/4 v1, 0x1
-    invoke-virtual {v0, v1}, Landroid/view/View;->setFitsSystemWindows(Z)V
-    # Allow list to scroll behind the padding so no items are cut off
-    const/4 v1, 0x0
-    invoke-virtual {v0, v1}, Landroid/view/ViewGroup;->setClipToPadding(Z)V
-    const-string v0, "Banners Component Manager"
-    invoke-virtual {p0, v0}, Landroid/app/Activity;->setTitle(Ljava/lang/CharSequence;)V
     invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->showComponents()V
     return-void
 .end method

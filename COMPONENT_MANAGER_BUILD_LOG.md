@@ -1137,6 +1137,25 @@ ListView was set as the raw content view with no inset handling. GameHub's theme
 
 ---
 
+## Entry 022 — ZIP injection: name/dir mismatch + libraryName rename (v2.2.7-pre)
+**Date:** 2026-03-15  |  **Commit:** `fd5e176`  |  **Tag:** v2.2.7-pre
+
+### Changes
+
+**Fix 1 — directory/name mismatch**
+Root cause: `makeComponentDir` was called with the ZIP filename before `meta.json` was read. The `meta.json["name"]` field then overwrote `v3` (the component name) for registration but the files were already extracted to the filename-based directory. GameHub looked up the component path by registered name → found an empty/missing folder → `enabled=false` → "Illegal driver dir!". Fix: `meta.json["name"]` is never used. ZIP filename is always both the directory name and the registered name. `meta.json["driverVersion"]` is now used as the version string (fallback to filename).
+
+**Fix 2 — wrong .so filename**
+Root cause: Some ZIPs (e.g. StevenMX `Turnip_v26.1.0_R4.zip`) contain `vulkan.ad07XX.so` instead of `libvulkan_freedreno.so`. GameHub's `launchContainer$1` checks for `libvulkan_freedreno.so` at component root only. Fix: after extraction, read `meta.json["libraryName"]`; if non-empty and ≠ `libvulkan_freedreno.so`, call `File.renameTo()` to rename it.
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentInjectorHelper.smali`
+
+### CI result
+✅ Passed
+
+---
+
 # Appendix C — Known constraints
 
 | Constraint | Detail |

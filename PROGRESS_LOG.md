@@ -22,7 +22,11 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 ---
 
 ## [beta] — v2.3.1-beta1 — In-app component downloader (2026-03-15)
-**Commit:** `1cdc468`  |  **Tag:** v2.3.1-beta1 (retagged at `ad7616c`)  |  **CI run:** `23121281510` (Normal APK, package=`banner.hub`)
+**Commit:** `1cdc468`  |  **Tag:** v2.3.1-beta1 (retagged at `407bedf`)  |  **CI run:** `23121795097` (Normal APK, package=`banner.hub`)
+
+### Bug fixes
+- `$3` (DownloadRunnable): moved `injectComponent` call out of background thread into new `$5` (InjectRunnable) posted via `runOnUiThread` — fixes "Can't toast on a thread that has not called Looper.prepare()" crash
+- `$5.smali`: fixed trailing `;` on primitive `iput`/`iget` type descriptor (smali parse error)
 
 ### What changed
 - "↓ Download from Nightlies" entry added to Component Manager type-selection menu (Add New Component flow)

@@ -27,6 +27,20 @@ Implemented in-app component downloader. Full journey: initial fetch (Nightlies 
 
 ---
 
+## [feat] — v2.3.4-pre — Add The412Banner Nightlies repo (2026-03-16)
+**Commit:** `babe5f9`  |  **Tag:** v2.3.4-pre  |  **CI:** ✓ (run `23151833249`, 3m36s)
+
+### What changed
+- Added "The412Banner Nightlies" at index 5 in showRepos() (Back shifted to index 6)
+- `sw0_5` handler: clears lists, sets status text, calls `startFetchPackJson("https://raw.githubusercontent.com/The412Banner/Nightlies/refs/heads/main/nightlies_components.json")`
+- Uses `$6` PackJsonFetchRunnable (flat JSON array: type/verName/remoteUrl) — same as Arihany
+- `showRepos()` array size 6→7; `sw0_data` packed-switch extended to 6 entries
+
+### Files changed
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentDownloadActivity.smali` [MOD]
+
+---
+
 ## [fix] — v2.3.3-pre — Fix: GPU driver variants with same version collide on install (2026-03-16)
 **Commit:** `a80947d`  |  **Tag:** v2.3.3-pre  |  **CI:** ✓ (run `23149773741`, 3m41s)
 

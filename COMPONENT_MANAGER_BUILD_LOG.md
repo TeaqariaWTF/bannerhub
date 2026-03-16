@@ -1307,6 +1307,43 @@ In `onItemClick()` mode=2, after storing `mDownloadUrl` (v1), parse the URL with
 
 ---
 
+## Entry 028 — Add The412Banner Nightlies repo (v2.3.4-pre)
+**Date:** 2026-03-16  |  **Commit:** `babe5f9`  |  **Tag:** `v2.3.4-pre` `[CI✅ 23151833249, 3m41s]`
+
+### What was added
+Added The412Banner Nightlies as a 6th repo option in `ComponentDownloadActivity`. Uses `startFetchPackJson()` → `$6` PackJsonFetchRunnable (flat JSON array format — same as Arihany WCPHub). Array size bumped 6 → 7; "Back" entry shifted from index 5 → 6; new `sw0_5` packed-switch handler added.
+
+### Files touched
+- `[MOD]` `patches/smali_classes16/.../ComponentDownloadActivity.smali`
+  - `onItemClick()` mode=0 — array size 6→7, new `sw0_5` handler block; packed-switch table extended by one entry
+  - New handler: `invoke-virtual {p0, v3}, ComponentDownloadActivity.startFetchPackJson(String)V` with Nightlies pack.json URL
+
+### CI result
+✅ Passed — run `23151833249` (3m41s)
+
+---
+
+## Entry 029 — Stable release v2.3.5
+**Date:** 2026-03-16  |  **Commit:** `948e1ef`  |  **Tag:** `v2.3.5` `[CI✅ 23155662795, 6m9s — 8 APKs]`
+
+### What this release includes (cumulative since v2.3.0)
+All Component Manager and Component Downloader work promoted to stable:
+
+- In-app component downloader (`ComponentDownloadActivity`) — Entries 025–028:
+  - 3-mode ListView: repos → categories → assets
+  - GitHub Releases API fetch (`$1`/`$2`) for Nightlies-style repos (finds first `nightly-*` tag)
+  - pack.json fetch (`$6`) for flat JSON array repos (Arihany WCPHub, The412Banner Nightlies)
+  - Download → inject pipeline with Looper fix (`$5` InjectRunnable)
+  - Back navigation between modes; "Back" entry as last list item
+  - Two repos: Arihany WCPHub + The412Banner Nightlies
+- GPU driver variant collision fix (Entry 027) — URL extension appended to `mDownloadFilename`
+- All prior Component Manager features from PHASE 1–4 (Entries 001–023)
+
+### CI result
+✅ Passed — `build.yml` (stable tag) — run `23155662795` (6m9s) — 8 APKs built (Normal, CrossFire, PuBG, AnTuTu, AnTuTu-full, Ludashi, Genshin, SteamOnly)
+
+---
+
 # Appendix C — Known constraints
 
 | Constraint | Detail |

@@ -118,12 +118,15 @@
     const-string v2, "Select a source"
     invoke-virtual {v1, v2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
-    const/4 v0, 0x2
+    const/4 v0, 0x3
     new-array v0, v0, [Ljava/lang/String;
     const/4 v1, 0x0
     const-string v2, "Arihany WCPHub"
     aput-object v2, v0, v1
     const/4 v1, 0x1
+    const-string v2, "StevenMXZ"
+    aput-object v2, v0, v1
+    const/4 v1, 0x2
     const-string v2, "\u2190 Back"
     aput-object v2, v0, v1
 
@@ -248,7 +251,7 @@
     # mode=0: repo selection
     if-nez v0, :not0
     packed-switch p3, :sw0_data
-    # default: Back (pos 1)
+    # default: Back (pos 2)
     invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->finish()V
     return-void
 
@@ -290,11 +293,19 @@
 
     # ── mode=0 switch targets ─────────────────────────────────────────────────
     :sw0_0
-    # Arihany WCPHub — uses pack.json format (flat array, not GitHub Releases API)
+    # Arihany WCPHub
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mStatusText:Landroid/widget/TextView;
     const-string v1, "Fetching Arihany WCPHub..."
     invoke-virtual {v0, v1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
     const-string v0, "https://raw.githubusercontent.com/Arihany/WinlatorWCPHub/refs/heads/main/pack.json"
+    invoke-virtual {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->startFetchPackJson(Ljava/lang/String;)V
+    return-void
+    :sw0_1
+    # StevenMXZ
+    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mStatusText:Landroid/widget/TextView;
+    const-string v1, "Fetching StevenMXZ..."
+    invoke-virtual {v0, v1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    const-string v0, "https://raw.githubusercontent.com/StevenMXZ/Winlator-Contents/main/contents.json"
     invoke-virtual {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->startFetchPackJson(Ljava/lang/String;)V
     return-void
 
@@ -328,6 +339,7 @@
     :sw0_data
     .packed-switch 0x0
         :sw0_0
+        :sw0_1
     .end packed-switch
 
     nop

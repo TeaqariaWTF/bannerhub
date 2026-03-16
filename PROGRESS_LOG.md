@@ -27,6 +27,18 @@ Implemented in-app component downloader. Full journey: initial fetch (Nightlies 
 
 ---
 
+## [pre] — v2.3.2-pre — Roll-up pre-release: all changes since v2.3.0 stable (2026-03-16)
+**Commit:** `9849bd9`  |  **Tag:** v2.3.2-pre
+
+### What this release contains (all changes since v2.3.0)
+- In-app Component Downloader (ComponentDownloadActivity) — 3-level nav: repo → category → asset
+- Arihany WCPHub, Kimchi GPU Drivers, StevenMXZ GPU Drivers, MTR GPU Drivers, Whitebelyash GPU Drivers repos
+- Fix: blank component name after ZIP inject (getDisplayName fallback to Uri.getLastPathSegment)
+- $7 KimchiDriversRunnable, $8 SingleReleaseRunnable, $9 GpuDriversFetchRunnable
+- detectType() +qualcomm keyword
+
+---
+
 ## [feat] — v2.3.1-pre11 — Rename MTR Drivers; add Whitebelyash GPU Drivers (2026-03-16)
 **Commit:** `42b2435`  |  **Tag:** v2.3.1-pre11
 

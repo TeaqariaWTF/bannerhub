@@ -28,19 +28,20 @@ Implemented in-app component downloader. Full journey: initial fetch (Nightlies 
 ---
 
 ## [pre] — v2.3.2-pre — Roll-up pre-release: all changes since v2.3.0 stable (2026-03-16)
-**Commit:** `9849bd9`  |  **Tag:** v2.3.2-pre
+**Commit:** `9849bd9`  |  **Tag:** v2.3.2-pre  |  **CI:** ✓ (run `23145292442`)
+> **All v2.3.1-pre* releases and tags (pre through pre11) deleted from GitHub — superseded by this release.**
 
 ### What this release contains (all changes since v2.3.0)
 - In-app Component Downloader (ComponentDownloadActivity) — 3-level nav: repo → category → asset
-- Arihany WCPHub, Kimchi GPU Drivers, StevenMXZ GPU Drivers, MTR GPU Drivers, Whitebelyash GPU Drivers repos
-- Fix: blank component name after ZIP inject (getDisplayName fallback to Uri.getLastPathSegment)
-- $7 KimchiDriversRunnable, $8 SingleReleaseRunnable, $9 GpuDriversFetchRunnable
-- detectType() +qualcomm keyword
+- 5 GPU driver repos + Arihany WCPHub: Kimchi / StevenMXZ / MTR / Whitebelyash (all via $9 flat JSON array)
+- Fix: blank component name after ZIP inject (`getDisplayName` fallback to `Uri.getLastPathSegment` for file:// URIs)
+- `$7` KimchiDriversRunnable (releases[] format), `$8` SingleReleaseRunnable (tags API), `$9` GpuDriversFetchRunnable (flat array)
+- `detectType()` +qualcomm keyword → GPU type (0xa)
 
 ---
 
-## [feat] — v2.3.1-pre11 — Rename MTR Drivers; add Whitebelyash GPU Drivers (2026-03-16)
-**Commit:** `42b2435`  |  **Tag:** v2.3.1-pre11
+## ~~[feat] — v2.3.1-pre11 — Rename MTR Drivers; add Whitebelyash GPU Drivers (2026-03-16)~~
+**Commit:** `42b2435`  |  ~~Tag: v2.3.1-pre11~~ DELETED — superseded by v2.3.2-pre
 
 ### What changed
 - Renamed "MTR Drivers" → "MTR GPU Drivers" (label + status text)
@@ -53,8 +54,8 @@ Implemented in-app component downloader. Full journey: initial fetch (Nightlies 
 
 ---
 
-## [feat] — v2.3.1-pre10 — Add MTR Drivers repo (2026-03-16)
-**Commit:** `d2c4ec2`  |  **Tag:** v2.3.1-pre10
+## ~~[feat] — v2.3.1-pre10 — Add MTR Drivers repo (2026-03-16)~~
+**Commit:** `d2c4ec2`  |  ~~Tag: v2.3.1-pre10~~ DELETED
 
 ### What changed
 - Added "MTR Drivers" (sw0_3) → `mtr_drivers.json` flat array via `$9` GpuDriversFetchRunnable
@@ -66,8 +67,8 @@ Implemented in-app component downloader. Full journey: initial fetch (Nightlies 
 
 ---
 
-## [feat] — v2.3.1-pre9 — Split GPU Drivers into Kimchi and StevenMXZ repos (2026-03-16)
-**Commit:** `5989ef4`  |  **Tag:** v2.3.1-pre9
+## ~~[feat] — v2.3.1-pre9 — Split GPU Drivers into Kimchi and StevenMXZ repos (2026-03-16)~~
+**Commit:** `5989ef4`  |  ~~Tag: v2.3.1-pre9~~ DELETED
 
 ### What changed
 - Removed combined "GPU Drivers (Kimchi+StevenMXZ)" repo
@@ -82,8 +83,8 @@ Implemented in-app component downloader. Full journey: initial fetch (Nightlies 
 
 ---
 
-## [fix] — v2.3.1-pre8 — Fix blank component name after ZIP inject (2026-03-16)
-**Commit:** `a893204`  |  **Tag:** v2.3.1-pre8
+## ~~[fix] — v2.3.1-pre8 — Fix blank component name after ZIP inject (2026-03-16)~~
+**Commit:** `a893204`  |  ~~Tag: v2.3.1-pre8~~ DELETED
 
 ### Root cause
 `getDisplayName(ctx, uri)` queries ContentResolver `_display_name`. For `file://` URIs created by `Uri.fromFile()` (used by $3 DownloadRunnable after caching to cacheDir), ContentResolver returns null cursor → `v7 = ""` → `stripExt("") = ""` → blank name in toast and GameHub's component list.
@@ -96,8 +97,8 @@ Modified `getDisplayName` to fall back to `uri.getLastPathSegment()` when Conten
 
 ---
 
-## [pre] — v2.3.1-pre3 — Switch Kimchi to Nightlies drivers.json mirror (2026-03-16)
-**Commit:** `2b7c3a5`  |  **Tag:** v2.3.1-pre3  |  **CI run:** `23136404589`
+## ~~[pre] — v2.3.1-pre3 — Switch Kimchi to Nightlies drivers.json mirror (2026-03-16)~~
+**Commit:** `2b7c3a5`  |  ~~Tag: v2.3.1-pre3~~ DELETED
 
 ### What changed
 - `$7` now fetches `Nightlies/kimchi/drivers.json` instead of GitHub Releases API
@@ -111,8 +112,8 @@ Modified `getDisplayName` to fall back to `uri.getLastPathSegment()` when Conten
 
 ---
 
-## [pre] — v2.3.1-pre2 — Fix $7 register limit (2026-03-16)
-**Commit:** `07aa664`  |  **Tag:** v2.3.1-pre2  |  **CI run:** `23135589174` (✓)
+## ~~[pre] — v2.3.1-pre2 — Fix $7 register limit (2026-03-16)~~
+**Commit:** `07aa664`  |  ~~Tag: v2.3.1-pre2~~ DELETED
 
 ### What changed
 - `.locals 15` (not 16) so p0 maps to v15 within 4-bit instruction range
@@ -152,8 +153,8 @@ Modified `getDisplayName` to fall back to `uri.getLastPathSegment()` when Conten
 
 ---
 
-## [pre] — v2.3.1-pre — Promote to pre-release (2026-03-16)
-**Commit:** `3afd2c2`  |  **Tag:** v2.3.1-pre  |  **CI run:** `23124431878` (✓, Normal APK, package=`banner.hub`)
+## ~~[pre] — v2.3.1-pre — Promote to pre-release (2026-03-16)~~
+**Commit:** `3afd2c2`  |  ~~Tag: v2.3.1-pre~~ DELETED
 
 ### What changed
 - beta5 deleted and retagged as v2.3.1-pre

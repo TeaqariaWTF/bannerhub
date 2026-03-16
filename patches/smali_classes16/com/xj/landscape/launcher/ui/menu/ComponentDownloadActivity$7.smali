@@ -18,13 +18,13 @@
 .end method
 
 .method public run()V
-    .locals 16
-    # Register plan (16 max: v0-v15)
-    # Setup phase:  v1=url/temp  v2=URL→HttpURLConnection  v3=stream/reader  v4=reader/temp  v5=StringBuilder→responseStr
-    # Parse phase:  v6=releases JSONArray  v7=release count  v8=release index
-    # Outer loop:   v9=tag_name (kept alive across inner loop)  v10=assets array  v11=asset count  v12=asset index
-    # Inner loop:   v13=asset JSONObject → reused as label StringBuilder  v14=asset name  v15=asset url
-    # label build:  v2 free (HttpURLConnection done), v1 free → reuse for iget mAllNames/mAllUrls
+    .locals 15
+    # .locals 15 → v0-v14 locals, p0=v15 (within 4-bit range for all instructions)
+    # Setup:  v1=temp  v2=URL→HttpURLConnection→label string  v3=stream/reader  v4=reader temp  v5=StringBuilder→responseStr
+    # Parse:  v6=releases JSONArray  v7=release count  v8=release index
+    # Outer:  v9=tag_name  v10=assets JSONArray  v11=asset count  v12=asset index
+    # Inner:  v13=asset JSONObject→label StringBuilder  v14=asset name
+    # v5 reused as asset url after responseStr consumed into JSONArray
 
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$7;->this$0:Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;
 
@@ -47,7 +47,7 @@
     const-string v3, "BannerHub/1.0"
     invoke-virtual {v2, v1, v3}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
 
-    # read response into StringBuilder
+    # read response into StringBuilder (v5)
     invoke-virtual {v2}, Ljava/net/HttpURLConnection;->getInputStream()Ljava/io/InputStream;
     move-result-object v3
     new-instance v4, Ljava/io/InputStreamReader;
@@ -69,10 +69,10 @@
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5
 
-    # parse releases JSONArray — v3,v4,v5 now free except v5 holds responseStr briefly
+    # parse releases JSONArray — v5 (responseStr) consumed here, then free for reuse
     new-instance v6, Lorg/json/JSONArray;
     invoke-direct {v6, v5}, Lorg/json/JSONArray;-><init>(Ljava/lang/String;)V
-    # v5 free from here
+    # v5 now free — reused as asset url in inner loop
 
     invoke-virtual {v6}, Lorg/json/JSONArray;->length()I
     move-result v7
@@ -85,15 +85,15 @@
     invoke-virtual {v6, v8}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
     move-result-object v9
 
-    # v9 = tag_name (overwrite release JSONObject — extract fields first)
+    # extract assets array before overwriting v9 with tag_name
     const-string v1, "assets"
     invoke-virtual {v9, v1}, Lorg/json/JSONObject;->getJSONArray(Ljava/lang/String;)Lorg/json/JSONArray;
     move-result-object v10
 
+    # v9 = tag_name (kept alive across all inner loop iterations)
     const-string v1, "tag_name"
     invoke-virtual {v9, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
     move-result-object v9
-    # v9 = tag_name String (kept alive for all inner iterations)
 
     invoke-virtual {v10}, Lorg/json/JSONArray;->length()I
     move-result v11
@@ -126,10 +126,10 @@
     if-eqz v1, :skip_asset
 
     :accept_asset
-    # v15 = browser_download_url
+    # v5 = browser_download_url (v5 reused — responseStr long consumed)
     const-string v1, "browser_download_url"
     invoke-virtual {v13, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
-    move-result-object v15
+    move-result-object v5
 
     # v13 now free — reuse as label StringBuilder: "tagName / assetName"
     new-instance v13, Ljava/lang/StringBuilder;
@@ -141,11 +141,11 @@
     invoke-virtual {v13}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v2
 
-    # add to mAllNames (label) and mAllUrls (url) — use v1 as temp for iget
+    # add label to mAllNames, url to mAllUrls — v1 reused for iget
     iget-object v1, v0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllNames:Ljava/util/ArrayList;
     invoke-virtual {v1, v2}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
     iget-object v1, v0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllUrls:Ljava/util/ArrayList;
-    invoke-virtual {v1, v15}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
+    invoke-virtual {v1, v5}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
 
     :skip_asset
     add-int/lit8 v12, v12, 0x1

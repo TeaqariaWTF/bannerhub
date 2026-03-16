@@ -317,8 +317,8 @@
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mStatusText:Landroid/widget/TextView;
     const-string v1, "Fetching Kimchi GPU Drivers..."
     invoke-virtual {v0, v1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-    const-string v0, "https://raw.githubusercontent.com/The412Banner/Nightlies/refs/heads/main/kimchi/drivers.json"
-    invoke-virtual {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->startFetchAllReleases(Ljava/lang/String;)V
+    const-string v0, "https://api.github.com/repos/The412Banner/Nightlies/releases/tags/kimchi-drivers"
+    invoke-virtual {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->startFetchSingleRelease(Ljava/lang/String;)V
     return-void
 
     :sw0_2
@@ -394,6 +394,16 @@
     .locals 2
     new-instance v0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$6;
     invoke-direct {v0, p0, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$6;-><init>(Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;Ljava/lang/String;)V
+    new-instance v1, Ljava/lang/Thread;
+    invoke-direct {v1, v0}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
+    invoke-virtual {v1}, Ljava/lang/Thread;->start()V
+    return-void
+.end method
+
+.method public startFetchSingleRelease(Ljava/lang/String;)V
+    .locals 2
+    new-instance v0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$8;
+    invoke-direct {v0, p0, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$8;-><init>(Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;Ljava/lang/String;)V
     new-instance v1, Ljava/lang/Thread;
     invoke-direct {v1, v0}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
     invoke-virtual {v1}, Ljava/lang/Thread;->start()V

@@ -1066,7 +1066,7 @@
     invoke-interface {v3, v7}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     # ---- Core 3 (id=8) ----
-    const/4 v8, 0x8
+    const/16 v8, 0x8
     if-ne v0, v8, :cond_bh_c3_ns
     const/4 v10, 0x1
     goto :goto_bh_c3
@@ -1860,7 +1860,7 @@
     return-object p0
 
     :cond_bh_d5
-    const/4 v0, 0x8
+    const/16 v0, 0x8
     if-ne p0, v0, :cond_bh_d6
     const-string p0, "Core 3"
     return-object p0

@@ -1370,6 +1370,25 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 
 ---
 
+## Entry 032 — Offline fix: catch NoCacheException in GameSettingViewModel.fetchList (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `36e0180`  |  **Tag:** v2.3.7-pre  |  **CI:** pending
+
+### Files created / moved / deleted
+- `patches/smali_classes3/com/xj/winemu/settings/GameSettingViewModel$fetchList$1.smali` [MOD]
+
+### Methods added / changed
+**`GameSettingViewModel$fetchList$1.invokeSuspend`** — modified two coroutine resume points:
+- `:pswitch_8` (packed-switch label=1, getContainerList resume): wrapped `invoke-static/range {p1..p1}, Lkotlin/ResultKt;->b(Ljava/lang/Object;)V` in `:try_start_ps8` / `:try_end_ps8` / `.catch Ljava/lang/Exception; ... :catch_ps8`. Catch handler: `move-exception v8` + `new-instance v4, ArrayList; invoke-direct {v4}, ...<init>()V` + `goto :goto_0`. Fallback: empty ArrayList.
+- `:pswitch_6` (packed-switch label=3, getComponentList resume): same pattern with `:try_start_ps6` / `:try_end_ps6` / `:catch_ps6`. Catch handler: `move-exception v8` + `const-string v4, "{}"` + `goto/16 :goto_8`. Fallback: empty JSON object string.
+
+### Root cause / rationale
+Logcat analysis (logcat_2026-03-17_07-33-27.txt): When offline, `landscape-api.vgabc.com` DNS resolution fails. Both `getContainerList` and `getComponentList` throw `NoCacheException` from `OfflineCacheInterceptor` (no prior cached response). The exception escaped `invokeSuspend` via `ResultKt.throwOnFailure()` (uncaught), propagated to the ViewModel's coroutine error handler, which showed a blocking error UI rendering all PC game settings menus non-interactive. Note: packed-switch table is REVERSED — label N maps to `:pswitch_{9-N}`, so label=1 → pswitch_8 and label=3 → pswitch_6.
+
+### CI result
+Pending — v2.3.7-pre tag triggers build-quick.yml (Normal APK only)
+
+---
+
 ## Entry 031 — classes12 dex bypass + patches/ restore (2026-03-17 session)
 **Date:** 2026-03-17  |  **Commits:** `9b4f0f5` `5875eb8` `f66a6a4` `b42c452` `3ca4a9c`  |  **Tag:** none  |  **CI:** `23190604565` ✅ (build.yml, 8 APKs)
 

@@ -16794,19 +16794,13 @@
     invoke-interface {v1, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     # --- BannerHub: unlocked higher VRAM limits ---
+    # Note: v33=v2 (false/not selected) for all new entries — v0 is a
+    # DialogSettingListItemEntity ref at this point (clobbered by 4 GB entry),
+    # so integer comparison would cause VerifyError. Checkmark not shown for
+    # higher values but selection and storage work correctly.
 
-    const/16 v3, 0x1800
-
-    if-ne v0, v3, :cond_6
-
-    move/from16 v33, v29
-
-    goto :goto_6
-
-    :cond_6
     move/from16 v33, v2
 
-    :goto_6
     new-instance v30, Lcom/xj/winemu/bean/DialogSettingListItemEntity;
 
     const v54, 0x3ffff2
@@ -16861,18 +16855,8 @@
 
     invoke-interface {v1, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    const/16 v3, 0x2000
-
-    if-ne v0, v3, :cond_7
-
-    move/from16 v33, v29
-
-    goto :goto_7
-
-    :cond_7
     move/from16 v33, v2
 
-    :goto_7
     new-instance v30, Lcom/xj/winemu/bean/DialogSettingListItemEntity;
 
     const v54, 0x3ffff2
@@ -16927,18 +16911,8 @@
 
     invoke-interface {v1, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    const/16 v3, 0x3000
-
-    if-ne v0, v3, :cond_8
-
-    move/from16 v33, v29
-
-    goto :goto_8
-
-    :cond_8
     move/from16 v33, v2
 
-    :goto_8
     new-instance v30, Lcom/xj/winemu/bean/DialogSettingListItemEntity;
 
     const v54, 0x3ffff2
@@ -16993,18 +16967,8 @@
 
     invoke-interface {v1, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    const/16 v3, 0x4000
-
-    if-ne v0, v3, :cond_9
-
-    move/from16 v33, v29
-
-    goto :goto_9
-
-    :cond_9
     move/from16 v33, v2
 
-    :goto_9
     new-instance v30, Lcom/xj/winemu/bean/DialogSettingListItemEntity;
 
     const v54, 0x3ffff2

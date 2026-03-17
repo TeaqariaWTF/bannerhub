@@ -102,7 +102,7 @@
 
     # No cores selected — show Toast and abort (don't save)
     if-nez v1, :cond_hasmask
-    move-object v4, p1
+    move-object/from16 v4, p1
     check-cast v4, Landroid/app/Dialog;
     invoke-virtual {v4}, Landroid/app/Dialog;->getContext()Landroid/content/Context;
     move-result-object v4

@@ -1385,7 +1385,7 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 Logcat analysis (logcat_2026-03-17_07-33-27.txt): When offline, `landscape-api.vgabc.com` DNS resolution fails. Both `getContainerList` and `getComponentList` throw `NoCacheException` from `OfflineCacheInterceptor` (no prior cached response). The exception escaped `invokeSuspend` via `ResultKt.throwOnFailure()` (uncaught), propagated to the ViewModel's coroutine error handler, which showed a blocking error UI rendering all PC game settings menus non-interactive. Note: packed-switch table is REVERSED — label N maps to `:pswitch_{9-N}`, so label=1 → pswitch_8 and label=3 → pswitch_6.
 
 ### CI result
-Pending — v2.3.7-pre tag triggers build-quick.yml (Normal APK only)
+✅ Passed — `build-quick.yml` — run `23192702967` — Normal APK built. App tested and confirmed working offline.
 
 ---
 

@@ -2993,6 +2993,20 @@
     .line 23
     if-eq p0, v0, :cond_0
 
+    # --- BannerHub: extended VRAM display strings ---
+    const/16 v0, 0x1800
+    if-eq p0, v0, :cond_bh6
+
+    const/16 v0, 0x2000
+    if-eq p0, v0, :cond_bh8
+
+    const/16 v0, 0x3000
+    if-eq p0, v0, :cond_bh12
+
+    const/16 v0, 0x4000
+    if-eq p0, v0, :cond_bh16
+    # --- end BannerHub extended VRAM display strings ---
+
     .line 24
     .line 25
     sget p0, Lcom/xj/language/R$string;->pc_cc_cpu_core_no_limit:I
@@ -3047,6 +3061,22 @@
 
     .line 45
     .line 46
+    return-object p0
+
+    :cond_bh6
+    const-string p0, "6 GB"
+    return-object p0
+
+    :cond_bh8
+    const-string p0, "8 GB"
+    return-object p0
+
+    :cond_bh12
+    const-string p0, "12 GB"
+    return-object p0
+
+    :cond_bh16
+    const-string p0, "16 GB"
     return-object p0
 .end method
 
@@ -16793,234 +16823,155 @@
     .line 397
     invoke-interface {v1, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
-    # --- BannerHub: unlocked higher VRAM limits ---
-    # Note: v33=v2 (false/not selected) for all new entries — v0 is a
-    # DialogSettingListItemEntity ref at this point (clobbered by 4 GB entry),
-    # so integer comparison would cause VerifyError. Checkmark not shown for
-    # higher values but selection and storage work correctly.
+    # --- BannerHub: unlocked higher VRAM limits (6/8/12/16 GB) ---
+    # v0 is a DialogSettingListItemEntity ref here (clobbered by 4 GB entry).
+    # Call G0() fresh into v3 (int) to safely compare for isSelected.
+    # v4 used as comparison constant (int). v29=1/v2=0 as before.
+    invoke-virtual/range {p0 .. p0}, Lcom/xj/winemu/settings/PcGameSettingOperations;->G0()I
+    move-result v3
 
+    # 6 GB entry (0x1800 = 6144 MB)
+    const/16 v4, 0x1800
+    if-ne v3, v4, :cond_bh6ns
+    move/from16 v33, v29
+    goto :goto_bh6
+    :cond_bh6ns
     move/from16 v33, v2
-
+    :goto_bh6
     new-instance v30, Lcom/xj/winemu/bean/DialogSettingListItemEntity;
-
     const v54, 0x3ffff2
-
     const/16 v55, 0x0
-
     const/16 v31, 0x1800
-
     const/16 v32, 0x0
-
     const-string v34, "6 GB"
-
     const/16 v35, 0x0
-
     const/16 v36, 0x0
-
     const/16 v37, 0x0
-
     const/16 v38, 0x0
-
     const/16 v39, 0x0
-
     const/16 v40, 0x0
-
     const-wide/16 v41, 0x0
-
     const/16 v43, 0x0
-
     const/16 v44, 0x0
-
     const/16 v45, 0x0
-
     const/16 v46, 0x0
-
     const/16 v47, 0x0
-
     const/16 v48, 0x0
-
     const/16 v49, 0x0
-
     const/16 v50, 0x0
-
     const/16 v51, 0x0
-
     const/16 v52, 0x0
-
     const/16 v53, 0x0
-
     invoke-direct/range {v30 .. v55}, Lcom/xj/winemu/bean/DialogSettingListItemEntity;-><init>(IIZLjava/lang/String;Ljava/lang/String;IILjava/lang/String;ILjava/lang/String;JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;IILcom/xj/winemu/api/bean/EnvLayerEntity;ZILjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-
     move-object/from16 v0, v30
-
     invoke-interface {v1, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
+    # 8 GB entry (0x2000 = 8192 MB)
+    const/16 v4, 0x2000
+    if-ne v3, v4, :cond_bh8ns
+    move/from16 v33, v29
+    goto :goto_bh8
+    :cond_bh8ns
     move/from16 v33, v2
-
+    :goto_bh8
     new-instance v30, Lcom/xj/winemu/bean/DialogSettingListItemEntity;
-
     const v54, 0x3ffff2
-
     const/16 v55, 0x0
-
     const/16 v31, 0x2000
-
     const/16 v32, 0x0
-
     const-string v34, "8 GB"
-
     const/16 v35, 0x0
-
     const/16 v36, 0x0
-
     const/16 v37, 0x0
-
     const/16 v38, 0x0
-
     const/16 v39, 0x0
-
     const/16 v40, 0x0
-
     const-wide/16 v41, 0x0
-
     const/16 v43, 0x0
-
     const/16 v44, 0x0
-
     const/16 v45, 0x0
-
     const/16 v46, 0x0
-
     const/16 v47, 0x0
-
     const/16 v48, 0x0
-
     const/16 v49, 0x0
-
     const/16 v50, 0x0
-
     const/16 v51, 0x0
-
     const/16 v52, 0x0
-
     const/16 v53, 0x0
-
     invoke-direct/range {v30 .. v55}, Lcom/xj/winemu/bean/DialogSettingListItemEntity;-><init>(IIZLjava/lang/String;Ljava/lang/String;IILjava/lang/String;ILjava/lang/String;JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;IILcom/xj/winemu/api/bean/EnvLayerEntity;ZILjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-
     move-object/from16 v0, v30
-
     invoke-interface {v1, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
+    # 12 GB entry (0x3000 = 12288 MB)
+    const/16 v4, 0x3000
+    if-ne v3, v4, :cond_bh12ns
+    move/from16 v33, v29
+    goto :goto_bh12
+    :cond_bh12ns
     move/from16 v33, v2
-
+    :goto_bh12
     new-instance v30, Lcom/xj/winemu/bean/DialogSettingListItemEntity;
-
     const v54, 0x3ffff2
-
     const/16 v55, 0x0
-
     const/16 v31, 0x3000
-
     const/16 v32, 0x0
-
     const-string v34, "12 GB"
-
     const/16 v35, 0x0
-
     const/16 v36, 0x0
-
     const/16 v37, 0x0
-
     const/16 v38, 0x0
-
     const/16 v39, 0x0
-
     const/16 v40, 0x0
-
     const-wide/16 v41, 0x0
-
     const/16 v43, 0x0
-
     const/16 v44, 0x0
-
     const/16 v45, 0x0
-
     const/16 v46, 0x0
-
     const/16 v47, 0x0
-
     const/16 v48, 0x0
-
     const/16 v49, 0x0
-
     const/16 v50, 0x0
-
     const/16 v51, 0x0
-
     const/16 v52, 0x0
-
     const/16 v53, 0x0
-
     invoke-direct/range {v30 .. v55}, Lcom/xj/winemu/bean/DialogSettingListItemEntity;-><init>(IIZLjava/lang/String;Ljava/lang/String;IILjava/lang/String;ILjava/lang/String;JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;IILcom/xj/winemu/api/bean/EnvLayerEntity;ZILjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-
     move-object/from16 v0, v30
-
     invoke-interface {v1, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
+    # 16 GB entry (0x4000 = 16384 MB)
+    const/16 v4, 0x4000
+    if-ne v3, v4, :cond_bh16ns
+    move/from16 v33, v29
+    goto :goto_bh16
+    :cond_bh16ns
     move/from16 v33, v2
-
+    :goto_bh16
     new-instance v30, Lcom/xj/winemu/bean/DialogSettingListItemEntity;
-
     const v54, 0x3ffff2
-
     const/16 v55, 0x0
-
     const/16 v31, 0x4000
-
     const/16 v32, 0x0
-
     const-string v34, "16 GB"
-
     const/16 v35, 0x0
-
     const/16 v36, 0x0
-
     const/16 v37, 0x0
-
     const/16 v38, 0x0
-
     const/16 v39, 0x0
-
     const/16 v40, 0x0
-
     const-wide/16 v41, 0x0
-
     const/16 v43, 0x0
-
     const/16 v44, 0x0
-
     const/16 v45, 0x0
-
     const/16 v46, 0x0
-
     const/16 v47, 0x0
-
     const/16 v48, 0x0
-
     const/16 v49, 0x0
-
     const/16 v50, 0x0
-
     const/16 v51, 0x0
-
     const/16 v52, 0x0
-
     const/16 v53, 0x0
-
     invoke-direct/range {v30 .. v55}, Lcom/xj/winemu/bean/DialogSettingListItemEntity;-><init>(IIZLjava/lang/String;Ljava/lang/String;IILjava/lang/String;ILjava/lang/String;JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;IILcom/xj/winemu/api/bean/EnvLayerEntity;ZILjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-
     move-object/from16 v0, v30
-
     invoke-interface {v1, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     # --- end BannerHub higher VRAM limits ---

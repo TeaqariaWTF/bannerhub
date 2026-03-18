@@ -4,6 +4,13 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [stable] — v2.5.0 — Stable release (2026-03-18)
+**Commit:** `9b25f1a` (README) / tag on `8e78d4f`  |  **Tag:** v2.5.0
+**What changed:** Stable release of v2.4.6-pre through v2.4.9-pre line. Includes Sustained Perf (Root+) + Max Adreno Clocks toggles in Performance sidebar. README rewritten to reflect full feature set including performance toggle comparison table.
+**CI result:** ✅ build.yml — 8 APKs built successfully (run 23271051752)
+
+---
+
 ## [pre] — v2.4.9-pre — Sustained Perf: renamed + dual no-root/root approach (2026-03-18)
 **Commit:** `8e78d4f`  |  **Tag:** v2.4.9-pre
 **What changed:** Renamed toggle to "Sustained Perf (Root+)". Now calls `Window.setSustainedPerformanceMode()` first (no-root, silent if device doesn't support it), then always attempts CPU governor via `su -c` (root users get guaranteed visible effect). onCreate re-apply block updated identically.

@@ -1370,6 +1370,17 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 
 ---
 
+## Entry 046 — CPU core dialog: fix grid to 4×2 vertical (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `b6cfda4`  |  **Tag:** v2.4.2-beta9b  |  **CI:** ✅
+
+### Files created / moved / deleted
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper.smali` [MOD]
+
+### Methods added / changed
+**`CpuMultiSelectHelper.show()`** — Grid layout changed from 2 rows × 4 cols to 4 rows × 2 cols. Each row has left=Efficiency core (0-3), right=Perf/Prime core (4-7). Same TableLayout/TableRow/$4 pattern.
+
+---
+
 ## Entry 045 — CPU core dialog: 2×4 grid layout (TableLayout + $4 CheckBox listener) (2026-03-17)
 **Date:** 2026-03-17  |  **Commit:** `158d98c`  |  **Tag:** v2.4.2-beta9  |  **CI:** ✅ build-quick.yml — success
 

@@ -170,7 +170,7 @@
     invoke-direct {v7, v0}, Landroid/view/View;-><init>(Landroid/content/Context;)V
     const v8, 0xFF808080
     invoke-virtual {v7, v8}, Landroid/view/View;->setBackgroundColor(I)V
-    const/16 v8, 0x2
+    const/4 v8, 0x1
     const/4 v6, -0x1
     invoke-virtual {v5, v7, v8, v6}, Landroid/view/ViewGroup;->addView(Landroid/view/View;II)V
 
@@ -210,7 +210,7 @@
     invoke-direct {v7, v0}, Landroid/view/View;-><init>(Landroid/content/Context;)V
     const v8, 0xFF808080
     invoke-virtual {v7, v8}, Landroid/view/View;->setBackgroundColor(I)V
-    const/16 v8, 0x2
+    const/4 v8, 0x1
     const/4 v6, -0x1
     invoke-virtual {v5, v7, v8, v6}, Landroid/view/ViewGroup;->addView(Landroid/view/View;II)V
 
@@ -250,7 +250,7 @@
     invoke-direct {v7, v0}, Landroid/view/View;-><init>(Landroid/content/Context;)V
     const v8, 0xFF808080
     invoke-virtual {v7, v8}, Landroid/view/View;->setBackgroundColor(I)V
-    const/16 v8, 0x2
+    const/4 v8, 0x1
     const/4 v6, -0x1
     invoke-virtual {v5, v7, v8, v6}, Landroid/view/ViewGroup;->addView(Landroid/view/View;II)V
 
@@ -290,7 +290,7 @@
     invoke-direct {v7, v0}, Landroid/view/View;-><init>(Landroid/content/Context;)V
     const v8, 0xFF808080
     invoke-virtual {v7, v8}, Landroid/view/View;->setBackgroundColor(I)V
-    const/16 v8, 0x2
+    const/4 v8, 0x1
     const/4 v6, -0x1
     invoke-virtual {v5, v7, v8, v6}, Landroid/view/ViewGroup;->addView(Landroid/view/View;II)V
 

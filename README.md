@@ -28,9 +28,16 @@ Accessible via GameHub's left side menu → **Components**.
 Inside the Component Manager type-selection menu, tap **↓ Download from Online Repos** to browse and download components directly from GitHub without leaving GameHub.
 
 - **3-level navigation:** repo → category (DXVK / VKD3D / Box64 / FEXCore / GPU Driver) → filtered asset list
-- **Two sources built-in:**
-  - **The412Banner Nightlies** — nightly builds of DXVK, VKD3D-Proton, Box64, FEXCore fetched via GitHub Releases API
-  - **Arihany WCPHub** — curated WCP component pack fetched via flat `pack.json`
+- **6 sources built-in:**
+
+| Source | What it provides |
+|---|---|
+| **Arihany WCPHub** | Curated WCP pack — DXVK, VKD3D, Box64, FEXCore, GPU Drivers |
+| **The412Banner Nightlies** | Nightly builds — DXVK, VKD3D-Proton, Box64, FEXCore, GPU Drivers |
+| **Kimchi GPU Drivers** | GPU Drivers only |
+| **StevenMXZ GPU Drivers** | GPU Drivers only |
+| **MTR GPU Drivers** | GPU Drivers only (MaxesTechReview) |
+| **Whitebelyash GPU Drivers** | GPU Drivers only |
 - Tap any asset to download it to cache and inject it as a new component automatically
 
 ### BCI Launcher Button
@@ -46,6 +53,7 @@ Two toggles in the in-game **Performance sidebar tab** (above Dual Battery Mode)
 | **Root effect** | Sets all CPU cores to `performance` governor | Locks GPU `min_freq = max_freq` (no downclocking) |
 | **Disable effect** | Reverts CPU governor to `schedutil` | Resets GPU `min_freq` to 0 |
 | **Best for** | CPU-heavy workloads, frame time spikes | GPU-heavy games, GPU clock dips |
+| **Without root** | Greyed out — non-interactive | Greyed out — non-interactive |
 
 Use both together for maximum sustained performance (requires root).
 

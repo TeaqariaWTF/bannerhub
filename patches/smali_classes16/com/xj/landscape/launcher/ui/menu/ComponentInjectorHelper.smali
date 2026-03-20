@@ -840,6 +840,11 @@
     const/4 v8, 0x1
     invoke-virtual {v6, v8}, Lcom/xj/winemu/bean/DialogSettingListItemEntity;->setDownloaded(Z)V
 
+    # setDesc(blurb) — shows description under component name in game settings picker
+    invoke-virtual {v4}, Lcom/xj/winemu/api/bean/EnvLayerEntity;->getBlurb()Ljava/lang/String;
+    move-result-object v7
+    invoke-virtual {v6, v7}, Lcom/xj/winemu/bean/DialogSettingListItemEntity;->setDesc(Ljava/lang/String;)V
+
     invoke-interface {p0, v6}, Ljava/util/List;->add(Ljava/lang/Object;)Z
     goto :iter_loop
 

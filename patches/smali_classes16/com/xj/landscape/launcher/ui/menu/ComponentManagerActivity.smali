@@ -242,7 +242,7 @@
     invoke-virtual {v1, v2}, Landroidx/recyclerview/widget/RecyclerView;->setLayoutManager(Landroidx/recyclerview/widget/RecyclerView$LayoutManager;)V
 
     # Padding top/bottom 8dp, clipToPadding=false
-    const/4 v2, 0x8
+    const/16 v2, 0x8
     invoke-virtual {p0, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
     move-result v2
     invoke-virtual {v1, v2, v2, v2, v2}, Landroidx/recyclerview/widget/RecyclerView;->setPadding(IIII)V
@@ -309,7 +309,7 @@
     invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
     const/16 v2, 0x11
     invoke-virtual {v1, v2}, Landroid/widget/TextView;->setGravity(I)V
-    const/4 v2, 0x8
+    const/16 v2, 0x8
     invoke-virtual {p0, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
     move-result v2
     invoke-virtual {v1, v2, v2, v2, v2}, Landroid/widget/TextView;->setPadding(IIII)V
@@ -342,7 +342,7 @@
 .method private buildBottomBar()Landroid/widget/LinearLayout;
     .locals 10
 
-    const/4 v8, 0x8
+    const/16 v8, 0x8
     invoke-virtual {p0, v8}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
     move-result v8    # 8dp px
     const/4 v9, 0x6
@@ -414,7 +414,7 @@
     new-instance v1, Landroid/graphics/drawable/GradientDrawable;
     invoke-direct {v1}, Landroid/graphics/drawable/GradientDrawable;-><init>()V
     invoke-virtual {v1, p2}, Landroid/graphics/drawable/GradientDrawable;->setColor(I)V
-    const/4 v2, 0x8
+    const/16 v2, 0x8
     invoke-virtual {p0, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
     move-result v2
     int-to-float v2, v2
@@ -499,11 +499,11 @@
     # has items: show RV, hide empty
     const/4 v0, 0x0
     invoke-virtual {v1, v0}, Landroid/view/View;->setVisibility(I)V   # VISIBLE
-    const/4 v0, 0x8
+    const/16 v0, 0x8
     invoke-virtual {v2, v0}, Landroid/view/View;->setVisibility(I)V   # GONE
     return-void
     :is_empty
-    const/4 v0, 0x8
+    const/16 v0, 0x8
     invoke-virtual {v1, v0}, Landroid/view/View;->setVisibility(I)V   # GONE
     const/4 v0, 0x0
     invoke-virtual {v2, v0}, Landroid/view/View;->setVisibility(I)V   # VISIBLE

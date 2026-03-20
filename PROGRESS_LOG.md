@@ -1341,3 +1341,19 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 #### Files touched
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali` — 9 fields private→public
 - `PROGRESS_LOG.md` — this entry
+
+---
+
+### [pre] — v2.6.9-pre — Dark navy UI for ComponentDownloadActivity (2026-03-20)
+**Commit:** `581eb9a`  |  **Tag:** v2.6.9-pre
+#### What changed
+- ComponentDownloadActivity (download flow: repo → category → asset) redesigned to match dark navy theme
+- Root: 0xFF1A1A2E bg, fitsSystemWindows; header bar 0xFF16213E with ← back btn (orange, onBackPressed) + title (white, weight=1)
+- Status text: gray 0xFFAAAAAA, 14sp; ListView: dark bg; items via DarkAdapter (0xFF1E1E35 bg, white text, orange ← Back)
+- New: ComponentDownloadActivity$DarkAdapter, ComponentDownloadActivity$BhBackBtn
+- Added dp(I)I helper to ComponentDownloadActivity
+#### Files touched
+- `patches/smali_classes16/.../ComponentDownloadActivity.smali` — new onCreate UI, DarkAdapter swap in showRepos/showCategories/showAssets, dp() added
+- `patches/smali_classes16/.../ComponentDownloadActivity$DarkAdapter.smali` — new
+- `patches/smali_classes16/.../ComponentDownloadActivity$BhBackBtn.smali` — new
+- `PROGRESS_LOG.md` — this entry

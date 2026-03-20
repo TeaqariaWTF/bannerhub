@@ -23,98 +23,145 @@
 .end method
 
 .method protected onCreate(Landroid/os/Bundle;)V
-    .locals 6
+    .locals 8
+    # v0-v7 = locals; p0=v8=this; p1=v9=Bundle
+
     invoke-super {p0, p1}, Landroidx/appcompat/app/AppCompatActivity;->onCreate(Landroid/os/Bundle;)V
 
-    # init all four ArrayLists
-    new-instance v5, Ljava/util/ArrayList;
-    invoke-direct {v5}, Ljava/util/ArrayList;-><init>()V
-    iput-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllNames:Ljava/util/ArrayList;
-    new-instance v5, Ljava/util/ArrayList;
-    invoke-direct {v5}, Ljava/util/ArrayList;-><init>()V
-    iput-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllUrls:Ljava/util/ArrayList;
-    new-instance v5, Ljava/util/ArrayList;
-    invoke-direct {v5}, Ljava/util/ArrayList;-><init>()V
-    iput-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mCurrentNames:Ljava/util/ArrayList;
-    new-instance v5, Ljava/util/ArrayList;
-    invoke-direct {v5}, Ljava/util/ArrayList;-><init>()V
-    iput-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mCurrentUrls:Ljava/util/ArrayList;
+    # init ArrayLists
+    new-instance v0, Ljava/util/ArrayList;
+    invoke-direct {v0}, Ljava/util/ArrayList;-><init>()V
+    iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllNames:Ljava/util/ArrayList;
+    new-instance v0, Ljava/util/ArrayList;
+    invoke-direct {v0}, Ljava/util/ArrayList;-><init>()V
+    iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllUrls:Ljava/util/ArrayList;
+    new-instance v0, Ljava/util/ArrayList;
+    invoke-direct {v0}, Ljava/util/ArrayList;-><init>()V
+    iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mCurrentNames:Ljava/util/ArrayList;
+    new-instance v0, Ljava/util/ArrayList;
+    invoke-direct {v0}, Ljava/util/ArrayList;-><init>()V
+    iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mCurrentUrls:Ljava/util/ArrayList;
 
-    # title TextView
+    # ── Root: dark navy vertical LinearLayout ─────────────────────────────────
+    new-instance v0, Landroid/widget/LinearLayout;
+    invoke-direct {v0, p0}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
+    const/4 v1, 0x1
+    invoke-virtual {v0, v1}, Landroid/widget/LinearLayout;->setOrientation(I)V
+    invoke-virtual {v0, v1}, Landroid/view/View;->setFitsSystemWindows(Z)V
+    const v1, 0xFF1A1A2E
+    invoke-virtual {v0, v1}, Landroid/view/View;->setBackgroundColor(I)V
+
+    # ── Header ────────────────────────────────────────────────────────────────
+    new-instance v1, Landroid/widget/LinearLayout;
+    invoke-direct {v1, p0}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
+    const/4 v2, 0x0
+    invoke-virtual {v1, v2}, Landroid/widget/LinearLayout;->setOrientation(I)V
+    const v2, 0xFF16213E
+    invoke-virtual {v1, v2}, Landroid/view/View;->setBackgroundColor(I)V
+    const/16 v2, 0x10
+    invoke-virtual {v1, v2}, Landroid/widget/LinearLayout;->setGravity(I)V
+    const/16 v2, 0x10
+    invoke-virtual {p0, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->dp(I)I
+    move-result v2
+    invoke-virtual {v1, v2, v2, v2, v2}, Landroid/view/View;->setPadding(IIII)V
+
+    # ← back button
     new-instance v2, Landroid/widget/TextView;
     invoke-direct {v2, p0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-    const-string v5, "Download from Online Repos"
-    invoke-virtual {v2, v5}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-    const/high16 v5, 0x41900000
-    invoke-virtual {v2, v5}, Landroid/widget/TextView;->setTextSize(F)V
-    const v5, -0x1
-    invoke-virtual {v2, v5}, Landroid/widget/TextView;->setTextColor(I)V
-    const/16 v5, 0x30
-    const/16 p1, 0x18
-    invoke-virtual {v2, v5, p1, v5, p1}, Landroid/widget/TextView;->setPadding(IIII)V
+    const-string v3, "\u2190"
+    invoke-virtual {v2, v3}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    const/high16 v3, 0x41A00000
+    invoke-virtual {v2, v3}, Landroid/widget/TextView;->setTextSize(F)V
+    const v3, 0xFFFF9800
+    invoke-virtual {v2, v3}, Landroid/widget/TextView;->setTextColor(I)V
+    const/16 v3, 0xc
+    invoke-virtual {p0, v3}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->dp(I)I
+    move-result v3
+    invoke-virtual {v2, v3, v3, v3, v3}, Landroid/view/View;->setPadding(IIII)V
+    new-instance v3, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$BhBackBtn;
+    invoke-direct {v3, p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$BhBackBtn;-><init>(Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;)V
+    invoke-virtual {v2, v3}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+    invoke-virtual {v1, v2}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # status TextView
+    # title (weight=1)
+    new-instance v2, Landroid/widget/TextView;
+    invoke-direct {v2, p0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+    const-string v3, "Download Components"
+    invoke-virtual {v2, v3}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    const/high16 v3, 0x41A00000
+    invoke-virtual {v2, v3}, Landroid/widget/TextView;->setTextSize(F)V
+    const v3, 0xFFFFFFFF
+    invoke-virtual {v2, v3}, Landroid/widget/TextView;->setTextColor(I)V
+    const/16 v3, 0x8
+    invoke-virtual {p0, v3}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->dp(I)I
+    move-result v3
+    const/4 v4, 0x0
+    invoke-virtual {v2, v3, v4, v4, v4}, Landroid/view/View;->setPadding(IIII)V
+    new-instance v3, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v4, 0x0
+    const/4 v5, -0x2
+    const/high16 v6, 0x3f800000
+    invoke-direct {v3, v4, v5, v6}, Landroid/widget/LinearLayout$LayoutParams;-><init>(IIF)V
+    invoke-virtual {v1, v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    # add header to root: MATCH_PARENT x WRAP_CONTENT
+    new-instance v2, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v3, -0x1
+    const/4 v4, -0x2
+    invoke-direct {v2, v3, v4}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    invoke-virtual {v0, v1, v2}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    # ── Status text ────────────────────────────────────────────────────────────
     new-instance v1, Landroid/widget/TextView;
     invoke-direct {v1, p0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
     iput-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mStatusText:Landroid/widget/TextView;
-    const-string v5, "Select a source"
-    invoke-virtual {v1, v5}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-    const/high16 v5, 0x41080000
-    invoke-virtual {v1, v5}, Landroid/widget/TextView;->setTextSize(F)V
-    const v5, -0x5000001
-    invoke-virtual {v1, v5}, Landroid/widget/TextView;->setTextColor(I)V
-    const/16 v5, 0x30
-    const/16 p1, 0x18
-    invoke-virtual {v1, v5, p1, v5, p1}, Landroid/widget/TextView;->setPadding(IIII)V
+    const-string v2, "Select a source"
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    const/high16 v2, 0x41600000
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextSize(F)V
+    const v2, 0xFFAAAAAA
+    invoke-virtual {v1, v2}, Landroid/widget/TextView;->setTextColor(I)V
+    const/16 v2, 0x10
+    invoke-virtual {p0, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->dp(I)I
+    move-result v2
+    const/16 v3, 0x8
+    invoke-virtual {p0, v3}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->dp(I)I
+    move-result v3
+    invoke-virtual {v1, v2, v3, v2, v3}, Landroid/view/View;->setPadding(IIII)V
+    new-instance v2, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v3, -0x1
+    const/4 v4, -0x2
+    invoke-direct {v2, v3, v4}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    invoke-virtual {v0, v1, v2}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
-    # ListView
-    new-instance v3, Landroid/widget/ListView;
-    invoke-direct {v3, p0}, Landroid/widget/ListView;-><init>(Landroid/content/Context;)V
-    iput-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mListView:Landroid/widget/ListView;
-    invoke-virtual {v3, p0}, Landroid/widget/AbsListView;->setOnItemClickListener(Landroid/widget/AdapterView$OnItemClickListener;)V
-    const/4 v5, 0x0
-    invoke-virtual {v3, v5}, Landroid/view/ViewGroup;->setClipToPadding(Z)V
+    # ── ProgressBar ────────────────────────────────────────────────────────────
+    new-instance v1, Landroid/widget/ProgressBar;
+    invoke-direct {v1, p0}, Landroid/widget/ProgressBar;-><init>(Landroid/content/Context;)V
+    iput-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mProgressBar:Landroid/widget/ProgressBar;
+    const/16 v2, 0x8
+    invoke-virtual {v1, v2}, Landroid/view/View;->setVisibility(I)V
+    new-instance v2, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v3, -0x1
+    const/4 v4, -0x2
+    invoke-direct {v2, v3, v4}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    invoke-virtual {v0, v1, v2}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
-    # root LinearLayout
-    new-instance v0, Landroid/widget/LinearLayout;
-    invoke-direct {v0, p0}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
-    const/4 v5, 0x1
-    invoke-virtual {v0, v5}, Landroid/widget/LinearLayout;->setOrientation(I)V
-    invoke-virtual {v0, v5}, Landroid/view/View;->setFitsSystemWindows(Z)V
-
-    # add title: MATCH_PARENT x WRAP_CONTENT
-    new-instance v4, Landroid/widget/LinearLayout$LayoutParams;
-    const/4 v5, -0x1
-    const/4 p1, -0x2
-    invoke-direct {v4, v5, p1}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
-    invoke-virtual {v0, v2, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
-
-    # add status: MATCH_PARENT x WRAP_CONTENT
-    new-instance v4, Landroid/widget/LinearLayout$LayoutParams;
-    const/4 v5, -0x1
-    const/4 p1, -0x2
-    invoke-direct {v4, v5, p1}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
-    invoke-virtual {v0, v1, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
-
-    # add ProgressBar: MATCH_PARENT x WRAP_CONTENT, initially GONE
-    new-instance v2, Landroid/widget/ProgressBar;
-    invoke-direct {v2, p0}, Landroid/widget/ProgressBar;-><init>(Landroid/content/Context;)V
-    iput-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mProgressBar:Landroid/widget/ProgressBar;
-    const/16 v5, 0x8
-    invoke-virtual {v2, v5}, Landroid/view/View;->setVisibility(I)V
-    new-instance v4, Landroid/widget/LinearLayout$LayoutParams;
-    const/4 v5, -0x1
-    const/4 p1, -0x2
-    invoke-direct {v4, v5, p1}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
-    invoke-virtual {v0, v2, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
-
-    # add listView: MATCH_PARENT x 0dp weight=1
-    new-instance v4, Landroid/widget/LinearLayout$LayoutParams;
-    const/4 v5, -0x1
-    const/4 p1, 0x0
-    const/high16 v2, 0x3f800000
-    invoke-direct {v4, v5, p1, v2}, Landroid/widget/LinearLayout$LayoutParams;-><init>(IIF)V
-    invoke-virtual {v0, v3, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+    # ── ListView ────────────────────────────────────────────────────────────────
+    new-instance v1, Landroid/widget/ListView;
+    invoke-direct {v1, p0}, Landroid/widget/ListView;-><init>(Landroid/content/Context;)V
+    iput-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mListView:Landroid/widget/ListView;
+    invoke-virtual {v1, p0}, Landroid/widget/AbsListView;->setOnItemClickListener(Landroid/widget/AdapterView$OnItemClickListener;)V
+    const/4 v2, 0x0
+    invoke-virtual {v1, v2}, Landroid/view/ViewGroup;->setClipToPadding(Z)V
+    const v2, 0xFF1A1A2E
+    invoke-virtual {v1, v2}, Landroid/view/View;->setBackgroundColor(I)V
+    # add to root: MATCH_PARENT x 0dp weight=1
+    new-instance v2, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v3, -0x1
+    const/4 v4, 0x0
+    const/high16 v5, 0x3f800000
+    invoke-direct {v2, v3, v4, v5}, Landroid/widget/LinearLayout$LayoutParams;-><init>(IIF)V
+    invoke-virtual {v0, v1, v2}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
     invoke-virtual {p0, v0}, Landroidx/appcompat/app/AppCompatActivity;->setContentView(Landroid/view/View;)V
     invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->showRepos()V
@@ -159,9 +206,8 @@
     const-string v2, "\u2190 Back"
     aput-object v2, v0, v1
 
-    new-instance v1, Landroid/widget/ArrayAdapter;
-    sget v2, Landroid/R$layout;->simple_list_item_1:I
-    invoke-direct {v1, p0, v2, v0}, Landroid/widget/ArrayAdapter;-><init>(Landroid/content/Context;I[Ljava/lang/Object;)V
+    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$DarkAdapter;
+    invoke-direct {v1, p0, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$DarkAdapter;-><init>(Landroid/content/Context;[Ljava/lang/Object;)V
     iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mListView:Landroid/widget/ListView;
     invoke-virtual {v2, v1}, Landroid/widget/ListView;->setAdapter(Landroid/widget/ListAdapter;)V
     return-void
@@ -202,9 +248,8 @@
     const-string v2, "\u2190 Back"
     aput-object v2, v0, v1
 
-    new-instance v1, Landroid/widget/ArrayAdapter;
-    sget v2, Landroid/R$layout;->simple_list_item_1:I
-    invoke-direct {v1, p0, v2, v0}, Landroid/widget/ArrayAdapter;-><init>(Landroid/content/Context;I[Ljava/lang/Object;)V
+    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$DarkAdapter;
+    invoke-direct {v1, p0, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$DarkAdapter;-><init>(Landroid/content/Context;[Ljava/lang/Object;)V
     iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mListView:Landroid/widget/ListView;
     invoke-virtual {v2, v1}, Landroid/widget/ListView;->setAdapter(Landroid/widget/ListAdapter;)V
     return-void
@@ -273,9 +318,8 @@
 
     invoke-virtual {v3}, Ljava/util/ArrayList;->toArray()[Ljava/lang/Object;
     move-result-object v0
-    new-instance v1, Landroid/widget/ArrayAdapter;
-    sget v2, Landroid/R$layout;->simple_list_item_1:I
-    invoke-direct {v1, p0, v2, v0}, Landroid/widget/ArrayAdapter;-><init>(Landroid/content/Context;I[Ljava/lang/Object;)V
+    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$DarkAdapter;
+    invoke-direct {v1, p0, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$DarkAdapter;-><init>(Landroid/content/Context;[Ljava/lang/Object;)V
     iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mListView:Landroid/widget/ListView;
     invoke-virtual {v2, v1}, Landroid/widget/ListView;->setAdapter(Landroid/widget/ListAdapter;)V
     return-void
@@ -635,4 +679,18 @@
     :not_qualcomm
     const/16 v0, 0xc
     return v0
+.end method
+
+.method public dp(I)I
+    .locals 2
+    # .locals 2 → p0=v2(this), p1=v3(dp value)
+    invoke-virtual {p0}, Landroid/content/Context;->getResources()Landroid/content/res/Resources;
+    move-result-object v0
+    invoke-virtual {v0}, Landroid/content/res/Resources;->getDisplayMetrics()Landroid/util/DisplayMetrics;
+    move-result-object v0
+    iget v0, v0, Landroid/util/DisplayMetrics;->density:F
+    int-to-float v1, p1
+    mul-float v1, v1, v0
+    float-to-int v1, v1
+    return v1
 .end method

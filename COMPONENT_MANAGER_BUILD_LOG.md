@@ -2176,3 +2176,24 @@ Click listeners always have a `SidebarSwitchItemView` reference (`field a`) whic
 
 ### Logcat verification
 ✅ `logcat-2026-03-20_12-58-55.txt` — no errors from v2.6.1-pre. Old VerifyError entries (08:16/08:43) are from pre-v2.6.0 APK installs, already fixed. Post-12:45 log is clean — only `qti.diagservices` system noise and DisplayRotation messages.
+
+---
+
+## Entry 60 — v2.6.1 stable — Promote perf toggle fix to stable (2026-03-20)
+
+**Commit:** `c8ebfdc` | **Tag:** v2.6.1 | **CI:** pending
+
+### Summary
+Stable promotion of v2.6.1-pre. No new code changes — tags HEAD (c8ebfdc) as v2.6.1.
+
+### What changed since v2.6.0
+- Fix: perf toggles (Sustained Perf, Max Adreno Clocks) persist visual ON/OFF state across sidebar open/close
+- Root cause: pref save was inside WineActivity methods gated on t1 null-check; moved into click listeners where context is always available
+- Credits section + Arihany/Nightlies repo links added to README
+
+### Files touched
+- `PROGRESS_LOG.md` — stable entry added
+- `COMPONENT_MANAGER_BUILD_LOG.md` — this entry
+
+### CI result
+→ pending

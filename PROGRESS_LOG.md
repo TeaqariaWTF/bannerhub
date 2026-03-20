@@ -1274,6 +1274,13 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `patches/smali_classes16/com/xj/winemu/sidebar/BhRootGrantHelper$2$1$1.smali`
 - `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
 
+### [stable] — v2.6.1 — Fix perf toggle visual state persistence (2026-03-20)
+**Commit:** `c8ebfdc` | **Tag:** v2.6.1 | **CI:** ✅
+- Promotes v2.6.1-pre to stable
+- Fix: Sustained Perf + Max Adreno Clocks toggles now persist visual state across sidebar open/close
+- Pref save moved into click listeners so SharedPreferences is always accessible
+- Credits section added to README; repo links for Arihany and Nightlies sources added
+
 ### [fix] — v2.6.1-pre — Fix perf toggles not persisting visual state (2026-03-20)
 **Commit:** `4fd439d` | **Tag:** v2.6.1-pre | **CI:** ✅ run 23353066650
 - Performance toggles (Sustained Perf, Max Adreno Clocks) showed as OFF when Performance sidebar was reopened, even though the system effects were actually applied

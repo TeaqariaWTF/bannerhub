@@ -131,7 +131,8 @@
     # Spacer 12dp
     new-instance v3, Landroid/view/View;
     invoke-direct {v3, p0}, Landroid/view/View;-><init>(Landroid/content/Context;)V
-    invoke-virtual {v2, v3, v0, 0x1}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;II)V
+    const/4 v4, 0x1
+    invoke-virtual {v2, v3, v0, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;II)V
 
     # Title "Component Manager" flex
     new-instance v3, Landroid/widget/TextView;
@@ -162,7 +163,8 @@
     # Spacer
     new-instance v3, Landroid/view/View;
     invoke-direct {v3, p0}, Landroid/view/View;-><init>(Landroid/content/Context;)V
-    invoke-virtual {v2, v3, v0, 0x1}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;II)V
+    const/4 v4, 0x1
+    invoke-virtual {v2, v3, v0, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;II)V
 
     # "✕ All" button (remove all)
     new-instance v3, Landroid/widget/TextView;

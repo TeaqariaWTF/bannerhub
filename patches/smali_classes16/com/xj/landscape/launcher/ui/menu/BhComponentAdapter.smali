@@ -273,22 +273,22 @@
     # v1 = activity (for dp() calls)
     iget-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/BhComponentAdapter;->activity:Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;
 
-    # Compute dp values
-    const/4 v2, 0x4
+    # Compute dp values (scaled ~80% for compact cards)
+    const/4 v2, 0x3
     invoke-virtual {v1, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
-    move-result v3    # v3 = 4dp px
+    move-result v3    # v3 = 3dp px
 
-    const/16 v2, 0x8
+    const/4 v2, 0x6
     invoke-virtual {v1, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
-    move-result v4    # v4 = 8dp px
+    move-result v4    # v4 = 6dp px
 
-    const/16 v2, 0xc
+    const/16 v2, 0xa
     invoke-virtual {v1, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
-    move-result v5    # v5 = 12dp px
+    move-result v5    # v5 = 10dp px
 
-    const/16 v2, 0x24
+    const/16 v2, 0x1d
     invoke-virtual {v1, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
-    move-result v6    # v6 = 36dp px
+    move-result v6    # v6 = 29dp px
 
     # ── v7 = outer card: horizontal LinearLayout ──────────────────────────────
     new-instance v7, Landroid/widget/LinearLayout;
@@ -348,7 +348,7 @@
     # ── v9 = name TextView ────────────────────────────────────────────────────
     new-instance v9, Landroid/widget/TextView;
     invoke-direct {v9, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-    const/high16 v2, 0x41700000    # 15sp
+    const/high16 v2, 0x41400000    # 12sp
     invoke-virtual {v9, v2}, Landroid/widget/TextView;->setTextSize(F)V
     const v2, 0xFFFFFFFF
     invoke-virtual {v9, v2}, Landroid/widget/TextView;->setTextColor(I)V
@@ -361,7 +361,7 @@
     # ── v10 = type badge TextView ─────────────────────────────────────────────
     new-instance v10, Landroid/widget/TextView;
     invoke-direct {v10, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-    const/high16 v2, 0x41300000    # 11sp
+    const/high16 v2, 0x41100000    # 9sp
     invoke-virtual {v10, v2}, Landroid/widget/TextView;->setTextSize(F)V
 
     # ── v11 = badge background GradientDrawable ────────────────────────────────
@@ -371,10 +371,10 @@
     invoke-virtual {v11, v2}, Landroid/graphics/drawable/GradientDrawable;->setCornerRadius(F)V
     invoke-virtual {v10, v11}, Landroid/view/View;->setBackground(Landroid/graphics/drawable/Drawable;)V
 
-    # Badge padding: 6dp / 4dp / 6dp / 4dp
-    const/16 v2, 0x6
+    # Badge padding: 5dp / 3dp / 5dp / 3dp
+    const/4 v2, 0x5
     invoke-virtual {v1, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
-    move-result v2    # 6dp px
+    move-result v2    # 5dp px
     invoke-virtual {v10, v2, v3, v2, v3}, Landroid/widget/TextView;->setPadding(IIII)V
 
     # Badge LayoutParams: WRAP_CONTENT x WRAP_CONTENT, top margin = 4dp (v3)
@@ -398,7 +398,7 @@
     invoke-direct {v2, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
     const-string v1, "\u203a"
     invoke-virtual {v2, v1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-    const/high16 v1, 0x41a00000    # 20sp
+    const/high16 v1, 0x41800000    # 16sp
     invoke-virtual {v2, v1}, Landroid/widget/TextView;->setTextSize(F)V
     const v1, 0xFF666666
     invoke-virtual {v2, v1}, Landroid/widget/TextView;->setTextColor(I)V

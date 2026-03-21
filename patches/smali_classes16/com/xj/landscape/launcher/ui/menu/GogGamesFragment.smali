@@ -74,6 +74,18 @@
     invoke-direct {v3, v4, v4}, Landroid/widget/FrameLayout$LayoutParams;-><init>(II)V
     invoke-virtual {v1, v2, v3}, Landroid/widget/FrameLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
+    # Top padding to clear the tab bar (~56dp computed from display density)
+    invoke-virtual {v0}, Landroid/content/Context;->getResources()Landroid/content/res/Resources;
+    move-result-object v2
+    invoke-virtual {v2}, Landroid/content/res/Resources;->getDisplayMetrics()Landroid/util/DisplayMetrics;
+    move-result-object v2
+    iget v2, v2, Landroid/util/DisplayMetrics;->density:F
+    const/high16 v3, 0x42600000  # 56.0f
+    mul-float/2addr v2, v3
+    float-to-int v2, v2
+    const/4 v3, 0x0
+    invoke-virtual {v1, v3, v2, v3, v3}, Landroid/widget/FrameLayout;->setPadding(IIII)V
+
     return-object v1
 .end method
 

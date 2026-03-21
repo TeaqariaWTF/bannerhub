@@ -26,7 +26,7 @@
 
 
 .method public run()V
-    .locals 8
+    .locals 9
 
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$2;->a:Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;
     iget-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$2;->b:Ljava/util/ArrayList;
@@ -80,6 +80,7 @@
 
     invoke-virtual {v1, v5}, Ljava/util/ArrayList;->get(I)Ljava/lang/Object;
     move-result-object v6  # title string
+    move-object v8, v6  # save title for click listener (v6 is reused below)
 
     new-instance v7, Landroid/widget/TextView;
     invoke-direct {v7, v3}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
@@ -97,6 +98,11 @@
     # Padding 32px on all sides
     const/16 v6, 0x20  # 32
     invoke-virtual {v7, v6, v6, v6, v6}, Landroid/widget/TextView;->setPadding(IIII)V
+
+    # Attach click listener — shows a Toast with the game title
+    new-instance v6, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$3;
+    invoke-direct {v6, v0, v8}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$3;-><init>(Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;Ljava/lang/String;)V
+    invoke-virtual {v7, v6}, Landroid/widget/TextView;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
     invoke-virtual {v4, v7}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 

@@ -30,6 +30,34 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 083 — GOG Games tab: GogGamesFragment + 3 inner classes + tab injection (v2.7.0-beta9, gog-beta)
+**Date:** 2026-03-21
+**Branch:** gog-beta  |  **Tag:** v2.7.0-beta9
+
+### Root-cause analysis
+Login was confirmed working (beta8, HTTP 200, 14 games). `GogMainActivity` only showed a placeholder. Next step: display the game library in a dedicated tab next to "My Games". `TabItemData.<init>(ILjava/lang/String;Lkotlin/jvm/functions/Function0;)V` confirmed as direct constructor accepting a plain String title.
+
+### Files created
+- `patches/smali_classes16/.../GogGamesFragment.smali` — Fragment; builds FrameLayout root with statusView + scrollView→gameListLayout; `refreshContent()` reads `bh_gog_prefs` access_token and either shows "Sign in…" or starts fetch thread
+- `patches/smali_classes16/.../GogGamesFragment$TabFactory.smali` — `Function0` implementation; `invoke()` returns new GogGamesFragment
+- `patches/smali_classes16/.../GogGamesFragment$1.smali` — background Runnable; GET `embed.gog.com/account/getFilteredProducts?mediaType=1&sortBy=title` with Bearer auth; parses all `"title":"…"` entries into ArrayList; posts `$2` via `Handler(Looper.getMainLooper())`
+- `patches/smali_classes16/.../GogGamesFragment$2.smali` — UI-thread Runnable; clears gameListLayout; adds styled TextView per title (color 0xFFE0E0E0, 15sp, 32px padding); shows scrollView + hides statusView; empty list → "No GOG games found"
+
+### Files modified
+- `patches/smali_classes11/.../LandscapeLauncherMainActivity.smali` — injected GOG Games tab after line 5904 (the "My Games" add call): new-instance TabFactory → new-instance TabItemData(`<init>(ILjava/lang/String;Function0)V`, id=0, title="GOG Games") → List.add
+
+### Methods added / changed
+- `GogGamesFragment.onCreateView` — `.locals 6`, builds programmatic UI
+- `GogGamesFragment.onResume` — calls `refreshContent()`
+- `GogGamesFragment.refreshContent` — `.locals 5`, reads SP, branches on login state
+- `GogGamesFragment$TabFactory.invoke` — `.locals 1`, returns new GogGamesFragment
+- `GogGamesFragment$1.run` — `.locals 10`, HTTP fetch + JSON title parse loop
+- `GogGamesFragment$2.run` — `.locals 8`, UI update on main thread
+
+**CI result:** [CI⏳] pending
+
+---
+
 ## Entry 082 — Fix VerifyError: invoke-direct for String overload — missed by beta7 replace_all (v2.7.0-beta8, gog-beta)
 **Date:** 2026-03-21
 **Branch:** gog-beta  |  **Tag:** v2.7.0-beta8

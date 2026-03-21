@@ -5903,6 +5903,14 @@
     .line 113
     invoke-interface {v2, v3}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
+    # BannerHub: inject GOG Games tab after "My Games"
+    new-instance v3, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$TabFactory;
+    invoke-direct {v3}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$TabFactory;-><init>()V
+    new-instance v4, Lcom/xj/landscape/launcher/ui/main/TabItemData;
+    const/4 v5, 0x0
+    const-string v6, "GOG Games"
+    invoke-direct {v4, v5, v6, v3}, Lcom/xj/landscape/launcher/ui/main/TabItemData;-><init>(ILjava/lang/String;Lkotlin/jvm/functions/Function0;)V
+    invoke-interface {v2, v4}, Ljava/util/List;->add(Ljava/lang/Object;)Z
 
     .line 114
     .line 115

@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.7.0-beta9 — GOG Games tab: GogGamesFragment + live game library from getFilteredProducts (2026-03-21)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta9
+**What changed:** Login confirmed working (beta8). Implemented GOG Games tab next to "My Games". New `GogGamesFragment` (Fragment subclass) fetches `embed.gog.com/account/getFilteredProducts?mediaType=1&sortBy=title` on background thread using stored access_token, parses all `"title":"…"` entries, and populates a ScrollView list on the main thread. If not logged in shows "Sign in via the GOG option in the side menu". Tab injected via `TabItemData.<init>(ILjava/lang/String;Function0)V` with title "GOG Games" after the "My Games" add in `LandscapeLauncherMainActivity.initView()`.
+**Files touched:** `GogGamesFragment.smali`, `GogGamesFragment$TabFactory.smali`, `GogGamesFragment$1.smali`, `GogGamesFragment$2.smali`, `LandscapeLauncherMainActivity.smali`
+**CI result:** pending
+
+---
+
 ## [beta] — v2.7.0-beta8 — Fix VerifyError: invoke-direct for String overload of shouldOverrideUrlLoading (2026-03-21)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta8
 **What changed:** beta7 `replace_all` matched `invoke-virtual {p0, v0}` and fixed the WebResourceRequest overload, but the String overload uses `invoke-direct {p0, v1}` — different register. Logcat confirmed only String variant still failing. Fixed: `invoke-virtual {p0, v1}` → `invoke-direct {p0, v1}` at line 162.

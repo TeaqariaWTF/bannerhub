@@ -62,6 +62,48 @@
 
     :try_start
 
+    # ---- PROACTIVE TOKEN EXPIRY CHECK (Task #4) -----------------------------
+    # Read loginTime + expiresIn from bh_gog_prefs.
+    # If currentTime >= loginTime + expiresIn, refresh silently before first call.
+    # loginTime=0 means token was saved before beta23 tracking — treat as expired.
+    invoke-virtual {v0}, Landroidx/fragment/app/Fragment;->getContext()Landroid/content/Context;
+    move-result-object v3
+    if-eqz v3, :expiry_skip
+
+    const-string v4, "bh_gog_prefs"
+    const/4 v5, 0x0
+    invoke-virtual {v3, v4, v5}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v4
+
+    const-string v5, "bh_gog_login_time"
+    const/4 v6, 0x0
+    invoke-interface {v4, v5, v6}, Landroid/content/SharedPreferences;->getInt(Ljava/lang/String;I)I
+    move-result v5   # v5 = loginTime (0 if never stored)
+
+    const-string v6, "bh_gog_expires_in"
+    const/16 v7, 0xE10   # 3600 default
+    invoke-interface {v4, v6, v7}, Landroid/content/SharedPreferences;->getInt(Ljava/lang/String;I)I
+    move-result v6   # v6 = expiresIn
+
+    add-int v7, v5, v6   # v7 = loginTime + expiresIn
+
+    invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
+    move-result-wide v8   # v8+v9 = millis
+    const-wide/16 v10, 0x3E8   # v10+v11 = 1000L
+    div-long v8, v8, v10
+    long-to-int v8, v8   # v8 = current unix seconds
+
+    if-lt v8, v7, :expiry_skip   # not expired yet
+
+    # Token expired (or loginTime=0) — refresh now
+    invoke-static {v3}, Lcom/xj/landscape/launcher/ui/menu/GogTokenRefresh;->refresh(Landroid/content/Context;)Ljava/lang/String;
+    move-result-object v5
+    if-eqz v5, :expiry_skip   # refresh failed — proceed; API 401 will retry anyway
+    move-object v1, v5   # update token with fresh one
+
+    :expiry_skip
+    # ---- END PROACTIVE CHECK ------------------------------------------------
+
     # ---- STEP 1: GET embed.gog.com/user/data/games --------------------------
     new-instance v3, Ljava/net/URL;
     const-string v4, "https://embed.gog.com/user/data/games"

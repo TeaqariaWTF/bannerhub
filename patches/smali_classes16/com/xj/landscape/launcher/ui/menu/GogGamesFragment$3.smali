@@ -4,7 +4,8 @@
 # BannerHub: OnClickListener for each game card in GogGamesFragment.
 # Shows an AlertDialog with:
 #   - cover art ImageView (200dp height, loaded async by GogGamesFragment$4)
-#   - info TextView: Genre, Rating (/100), DLC count
+#   - info TextView: Genre, Developer
+#   - description TextView (Html.fromHtml, max 5 lines, shown if non-null)
 #   - store URL TextView (blue)
 # Dialog title is set to the game title via AlertDialog.Builder.setTitle().
 
@@ -117,7 +118,7 @@
 
     :skip_cover_load
 
-    # ── Info TextView (genre, rating, dlc) ───────────────────────────────────
+    # ── Info TextView (genre, developer) ─────────────────────────────────────
     # Build info string with StringBuilder
     new-instance v5, Ljava/lang/StringBuilder;
     invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
@@ -130,27 +131,13 @@
     invoke-virtual {v5, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     :info_no_genre
 
-    # Rating (0-100 scale)
-    iget-object v9, v1, Lcom/xj/landscape/launcher/ui/menu/GogGame;->rating:Ljava/lang/String;
-    if-eqz v9, :info_no_rating
-    const-string v10, "\nRating: "
+    # Developer
+    iget-object v9, v1, Lcom/xj/landscape/launcher/ui/menu/GogGame;->developer:Ljava/lang/String;
+    if-eqz v9, :info_no_dev
+    const-string v10, "\nDeveloper: "
     invoke-virtual {v5, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v5, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    const-string v10, "%"
-    invoke-virtual {v5, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    :info_no_rating
-
-    # DLC count (skip if "0")
-    iget-object v9, v1, Lcom/xj/landscape/launcher/ui/menu/GogGame;->dlcCount:Ljava/lang/String;
-    if-eqz v9, :info_no_dlc
-    const-string v10, "0"
-    invoke-virtual {v9, v10}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-    move-result v10
-    if-nez v10, :info_no_dlc
-    const-string v10, "\nDLC Packs: "
-    invoke-virtual {v5, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v5, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    :info_no_dlc
+    :info_no_dev
 
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v9  # v9 = info string
@@ -178,6 +165,41 @@
     invoke-virtual {v4, v9, v10, v9, v10}, Landroid/widget/TextView;->setPadding(IIII)V
 
     invoke-virtual {v2, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # ── Description TextView (optional, Html.fromHtml rendered) ──────────────
+    iget-object v9, v1, Lcom/xj/landscape/launcher/ui/menu/GogGame;->description:Ljava/lang/String;
+    if-eqz v9, :skip_desc
+
+    new-instance v4, Landroid/widget/TextView;
+    invoke-direct {v4, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+
+    # Render HTML markup (API 24+ two-arg form; minSdk=29 so safe)
+    const/4 v10, 0x0
+    invoke-static {v9, v10}, Landroid/text/Html;->fromHtml(Ljava/lang/String;I)Landroid/text/Spanned;
+    move-result-object v9
+    invoke-virtual {v4, v9}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    const v9, 0xFFAAAAAA
+    invoke-virtual {v4, v9}, Landroid/widget/TextView;->setTextColor(I)V
+
+    const/high16 v9, 0x41400000  # 12.0f sp
+    invoke-virtual {v4, v9}, Landroid/widget/TextView;->setTextSize(F)V
+
+    const/16 v9, 0x5  # max 5 lines
+    invoke-virtual {v4, v9}, Landroid/widget/TextView;->setMaxLines(I)V
+
+    # Padding: 16dp H, 8dp V
+    const/high16 v9, 0x41800000  # 16.0f
+    mul-float v9, v8, v9
+    float-to-int v9, v9
+    const/high16 v10, 0x41000000  # 8.0f
+    mul-float v10, v8, v10
+    float-to-int v10, v10
+    invoke-virtual {v4, v9, v10, v9, v10}, Landroid/widget/TextView;->setPadding(IIII)V
+
+    invoke-virtual {v2, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    :skip_desc
 
     # ── Store URL TextView ────────────────────────────────────────────────────
     iget-object v9, v1, Lcom/xj/landscape/launcher/ui/menu/GogGame;->storeUrl:Ljava/lang/String;

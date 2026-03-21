@@ -12,7 +12,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 - `GogLoginActivity$4`: fixed `.locals 2→3` (was referencing undeclared v2); added `webView.loadUrl(buildAuthUrl())` after the error toast so the login form reloads for a clean retry instead of leaving a blank screen
 - `GogLoginActivity`: added `setUserAgentString("Mozilla/5.0 ... GOG Galaxy/2.0")` so GOG's server treats the WebView as Galaxy client
 **Files touched:** `GogLoginActivity.smali`, `GogLoginActivity$1.smali`, `GogLoginActivity$2.smali`, `GogLoginActivity$4.smali`
-**CI result:** pending
+**CI result:** ✅ run 23384952359 — Normal APK built successfully (3m33s)
 
 ---
 

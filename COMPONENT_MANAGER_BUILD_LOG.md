@@ -56,7 +56,7 @@ Logcat analysis of two sessions revealed four distinct bugs:
 - **`GogLoginActivity.onCreate()`** — after `setDomStorageEnabled(true)`: added `const-string v2, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) GOG Galaxy/2.0"` + `invoke-virtual {v1, v2}, WebSettings->setUserAgentString`. v1=WebSettings object (already in register at this point), v2 reused (was `const/4 v2, 0x1` just above). `.locals` stays 4.
 
 ### CI result
-→ pending
+→ ✅ run 23384952359 — Normal APK built successfully (3m33s)
 
 ---
 

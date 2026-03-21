@@ -1372,3 +1372,13 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - Buttons have 16dp H / 8dp V padding via makeBtn()
 - DarkAdapter item background: StateListDrawable (pressed=`0xFF090909`, D-pad selected=`0xFF241A06`, default=`0xFF1A1A1A`)
 - ListView selector: semi-transparent orange `0x40FF9800` for D-pad/controller navigation highlight
+
+### v2.7.1-pre — Buttons to header, D-pad selection fix (2026-03-20)
+**Commit:** `1a85189` | **Tag:** v2.7.1-pre
+
+**What changed:**
+- Removed bottom bar from ComponentManagerActivity entirely
+- "+ Add" and "↓ DL" buttons moved into the header bar, right side (before ✕ All)
+- makeBtn() padding: 16dp H/8dp V → 8dp H/4dp V (compact for header)
+- BhComponentAdapter cards: setFocusable(true) + StateListDrawable foreground (focused=orange overlay 0x60FF9800, pressed=dark overlay, default=transparent) — D-pad navigation now shows clear orange highlight on RecyclerView cards
+- DarkAdapter: added state_focused entry, changed selected/focused color from 0xFF241A06 → 0xFF3D2800 (visible amber for D-pad on ListView)

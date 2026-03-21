@@ -2328,3 +2328,25 @@ User requested full black/dark mode with orange accent titles, off-white body te
 
 ### CI result
 → ✅ run 23367550267 — PASSED — Normal APK built
+
+---
+
+## Entry 65 — v2.7.1-pre — Buttons to header, D-pad selection fix (2026-03-20)
+
+### Files changed
+- `patches/smali_classes16/.../ComponentManagerActivity.smali`
+- `patches/smali_classes16/.../BhComponentAdapter.smali`
+- `patches/smali_classes16/.../ComponentDownloadActivity$DarkAdapter.smali`
+
+### Methods changed
+- `ComponentManagerActivity.buildUI()` — removed bottom bar section
+- `ComponentManagerActivity.buildHeader()` — inserted BhAddListener + BhDownloadListener buttons before ✕ All
+- `ComponentManagerActivity.makeBtn()` — reduced padding 16/8dp → 8/4dp
+- `BhComponentAdapter.onCreateViewHolder()` — added setFocusable(true) + StateListDrawable foreground (focused=0x60FF9800 orange, pressed=0x40000000 dark, default=transparent) on card
+- `DarkAdapter.getView()` — added state_focused entry, changed selection color to 0xFF3D2800
+
+### Root-cause / design
+ListView/RecyclerView D-pad highlight was invisible: old colors too subtle + RecyclerView cards not focusable. Fix: foreground StateListDrawable on RecyclerView cards (doesn't affect rounded corner background). ListView items: brighter amber state_focused + state_selected colors.
+
+### CI result
+→ ✅ run 23367802578 — PASSED — Normal APK built

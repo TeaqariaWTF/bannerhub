@@ -124,6 +124,8 @@
     invoke-virtual {v7, v14}, Landroid/view/View;->setClickable(Z)V
 
     # Touch ripple foreground (selectableItemBackground resolved from theme)
+    # Guard: resolveAttribute may return resourceId=0 on some themes/ROMs
+    # — getDrawable(0) would throw Resources$NotFoundException
     new-instance v12, Landroid/util/TypedValue;
     invoke-direct {v12}, Landroid/util/TypedValue;-><init>()V
     invoke-virtual {v3}, Landroid/content/Context;->getTheme()Landroid/content/res/Resources$Theme;
@@ -131,10 +133,15 @@
     const v14, 0x0101009d  # android.R.attr.selectableItemBackground
     const/4 v15, 0x1
     invoke-virtual {v13, v14, v12, v15}, Landroid/content/res/Resources$Theme;->resolveAttribute(ILandroid/util/TypedValue;Z)Z
+    move-result v14  # true if attribute was resolved
+    if-eqz v14, :skip_ripple
     iget v13, v12, Landroid/util/TypedValue;->resourceId:I
+    if-eqz v13, :skip_ripple  # 0 = resolved as data/color, not a resource ID
     invoke-virtual {v3, v13}, Landroid/content/Context;->getDrawable(I)Landroid/graphics/drawable/Drawable;
     move-result-object v13
+    if-eqz v13, :skip_ripple
     invoke-virtual {v7, v13}, Landroid/view/View;->setForeground(Landroid/graphics/drawable/Drawable;)V
+    :skip_ripple
 
     # ── Thumbnail ImageView (60dp × 60dp) ────────────────────────────────────
     new-instance v8, Landroid/widget/ImageView;

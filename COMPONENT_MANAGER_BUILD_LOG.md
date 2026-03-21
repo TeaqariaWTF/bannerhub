@@ -2350,3 +2350,90 @@ ListView/RecyclerView D-pad highlight was invisible: old colors too subtle + Rec
 
 ### CI result
 → ✅ run 23367802578 — PASSED — Normal APK built
+
+---
+
+## Entry 66 — v2.7.2-pre — Header button shift center-right + card outline dividers (2026-03-20)
+
+### Files changed
+- `patches/smali_classes16/.../ComponentManagerActivity.smali`
+- `patches/smali_classes16/.../BhComponentAdapter.smali`
+
+### Methods changed
+- `ComponentManagerActivity.buildHeader()` — added weight=0.5 flex spacer View (WRAP_CONTENT x MATCH_PARENT, weight=0.5f) between "↓ DL" addView and "✕ All" addView; shifts the two action buttons from hard-right edge to approximately center-right (~67% from left)
+- `BhComponentAdapter.onCreateViewHolder()` — increased `.locals 13` → `.locals 14`; after `setCornerRadius`, added `dp(1)` stroke in `0xFF2E2E45` (subtle dark lavender) via `GradientDrawable.setStroke(I I)V`; v13 used for stroke color constant
+
+### Root-cause / design
+User feedback: buttons were flush against the right edge (visually cramped), and individual component cards had no visual separator (list appeared as one continuous block). Fix 1: flex spacer pushes buttons toward center while keeping them right of center. Fix 2: 1dp stroke on each card's GradientDrawable provides a thin rounded outline that matches the card shape exactly — more elegant than a divider View.
+
+### CI result
+→ ✅ — Normal APK built
+
+---
+
+## Entry 67 — v2.7.3-pre — Fix broken card rendering; 8dp margin card separation (2026-03-20)
+
+### Files changed
+- `patches/smali_classes16/.../BhComponentAdapter.smali`
+
+### Methods changed
+- `BhComponentAdapter.onCreateViewHolder()` — `.locals 14` → `.locals 13` (reverted); removed `GradientDrawable.setStroke(II)V` call; changed `setMargins(v5, v3, v5, v3)` → `setMargins(v5, v4, v5, v4)` (12dp/8dp/12dp/8dp — v4=8dp instead of v3=4dp)
+
+### Root-cause / design
+`GradientDrawable.setStroke(II)V` in `onCreateViewHolder` threw a silent exception. RecyclerView's internal recycler catches exceptions during view holder creation (in some versions) and renders nothing — giving "8 installed" in the badge but zero visible cards. The `.locals 14` change was also unnecessary (created extra complexity). Fix: revert to `.locals 13`, drop setStroke entirely. Card visual separation now uses 8dp top+bottom margin instead of stroke — no GradientDrawable mutation after setBackground is needed.
+
+### CI result
+→ ✅ — Normal APK built
+
+---
+
+## Entry 68 — v2.7.4-pre — Rollback to v2.7.0-pre UI state (2026-03-20)
+
+### Files changed
+- `patches/smali_classes16/.../ComponentManagerActivity.smali`
+- `patches/smali_classes16/.../BhComponentAdapter.smali`
+- `patches/smali_classes16/.../ComponentDownloadActivity$DarkAdapter.smali`
+
+### Methods changed
+- All three files reverted to v2.7.0-pre baseline — all v2.7.1/2.7.2/2.7.3 changes removed
+
+### Root-cause / design
+v2.7.1/2.7.2/2.7.3 accumulated inconsistent state (D-pad foreground, weight spacer, setStroke removed, margin fix). Cleanest path forward: roll back to last known-good baseline (v2.7.0-pre) and re-apply only the desired changes cleanly in v2.7.5-pre.
+
+### CI result
+→ ✅ run 23368449300 — Normal APK built
+
+---
+
+## Entry 69 — v2.7.5-pre — Buttons to header center-right + card outline (2026-03-21)
+
+### Files changed
+- `patches/smali_classes16/.../ComponentManagerActivity.smali`
+- `patches/smali_classes16/.../BhComponentAdapter.smali`
+
+### Methods changed
+- `ComponentManagerActivity.buildUI()` — removed `buildBottomBar()` call; buttons now live in header
+- `ComponentManagerActivity.buildHeader()` — added "+ Add" and "↓ DL" buttons before "✕ All"; added weight=0.5 flex spacer between "↓ DL" and "✕ All" to shift buttons to center-right; `makeBtn()` padding changed 16/8dp → 8/4dp (compact for header)
+- `BhComponentAdapter.onCreateViewHolder()` — re-added `GradientDrawable.setStroke(1dp, 0xFF3A3A55)` using v8 as temp register
+
+### Root-cause / design
+Buttons moved from bottom bar to header for a cleaner single-bar layout. setStroke re-added thinking v8 was a safe free temp — but the same silent RecyclerView failure from Entry 66 recurred at runtime (not caught by CI). Lesson: setStroke(II)V on GradientDrawable in onCreateViewHolder is fundamentally unreliable in this RecyclerView version regardless of register choice.
+
+### CI result
+→ ✅ run 23368769317 — Normal APK built (cards broken at runtime — see Entry 70)
+
+---
+
+## Entry 70 — v2.7.6-pre — Fix: remove setStroke again; 8dp card margins (2026-03-21)
+
+### Files changed
+- `patches/smali_classes16/.../BhComponentAdapter.smali`
+
+### Methods changed
+- `BhComponentAdapter.onCreateViewHolder()` — removed setStroke block (6 lines: `const/4 v2 0x1`, `invoke dp`, `move-result v2`, `const v8 color`, `invoke setStroke`, comment line); changed `setMargins(v5, v3, v5, v3)` → `setMargins(v5, v4, v5, v4)` (12/8/12/8 dp)
+
+### Root-cause / design
+Same root cause as Entry 67: `GradientDrawable.setStroke(II)V` in `onCreateViewHolder` causes silent RecyclerView failure (0 cards rendered). This is a hard rule: do NOT call setStroke on card GradientDrawable in onCreateViewHolder in this GameHub RecyclerView version. Card separation achieved via 8dp top+bottom margin only.
+
+### CI result
+→ ✅ run 23369306581 — Normal APK built

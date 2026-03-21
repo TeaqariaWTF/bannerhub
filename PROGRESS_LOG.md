@@ -1382,3 +1382,60 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - makeBtn() padding: 16dp H/8dp V → 8dp H/4dp V (compact for header)
 - BhComponentAdapter cards: setFocusable(true) + StateListDrawable foreground (focused=orange overlay 0x60FF9800, pressed=dark overlay, default=transparent) — D-pad navigation now shows clear orange highlight on RecyclerView cards
 - DarkAdapter: added state_focused entry, changed selected/focused color from 0xFF241A06 → 0xFF3D2800 (visible amber for D-pad on ListView)
+
+---
+
+### v2.7.2-pre — Header button shift center-right + card outline dividers (2026-03-20)
+**Commit:** `6b46084` | **Tag:** v2.7.2-pre | **CI:** ✅ Normal APK built
+
+**What changed:**
+- ComponentManagerActivity.buildHeader(): added weight=0.5 flex spacer View between "↓ DL" button and "✕ All" button — shifts "+" and "↓" from hard-right to approx 67% from left (center-right)
+- BhComponentAdapter.onCreateViewHolder(): increased .locals 13→14; added GradientDrawable.setStroke(1dp, 0xFF2E2E45) on each card background — very thin rounded outline acting as visual separator between cards
+
+**Files touched:**
+- `patches/smali_classes16/.../ComponentManagerActivity.smali`
+- `patches/smali_classes16/.../BhComponentAdapter.smali`
+
+---
+
+### v2.7.3-pre — Fix broken card rendering; 8dp margin card separation (2026-03-20)
+**Commit:** `faf7704` | **Tag:** v2.7.3-pre | **CI:** ✅ Normal APK built
+
+**Root cause:** setStroke(II)V call in onCreateViewHolder caused a silent exception caught by RecyclerView, resulting in zero items rendered (all 8 cards invisible). `.locals 14` change was also unnecessary.
+
+**What changed:**
+- BhComponentAdapter: reverted `.locals 14` → `.locals 13`
+- Removed `GradientDrawable.setStroke()` call (caused silent card rendering failure)
+- Card margin changed from 12/4/12/4 → 12/8/12/8 dp (8dp top+bottom gives clear visual gap between cards without setStroke)
+
+**Files touched:**
+- `patches/smali_classes16/.../BhComponentAdapter.smali`
+
+---
+
+### v2.7.4-pre — Rollback to v2.7.0-pre UI state (2026-03-20)
+**Commit:** `b9e2fc4` | **Tag:** v2.7.4-pre | **CI:** ✅ Normal APK built
+
+**What changed:** Reverted ComponentManagerActivity, BhComponentAdapter, ComponentDownloadActivity$DarkAdapter back to v2.7.0-pre baseline. All v2.7.1/2.7.2/2.7.3 changes removed.
+
+---
+
+### v2.7.5-pre — Buttons to header center-right + card outline border (2026-03-20)
+**Commit:** `f6ab3e3` | **Tag:** v2.7.5-pre | **CI:** ✅ Normal APK built
+
+**What changed:**
+- buildUI(): bottom bar removed
+- buildHeader(): + Add and ↓ DL buttons inserted before ✕ All; weight=0.5 flex spacer between ↓ DL and ✕ All → buttons sit center-right
+- makeBtn(): compact padding 16/8dp → 8/4dp (fits in header)
+- BhComponentAdapter.onCreateViewHolder: setStroke(1dp, 0xFF3A3A55) using v8 as temp register (v8 is unassigned at that point — no .locals change, no register collision)
+
+---
+
+### v2.7.6-pre — Fix: remove setStroke, 8dp card margins (2026-03-21)
+**Commit:** `f0d8fe4` | **Tag:** v2.7.6-pre | **CI:** ✅ run 23369306581
+
+**What changed:**
+- BhComponentAdapter.onCreateViewHolder: removed the 6-line setStroke block (dp(1) + const color + setStroke call)
+- Card margins changed from 12/4/12/4 → 12/8/12/8 dp (v3→v4 for top/bottom)
+
+**Root cause:** Same failure as v2.7.2/v2.7.3: GradientDrawable.setStroke(II)V in onCreateViewHolder is silently caught by RecyclerView in this GameHub version, causing 0 cards rendered. setStroke on a card GradientDrawable inside onCreateViewHolder must not be used here.

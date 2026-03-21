@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.7.0-beta24 — fix: GOG game cards focusable for controller/D-pad navigation (2026-03-21)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta24
+**What changed:** `setFocusable(true)` added to each card view in `GogGamesFragment$2` immediately after `setClickable(true)`. Without `setFocusable`, Android's focus system had no targets to traverse and controller up/down did nothing. `v14` already held `true` from the preceding `setClickable` call — zero extra registers needed.
+**Files touched:** `GogGamesFragment$2.smali`
+**CI result:** ✅ run 23390886239
+
+---
+
 ## [beta] — v2.7.0-beta23 — feat: store loginTime + expires_in in bh_gog_prefs (2026-03-21)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta23
 **What changed:** Both initial login (`GogLoginActivity$2`) and silent refresh (`GogTokenRefresh`) now write `bh_gog_login_time` (int, unix seconds) and `bh_gog_expires_in` (int, 3600) to `bh_gog_prefs`. Enables upcoming proactive expiry check: `currentTimeMillis()/1000 >= loginTime + expiresIn`. `.locals` bumped in both files to accommodate wide long registers for `System.currentTimeMillis()` division.

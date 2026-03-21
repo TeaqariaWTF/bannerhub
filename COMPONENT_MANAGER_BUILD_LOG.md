@@ -30,6 +30,27 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 095 — fix: GOG game cards focusable for controller/D-pad (v2.7.0-beta24, gog-beta)
+**Date:** 2026-03-21
+**Branch:** gog-beta  |  **Tag:** v2.7.0-beta24
+
+### Root-cause analysis
+Card views in `GogGamesFragment$2` had `setClickable(true)` but not `setFocusable(true)`. Android's D-pad/controller focus traversal requires `isFocusable()=true` — without it, focus skips every card and there are no targets to navigate between.
+
+### Changes
+
+**GogGamesFragment$2.smali:**
+- Added `invoke-virtual {v7, v14}, Landroid/view/View;->setFocusable(Z)V` immediately after `setClickable(true)`
+- `v14` already holds `0x1` (true) from the preceding `setClickable` call — no register change, no `.locals` bump
+
+### Files modified
+- `patches/smali_classes16/.../GogGamesFragment$2.smali` — setFocusable(true) per card
+
+**Commit:** `1e4de26`
+**CI result:** [CI✅] run 23390886239
+
+---
+
 ## Entry 094 — feat: store loginTime + expires_in on every token save (v2.7.0-beta23, gog-beta)
 **Date:** 2026-03-21
 **Branch:** gog-beta  |  **Tag:** v2.7.0-beta23

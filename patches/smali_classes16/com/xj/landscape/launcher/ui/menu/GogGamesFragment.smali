@@ -1,5 +1,5 @@
 .class public Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;
-.super Landroidx/fragment/app/Fragment;
+.super Lcom/xj/base/base/fragment/LazyFragment;
 
 # BannerHub: GOG Games tab fragment.
 # Displays the signed-in user's GOG game library fetched from
@@ -15,7 +15,7 @@
 .method public constructor <init>()V
     .locals 0
 
-    invoke-direct {p0}, Landroidx/fragment/app/Fragment;-><init>()V
+    invoke-direct {p0}, Lcom/xj/base/base/fragment/LazyFragment;-><init>()V
 
     return-void
 .end method
@@ -74,9 +74,6 @@
     invoke-direct {v3, v4, v4}, Landroid/widget/FrameLayout$LayoutParams;-><init>(II)V
     invoke-virtual {v1, v2, v3}, Landroid/widget/FrameLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
-    # Initial content load
-    invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;->refreshContent()V
-
     return-object v1
 .end method
 
@@ -85,7 +82,17 @@
 .method public onResume()V
     .locals 0
 
-    invoke-super {p0}, Landroidx/fragment/app/Fragment;->onResume()V
+    invoke-super {p0}, Lcom/xj/base/base/fragment/LazyFragment;->onResume()V
+
+    invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;->refreshContent()V
+
+    return-void
+.end method
+
+
+# ── V: LazyFragment abstract lazy-init — called once when first visible ───────
+.method public V()V
+    .locals 0
 
     invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;->refreshContent()V
 

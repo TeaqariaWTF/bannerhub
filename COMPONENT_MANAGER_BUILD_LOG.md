@@ -30,6 +30,31 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 084 — Fix GOG tab show/hide: extend LazyFragment instead of Fragment (v2.7.0-beta10, gog-beta)
+**Date:** 2026-03-21
+**Branch:** gog-beta  |  **Tag:** v2.7.0-beta10
+
+### Root-cause analysis
+`k3()` (fragment switcher in `LandscapeLauncherMainActivity`) iterates `getSupportFragmentManager().getFragments()` and calls `show()` + `setMaxLifecycle(RESUMED)` / `hide()` + `setMaxLifecycle(STARTED)` **only on `LazyFragment` instances** (hardcoded `instance-of` check at lines 7431 and 7488). `GogGamesFragment` extended plain `androidx.fragment.app.Fragment`, so it was invisible to both branches of the loop. Result: once GOG Games was first added to `page_container`, it was NEVER hidden when switching back to My Games — its full-screen `FrameLayout` (MATCH_PARENT × MATCH_PARENT, `0xFF0D0D0D` background) permanently covered the My Games content below it. Clicking My Games tab fired `k3(0)` and technically showed MyFragment (a LazyFragment), but GOG's opaque view was still on top.
+
+### Files modified
+- `patches/smali_classes16/.../GogGamesFragment.smali`
+  - `.super` changed from `Landroidx/fragment/app/Fragment;` → `Lcom/xj/base/base/fragment/LazyFragment;`
+  - Constructor: `invoke-direct` target updated to `LazyFragment.<init>()V`
+  - `onCreateView`: removed the premature `refreshContent()` call (view-create time is too early; `V()` handles first load when tab becomes visible)
+  - Added `V()V` — implements `LazyFragment`'s abstract lazy-init; body = `refreshContent()`
+  - `onResume()`: super call updated to `LazyFragment.onResume()V`; continues to call `refreshContent()` for re-check on every tab re-visit
+
+### Methods added / changed
+- `GogGamesFragment.V()V` — new; `.locals 0`; calls `refreshContent()` (lazy-init, runs once on first tab visit via `LazyFragment.Y()`)
+- `GogGamesFragment.onCreateView` — removed trailing `refreshContent()` call; `.locals` unchanged (6)
+- `GogGamesFragment.onResume` — super target changed to `LazyFragment`
+- `GogGamesFragment.<init>` — super target changed to `LazyFragment`
+
+**CI result:** pending
+
+---
+
 ## Entry 083 — GOG Games tab: GogGamesFragment + 3 inner classes + tab injection (v2.7.0-beta9, gog-beta)
 **Date:** 2026-03-21
 **Branch:** gog-beta  |  **Tag:** v2.7.0-beta9

@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.7.0-beta10 — Fix GOG Games tab: extend LazyFragment so show/hide works (2026-03-21)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta10
+**What changed:** Root cause of beta9 bug: `k3()`'s show/hide loop only processes `LazyFragment` instances. `GogGamesFragment` extended plain `Fragment`, so it was never hidden when switching back to My Games — its full-screen dark FrameLayout (MATCH_PARENT) covered all content permanently. Fix: change `.super` to `LazyFragment`, implement abstract `V()` = `refreshContent()` (initial load when tab first becomes visible), update `onResume()` super call. Removed premature `refreshContent()` from `onCreateView` (now handled by `V()` + `onResume()`).
+**Files touched:** `GogGamesFragment.smali`
+**CI result:** pending
+
+---
+
 ## [beta] — v2.7.0-beta9 — GOG Games tab: GogGamesFragment + live game library from getFilteredProducts (2026-03-21)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta9
 **What changed:** Login confirmed working (beta8). Implemented GOG Games tab next to "My Games". New `GogGamesFragment` (Fragment subclass) fetches `embed.gog.com/account/getFilteredProducts?mediaType=1&sortBy=title` on background thread using stored access_token, parses all `"title":"…"` entries, and populates a ScrollView list on the main thread. If not logged in shows "Sign in via the GOG option in the side menu". Tab injected via `TabItemData.<init>(ILjava/lang/String;Function0)V` with title "GOG Games" after the "My Games" add in `LandscapeLauncherMainActivity.initView()`.

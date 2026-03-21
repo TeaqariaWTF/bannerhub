@@ -8,7 +8,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta6
 **What changed:** beta5 logcat confirmed `HTTP 400: {"error":"invalid_client","error_description":"The client credentials are invalid"}`. GOG has revoked `client_secret=9d85c43b1482497dbbce61f6e4aa173a` for third-party token exchanges. Fix: switch to OAuth2 implicit flow (`response_type=token`). Tokens arrive directly in the redirect URL fragment — no token exchange, no client_secret. `$1` now parses `#access_token=TOKEN&refresh_token=R&user_id=U` from the fragment using `Uri.parse("x://x?"+fragment)`. `$2` rewritten to 4-field constructor (activity, accessToken, refreshToken, userId); run() only fetches userData.json for username then saves all to SP. `$1` also extracted a `handleImplicitRedirect(Uri)` private helper to share logic between WebResourceRequest and deprecated String variants cleanly.
 **Files touched:** `GogLoginActivity.smali`, `GogLoginActivity$1.smali`, `GogLoginActivity$2.smali`
-**CI result:** pending
+**CI result:** ✅ run 23385389863 — Normal APK built successfully (3m32s)
 
 ---
 

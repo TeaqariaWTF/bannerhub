@@ -60,7 +60,7 @@ Fragment parsing trick: `Uri.parse("x://x?" + fragment)` treats the fragment str
   - Token exchange POST completely removed — no more `client_id`/`client_secret` usage.
 
 ### CI result
-→ pending
+→ ✅ run 23385389863 — Normal APK built successfully (3m32s)
 
 ---
 

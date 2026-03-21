@@ -298,23 +298,17 @@
     invoke-virtual {v12, v2}, Landroid/graphics/drawable/GradientDrawable;->setColor(I)V
     int-to-float v2, v4    # 8dp as float for corner radius
     invoke-virtual {v12, v2}, Landroid/graphics/drawable/GradientDrawable;->setCornerRadius(F)V
-    # card outline: 1dp stroke — v8 is free here (assigned as accentStrip below)
-    const/4 v2, 0x1
-    invoke-virtual {v1, v2}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->dp(I)I
-    move-result v2
-    const v8, 0xFF3A3A55
-    invoke-virtual {v12, v2, v8}, Landroid/graphics/drawable/GradientDrawable;->setStroke(II)V
     invoke-virtual {v7, v12}, Landroid/view/View;->setBackground(Landroid/graphics/drawable/Drawable;)V
 
     # Card padding: 12dp all sides
     invoke-virtual {v7, v5, v5, v5, v5}, Landroid/widget/LinearLayout;->setPadding(IIII)V
 
-    # Card LayoutParams: MATCH_PARENT x WRAP_CONTENT, margins 12/4/12/4
+    # Card LayoutParams: MATCH_PARENT x WRAP_CONTENT, margins 12/8/12/8
     new-instance v12, Landroid/widget/LinearLayout$LayoutParams;
     const/4 v2, -0x1    # MATCH_PARENT
     const/4 v1, -0x2    # WRAP_CONTENT (temporarily reuse v1)
     invoke-direct {v12, v2, v1}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
-    invoke-virtual {v12, v5, v3, v5, v3}, Landroid/widget/LinearLayout$LayoutParams;->setMargins(IIII)V
+    invoke-virtual {v12, v5, v4, v5, v4}, Landroid/widget/LinearLayout$LayoutParams;->setMargins(IIII)V
     invoke-virtual {v7, v12}, Landroid/view/View;->setLayoutParams(Landroid/view/ViewGroup$LayoutParams;)V
 
     # Restore v1 = activity (overwritten above)

@@ -3,15 +3,15 @@
 
 # BannerHub: OnClickListener for each game card in GogGamesFragment.
 # Shows an AlertDialog with:
-#   - title TextView (game title)
-#   - cover art ImageView (200dp height, loaded async by GogGamesFragment$4)
+#   - title TextView (top)
+#   - ProgressBar (GONE initially, inserted at index 1 — always visible)
+#   - status TextView (GONE initially, inserted at index 2 — always visible)
+#   - cover art ImageView (200dp)
 #   - info TextView: Genre, Developer
-#   - description TextView (Html.fromHtml, max 5 lines, shown if non-null)
-#   - store URL TextView (blue, tappable)
-#   - Install Button (in content area — keeps dialog open during download)
-#   - ProgressBar (horizontal, GONE until Install tapped)
-#   - status TextView (GONE until download complete — shows "✓ Complete")
-# Dialog buttons: [Launch] [Close]
+#   - description TextView (Html.fromHtml, max 5 lines, optional)
+#   - store URL TextView (blue, tappable, optional)
+# Dialog buttons: [Launch (neutral)] [Install (negative)] [Close (positive)]
+# Install button click listener is set after show() so dialog stays open during download.
 
 .implements Landroid/view/View$OnClickListener;
 
@@ -32,7 +32,7 @@
 
 
 .method public onClick(Landroid/view/View;)V
-    .locals 12
+    .locals 11
 
     # v0 = context
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$3;->a:Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;
@@ -60,7 +60,7 @@
     const v7, 0xFF0D0D0D
     invoke-virtual {v2, v7}, Landroid/view/View;->setBackgroundColor(I)V
 
-    # ── Game title TextView ──────────────────────────────────────────────────
+    # ── Game title TextView (index 0) ─────────────────────────────────────────
     new-instance v4, Landroid/widget/TextView;
     invoke-direct {v4, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
 
@@ -80,11 +80,11 @@
 
     const/high16 v9, 0x41800000  # 16.0f
     mul-float v9, v8, v9
-    float-to-int v9, v9  # 16dp px
+    float-to-int v9, v9
 
     const/high16 v10, 0x41000000  # 8.0f
     mul-float v10, v8, v10
-    float-to-int v10, v10  # 8dp px
+    float-to-int v10, v10
 
     invoke-virtual {v4, v9, v9, v9, v10}, Landroid/widget/TextView;->setPadding(IIII)V
 
@@ -94,16 +94,15 @@
     new-instance v3, Landroid/widget/ImageView;
     invoke-direct {v3, v0}, Landroid/widget/ImageView;-><init>(Landroid/content/Context;)V
 
-    const v7, 0xFF1A1A1A  # placeholder bg
+    const v7, 0xFF1A1A1A
     invoke-virtual {v3, v7}, Landroid/view/View;->setBackgroundColor(I)V
 
     sget-object v7, Landroid/widget/ImageView$ScaleType;->FIT_CENTER:Landroid/widget/ImageView$ScaleType;
     invoke-virtual {v3, v7}, Landroid/widget/ImageView;->setScaleType(Landroid/widget/ImageView$ScaleType;)V
 
-    # LP: MATCH_PARENT × 200dp
     const/high16 v7, 0x43480000  # 200.0f
     mul-float v7, v8, v7
-    float-to-int v7, v7  # v7 = 200dp in px
+    float-to-int v7, v7
 
     new-instance v9, Landroid/widget/LinearLayout$LayoutParams;
     const/4 v10, -0x1  # MATCH_PARENT
@@ -126,7 +125,6 @@
     new-instance v5, Ljava/lang/StringBuilder;
     invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
 
-    # Genre
     iget-object v9, v1, Lcom/xj/landscape/launcher/ui/menu/GogGame;->category:Ljava/lang/String;
     if-eqz v9, :info_no_genre
     const-string v10, "Genre: "
@@ -134,7 +132,6 @@
     invoke-virtual {v5, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     :info_no_genre
 
-    # Developer
     iget-object v9, v1, Lcom/xj/landscape/launcher/ui/menu/GogGame;->developer:Ljava/lang/String;
     if-eqz v9, :info_no_dev
     const-string v10, "\nDeveloper: "
@@ -143,11 +140,10 @@
     :info_no_dev
 
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v9  # v9 = info string
+    move-result-object v9
 
     new-instance v4, Landroid/widget/TextView;
     invoke-direct {v4, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-
     invoke-virtual {v4, v9}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
     const v9, 0xFFCCCCCC
@@ -156,20 +152,17 @@
     const/high16 v9, 0x41600000  # 14.0f
     invoke-virtual {v4, v9}, Landroid/widget/TextView;->setTextSize(F)V
 
-    # Padding: 16dp H, 10dp V
     const/high16 v9, 0x41800000  # 16.0f
     mul-float v9, v8, v9
     float-to-int v9, v9
-
     const/high16 v10, 0x41200000  # 10.0f
     mul-float v10, v8, v10
     float-to-int v10, v10
-
     invoke-virtual {v4, v9, v10, v9, v10}, Landroid/widget/TextView;->setPadding(IIII)V
 
     invoke-virtual {v2, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # ── Description TextView (optional, Html.fromHtml rendered) ──────────────
+    # ── Description TextView (optional) ──────────────────────────────────────
     iget-object v9, v1, Lcom/xj/landscape/launcher/ui/menu/GogGame;->description:Ljava/lang/String;
     if-eqz v9, :skip_desc
 
@@ -187,14 +180,13 @@
     const/high16 v9, 0x41400000  # 12.0f sp
     invoke-virtual {v4, v9}, Landroid/widget/TextView;->setTextSize(F)V
 
-    const/16 v9, 0x5  # max 5 lines
+    const/16 v9, 0x5
     invoke-virtual {v4, v9}, Landroid/widget/TextView;->setMaxLines(I)V
 
-    # Padding: 16dp H, 8dp V
-    const/high16 v9, 0x41800000  # 16.0f
+    const/high16 v9, 0x41800000
     mul-float v9, v8, v9
     float-to-int v9, v9
-    const/high16 v10, 0x41000000  # 8.0f
+    const/high16 v10, 0x41000000
     mul-float v10, v8, v10
     float-to-int v10, v10
     invoke-virtual {v4, v9, v10, v9, v10}, Landroid/widget/TextView;->setPadding(IIII)V
@@ -203,35 +195,32 @@
 
     :skip_desc
 
-    # ── Store URL TextView ────────────────────────────────────────────────────
+    # ── Store URL TextView (optional) ─────────────────────────────────────────
     iget-object v9, v1, Lcom/xj/landscape/launcher/ui/menu/GogGame;->storeUrl:Ljava/lang/String;
     if-eqz v9, :skip_store
 
-    move-object v6, v9  # save storeUrl
+    move-object v6, v9
 
     new-instance v5, Landroid/widget/TextView;
     invoke-direct {v5, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-
     invoke-virtual {v5, v9}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
-    const v9, 0xFF5B9BD5  # blue
+    const v9, 0xFF5B9BD5
     invoke-virtual {v5, v9}, Landroid/widget/TextView;->setTextColor(I)V
 
-    const/high16 v9, 0x41400000  # 12.0f
+    const/high16 v9, 0x41400000
     invoke-virtual {v5, v9}, Landroid/widget/TextView;->setTextSize(F)V
 
-    const/high16 v9, 0x41800000  # 16dp
+    const/high16 v9, 0x41800000
     mul-float v9, v8, v9
     float-to-int v9, v9
-    const/high16 v10, 0x41000000  # 8dp
+    const/high16 v10, 0x41000000
     mul-float v10, v8, v10
     float-to-int v10, v10
-
     invoke-virtual {v5, v9, v10, v9, v10}, Landroid/widget/TextView;->setPadding(IIII)V
 
     invoke-virtual {v2, v5}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # Make store URL tappable — opens in browser
     new-instance v9, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$5;
     invoke-direct {v9, v0, v6}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$5;-><init>(Landroid/content/Context;Ljava/lang/String;)V
     invoke-virtual {v5, v9}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
@@ -240,44 +229,26 @@
 
     :skip_store
 
-    # ── Install Button (in content — stays open during download) ─────────────
-    new-instance v3, Landroid/widget/Button;
-    invoke-direct {v3, v0}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
-    const-string v9, "Install"
-    invoke-virtual {v3, v9}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
-
-    # ── Progress Bar (horizontal, GONE initially) ─────────────────────────────
-    new-instance v4, Landroid/widget/ProgressBar;
+    # ── ProgressBar (horizontal, GONE initially) — inserted at index 1 ────────
+    # Adding after all content then inserting at index 1 puts it just below the title.
+    new-instance v3, Landroid/widget/ProgressBar;
     const v9, 0x0101020f  # android.R.attr.progressBarStyleHorizontal
     const/4 v10, 0x0      # null AttributeSet
-    invoke-direct {v4, v0, v10, v9}, Landroid/widget/ProgressBar;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;I)V
+    invoke-direct {v3, v0, v10, v9}, Landroid/widget/ProgressBar;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;I)V
     const/16 v9, 0x64     # max = 100
-    invoke-virtual {v4, v9}, Landroid/widget/ProgressBar;->setMax(I)V
+    invoke-virtual {v3, v9}, Landroid/widget/ProgressBar;->setMax(I)V
+    const/16 v9, 0x8      # GONE
+    invoke-virtual {v3, v9}, Landroid/view/View;->setVisibility(I)V
+    const/4 v9, 0x1       # insert at index 1 (just below title)
+    invoke-virtual {v2, v3, v9}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;I)V
+
+    # ── Status TextView (GONE initially) — inserted at index 2 ───────────────
+    new-instance v4, Landroid/widget/TextView;
+    invoke-direct {v4, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
     const/16 v9, 0x8      # GONE
     invoke-virtual {v4, v9}, Landroid/view/View;->setVisibility(I)V
-
-    # ── Status TextView (GONE initially — shows "✓ Complete" on finish) ───────
-    new-instance v5, Landroid/widget/TextView;
-    invoke-direct {v5, v0}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-    const/16 v9, 0x8  # GONE
-    invoke-virtual {v5, v9}, Landroid/view/View;->setVisibility(I)V
-
-    # Wire install button click listener via invoke-direct/range
-    # v6=instance, v7=ctx, v8=game, v9=button, v10=progressBar, v11=statusText
-    new-instance v6, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;
-    move-object v7, v0   # context
-    move-object v8, v1   # GogGame
-    move-object v9, v3   # Button
-    move-object v10, v4  # ProgressBar
-    move-object v11, v5  # StatusTextView
-    invoke-direct/range {v6 .. v11}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/Button;Landroid/widget/ProgressBar;Landroid/widget/TextView;)V
-
-    invoke-virtual {v3, v6}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
-
-    # Add Install button, ProgressBar, and status text to content layout
-    invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
-    invoke-virtual {v2, v4}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
-    invoke-virtual {v2, v5}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+    const/4 v9, 0x2       # insert at index 2
+    invoke-virtual {v2, v4, v9}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;I)V
 
     # ── AlertDialog ───────────────────────────────────────────────────────────
     new-instance v6, Landroid/app/AlertDialog$Builder;
@@ -289,13 +260,28 @@
     const/4 v10, 0x0
     invoke-virtual {v6, v9, v10}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
 
-    # Launch button (neutral = far left)
+    # Install button in button bar (null listener — we override after show())
+    const-string v9, "Install"
+    const/4 v10, 0x0
+    invoke-virtual {v6, v9, v10}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
+    # Launch button
     new-instance v9, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;
     invoke-direct {v9, v0, v1}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;)V
     const-string v10, "Launch"
     invoke-virtual {v6, v10, v9}, Landroid/app/AlertDialog$Builder;->setNeutralButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
 
     invoke-virtual {v6}, Landroid/app/AlertDialog$Builder;->show()Landroid/app/AlertDialog;
+    move-result-object v6  # v6 = AlertDialog
+
+    # Override Install button click listener to prevent auto-dismiss
+    const/4 v7, -0x2  # DialogInterface.BUTTON_NEGATIVE = -2
+    invoke-virtual {v6, v7}, Landroid/app/AlertDialog;->getButton(I)Landroid/widget/Button;
+    move-result-object v7  # v7 = Install Button
+
+    new-instance v8, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;
+    invoke-direct {v8, v0, v1, v3, v4}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;)V
+    invoke-virtual {v7, v8}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
     :done
     return-void

@@ -1,10 +1,11 @@
 .class public final Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;
 .super Ljava/lang/Object;
 
-# BannerHub: OnClickListener for the "Install" button in the game detail dialog.
+# BannerHub: DialogInterface$OnClickListener for the "Install" button in the game detail dialog.
+# Placed via AlertDialog.Builder.setNegativeButton() — called on main thread.
 # Calls GogDownloadManager.startDownload(context, game) and shows a Toast.
 
-.implements Landroid/view/View$OnClickListener;
+.implements Landroid/content/DialogInterface$OnClickListener;
 
 .field public final a:Landroid/content/Context;
 .field public final b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
@@ -22,7 +23,7 @@
 .end method
 
 
-.method public onClick(Landroid/view/View;)V
+.method public onClick(Landroid/content/DialogInterface;I)V
     .locals 3
 
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;->a:Landroid/content/Context;

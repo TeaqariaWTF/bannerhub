@@ -749,14 +749,20 @@
 
 # ─── showToast(msg) → void ───────────────────────────────────────────────────
 .method private showToast(Ljava/lang/String;)V
-    .locals 3
+    .locals 4
 
-    # p0=v3=this, p1=v4=msg — all within 4-bit range
-    iget-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
-    const/4 v2, 0x0
-    invoke-static {v1, p1, v2}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
-    move-result-object v1
-    invoke-virtual {v1}, Landroid/widget/Toast;->show()V
+    # p0=v4=this, p1=v5=msg — post to main thread to avoid Looper crash
+    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
+
+    new-instance v1, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$2;
+    invoke-direct {v1, v0, p1}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$2;-><init>(Landroid/content/Context;Ljava/lang/String;)V
+
+    new-instance v2, Landroid/os/Handler;
+    invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
+    move-result-object v3
+    invoke-direct {v2, v3}, Landroid/os/Handler;-><init>(Landroid/os/Looper;)V
+
+    invoke-virtual {v2, v1}, Landroid/os/Handler;->post(Ljava/lang/Runnable;)Z
     return-void
 .end method
 

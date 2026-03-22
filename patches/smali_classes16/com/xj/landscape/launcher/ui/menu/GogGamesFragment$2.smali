@@ -331,9 +331,17 @@
     invoke-virtual {v9, v12}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
     # ── Wire Install button click → $6 (shows size dialog) ───────────────────
-    new-instance v13, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;
-    invoke-direct {v13, v3, v6, v10, v11, v12}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;)V
-    invoke-virtual {v8, v13}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+    # $6.<init> needs 6 consecutive regs. v10=bar, v11=statusTV, v12=launchBtn.
+    # Save them to v13/v14/v15, place new-instance at v10, ctx/game at v11/v12.
+    move-object v13, v10   # save ProgressBar
+    move-object v14, v11   # save statusTV
+    move-object v15, v12   # save Launch Button
+    new-instance v10, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;
+    move-object v11, v3    # Context
+    move-object v12, v6    # GogGame
+    # v13=ProgressBar, v14=statusTV, v15=LaunchButton — set above
+    invoke-direct/range {v10 .. v15}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;)V
+    invoke-virtual {v8, v10}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
     # ── Add right layout to card with weight=1 ────────────────────────────────
     new-instance v13, Landroid/widget/LinearLayout$LayoutParams;

@@ -9,7 +9,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 **Commit:** `6a8b336`
 **What changed:** Button labels changed from symbol "↓"/"▶" to text "Download"/"Launch". Button LP widened from 40×40dp to 90×40dp so text fits. ProgressBar replaced with a percentage TextView throughout the entire download chain — on click shows "0%", GogDownloadManager$3.run() builds "X%" string via Integer.toString+StringBuilder and calls setText; at progress≥100 TextView is hidden (GONE) and Launch button enabled.
 **Files touched:** `GogGamesFragment$2`, `GogGamesFragment$6`, `GogDownloadManager`, `GogDownloadManager$1`, `GogDownloadManager$3`
-**CI result:** ⏳ run 23397855382
+**CI result:** ✅ run 23397855382
 
 ---
 

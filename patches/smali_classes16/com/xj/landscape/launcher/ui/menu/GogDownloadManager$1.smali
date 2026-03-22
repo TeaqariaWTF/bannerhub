@@ -789,6 +789,653 @@
 .end method
 
 
+# ─── processGen1DepotManifest(json, filesList) → void ────────────────────────
+# Parses a Gen 1 depot manifest JSON string and adds non-support files to list.
+# Gen 1 format: { "depot": { "files": [ { "path", "size", "offset", "hash",
+#   "support": false }, ... ] } }
+.method private processGen1DepotManifest(Ljava/lang/String;Ljava/util/ArrayList;)V
+    .locals 6
+    # p0=v6(this), p1=v7(json), p2=v8(filesList)
+
+    :try_pg1_start
+    new-instance v0, Lorg/json/JSONObject;
+    invoke-direct {v0, p1}, Lorg/json/JSONObject;-><init>(Ljava/lang/String;)V
+
+    const-string v1, "depot"
+    invoke-virtual {v0, v1}, Lorg/json/JSONObject;->optJSONObject(Ljava/lang/String;)Lorg/json/JSONObject;
+    move-result-object v0
+    if-eqz v0, :pg1_done
+
+    const-string v1, "files"
+    invoke-virtual {v0, v1}, Lorg/json/JSONObject;->optJSONArray(Ljava/lang/String;)Lorg/json/JSONArray;
+    move-result-object v1
+    if-eqz v1, :pg1_done
+
+    invoke-virtual {v1}, Lorg/json/JSONArray;->length()I
+    move-result v2
+    const/4 v3, 0x0
+
+    :pg1_item_loop
+    if-ge v3, v2, :pg1_done
+
+    invoke-virtual {v1, v3}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
+    move-result-object v4
+
+    # Skip if support=true
+    const-string v5, "support"
+    const/4 v0, 0x0
+    invoke-virtual {v4, v5, v0}, Lorg/json/JSONObject;->optBoolean(Ljava/lang/String;Z)Z
+    move-result v5
+    if-nez v5, :pg1_item_next
+
+    invoke-virtual {p2, v4}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
+
+    :pg1_item_next
+    add-int/lit8 v3, v3, 0x1
+    goto :pg1_item_loop
+
+    :pg1_done
+    return-void
+
+    :try_pg1_end
+    .catch Ljava/lang/Exception; {:try_pg1_start .. :try_pg1_end} :pg1_done
+.end method
+
+
+# ─── downloadRange(url, offset, size, outFile) → boolean ─────────────────────
+# Downloads a byte range from url (Range: bytes=offset to offset+size-1) and
+# writes raw bytes to outFile. Returns true on success, false on any error.
+.method private downloadRange(Ljava/lang/String;IILjava/io/File;)Z
+    .locals 8
+    # p0=v8(this), p1=v9(url), p2=v10(offset), p3=v11(size), p4=v12(outFile)
+
+    :try_drange_start
+    new-instance v0, Ljava/net/URL;
+    invoke-direct {v0, p1}, Ljava/net/URL;-><init>(Ljava/lang/String;)V
+    invoke-virtual {v0}, Ljava/net/URL;->openConnection()Ljava/net/URLConnection;
+    move-result-object v0
+    check-cast v0, Ljava/net/HttpURLConnection;
+
+    # Build "bytes=N-M" Range header
+    new-instance v1, Ljava/lang/StringBuilder;
+    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v2, "bytes="
+    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1, p2}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    const-string v2, "-"
+    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    add-int/lit8 v2, p3, -0x1      # size - 1
+    add-int v2, p2, v2              # end = offset + (size-1)
+    invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v2           # v2 = "bytes=N-M"
+
+    const-string v3, "Range"
+    invoke-virtual {v0, v3, v2}, Ljava/net/HttpURLConnection;->setRequestProperty(Ljava/lang/String;Ljava/lang/String;)V
+
+    const/16 v2, 0x2710            # 10000ms timeout
+    invoke-virtual {v0, v2}, Ljava/net/HttpURLConnection;->setConnectTimeout(I)V
+    invoke-virtual {v0, v2}, Ljava/net/HttpURLConnection;->setReadTimeout(I)V
+    invoke-virtual {v0}, Ljava/net/HttpURLConnection;->connect()V
+
+    # Create parent directories for output file
+    invoke-virtual {p4}, Ljava/io/File;->getParentFile()Ljava/io/File;
+    move-result-object v2
+    if-eqz v2, :drange_no_parent
+    invoke-virtual {v2}, Ljava/io/File;->mkdirs()Z
+    :drange_no_parent
+
+    # Open streams
+    invoke-virtual {v0}, Ljava/net/HttpURLConnection;->getInputStream()Ljava/io/InputStream;
+    move-result-object v3           # v3 = input stream
+
+    new-instance v4, Ljava/io/FileOutputStream;
+    invoke-direct {v4, p4}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
+
+    # 32KB buffer; read+write loop
+    const/16 v5, 0x8000
+    new-array v6, v5, [B
+    const/4 v5, 0x0                # write offset const = 0
+
+    :drange_read_loop
+    invoke-virtual {v3, v6}, Ljava/io/InputStream;->read([B)I
+    move-result v7
+    if-lez v7, :drange_read_done
+    invoke-virtual {v4, v6, v5, v7}, Ljava/io/OutputStream;->write([BII)V
+    goto :drange_read_loop
+    :drange_read_done
+
+    invoke-virtual {v3}, Ljava/io/InputStream;->close()V
+    invoke-virtual {v4}, Ljava/io/FileOutputStream;->close()V
+    invoke-virtual {v0}, Ljava/net/HttpURLConnection;->disconnect()V
+
+    const/4 v0, 0x1
+    return v0
+
+    :try_drange_end
+    .catch Ljava/lang/Exception; {:try_drange_start .. :try_drange_end} :drange_fail
+    :drange_fail
+    const/4 v0, 0x0
+    return v0
+.end method
+
+
+# ─── runGen1(accessToken, gameId) → void ─────────────────────────────────────
+# Full Gen 1 download pipeline. Called from run() when no Gen 2 build is found.
+# Flow: builds (gen=1) → build manifest → depot manifests → secure CDN link
+#       → byte-range download of each file from main.bin → finalize.
+.method private runGen1(Ljava/lang/String;Ljava/lang/String;)V
+    .locals 13
+    # p0=v13(this), p1=v14(accessToken), p2=v15(gameId)
+    # v0-v3  = scratch
+    # v4     = timestamp String (steps 3-6), then scratch
+    # v5     = installDir File (steps 3-end, persistent)
+    # v6     = baseProductId String (steps 3-6), then scratch
+    # v7     = depotsArray JSONArray (steps 3-4), then scratch
+    # v8     = filesList ArrayList (steps 4-7)
+    # v9     = loop index
+    # v10    = loop total
+    # v11    = mainBinUrl String (step 6 onward)
+    # v12    = scratch / progress value
+
+    # ── Step 1: Fetch Gen 1 builds ───────────────────────────────────────────
+    const/4 v0, 0x5
+    const-string v1, "Fetching build info..."
+    invoke-direct {p0, v0, v1}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
+
+    new-instance v0, Ljava/lang/StringBuilder;
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v1, "https://content-system.gog.com/products/"
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0, p2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v1, "/os/windows/builds?generation=1"
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v0
+
+    invoke-direct {p0, v0, p1}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->httpGet(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v0
+    if-eqz v0, :g1_err_builds
+
+    new-instance v1, Lorg/json/JSONObject;
+    invoke-direct {v1, v0}, Lorg/json/JSONObject;-><init>(Ljava/lang/String;)V
+    const-string v2, "items"
+    invoke-virtual {v1, v2}, Lorg/json/JSONObject;->optJSONArray(Ljava/lang/String;)Lorg/json/JSONArray;
+    move-result-object v1
+    if-eqz v1, :g1_err_builds
+    invoke-virtual {v1}, Lorg/json/JSONArray;->length()I
+    move-result v9
+    if-lez v9, :g1_err_builds
+
+    # Scan items for first windows build
+    const/4 v9, 0x0
+    const/4 v10, -0x1
+
+    :g1_scan_loop
+    invoke-virtual {v1}, Lorg/json/JSONArray;->length()I
+    move-result v12
+    if-ge v9, v12, :g1_scan_done
+    invoke-virtual {v1, v9}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
+    move-result-object v3
+    const-string v2, "os"
+    invoke-virtual {v3, v2}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v2
+    const-string v0, "windows"
+    invoke-virtual {v2, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    move-result v2
+    if-eqz v2, :g1_scan_next
+    move v10, v9
+    goto :g1_scan_done
+    :g1_scan_next
+    add-int/lit8 v9, v9, 0x1
+    goto :g1_scan_loop
+    :g1_scan_done
+
+    const/4 v12, -0x1
+    if-eq v10, v12, :g1_err_builds
+
+    invoke-virtual {v1, v10}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
+    move-result-object v3
+    const-string v0, "link"
+    invoke-virtual {v3, v0}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v0
+    if-eqz v0, :g1_err_builds
+    invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
+    move-result v9
+    if-nez v9, :g1_err_builds
+
+    # ── Step 2: Fetch + decompress build manifest ────────────────────────────
+    const/16 v12, 0x14
+    const-string v1, "Fetching manifest..."
+    invoke-direct {p0, v12, v1}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
+
+    invoke-direct {p0, v0, p1}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->fetchBytes(Ljava/lang/String;Ljava/lang/String;)[B
+    move-result-object v0
+    if-eqz v0, :g1_err_manifest
+
+    invoke-direct {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->decompressBytes([B)Ljava/lang/String;
+    move-result-object v0
+    if-eqz v0, :g1_err_manifest
+
+    # ── Step 3: Parse build manifest ─────────────────────────────────────────
+    new-instance v1, Lorg/json/JSONObject;
+    invoke-direct {v1, v0}, Lorg/json/JSONObject;-><init>(Ljava/lang/String;)V
+    const-string v2, "product"
+    invoke-virtual {v1, v2}, Lorg/json/JSONObject;->optJSONObject(Ljava/lang/String;)Lorg/json/JSONObject;
+    move-result-object v1
+    if-eqz v1, :g1_err_manifest
+
+    # timestamp (v4, persistent through step 6)
+    const-string v2, "timestamp"
+    invoke-virtual {v1, v2}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v4
+    if-eqz v4, :g1_err_manifest
+    invoke-virtual {v4}, Ljava/lang/String;->isEmpty()Z
+    move-result v9
+    if-nez v9, :g1_err_manifest
+
+    # installDirectory name (used once for getInstallDir)
+    const-string v2, "installDirectory"
+    invoke-virtual {v1, v2}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v2
+    if-eqz v2, :g1_err_manifest
+    invoke-virtual {v2}, Ljava/lang/String;->isEmpty()Z
+    move-result v9
+    if-nez v9, :g1_err_manifest
+
+    # baseProductId (v6, persistent through step 6): rootGameId first, else gameId
+    const-string v3, "rootGameId"
+    invoke-virtual {v1, v3}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v6
+    invoke-virtual {v6}, Ljava/lang/String;->isEmpty()Z
+    move-result v9
+    if-nez v9, :g1_pid_ok
+    const-string v3, "gameId"
+    invoke-virtual {v1, v3}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v6
+    :g1_pid_ok
+    if-eqz v6, :g1_err_manifest
+
+    # depots (v7, persistent through depot loop)
+    const-string v3, "depots"
+    invoke-virtual {v1, v3}, Lorg/json/JSONObject;->optJSONArray(Ljava/lang/String;)Lorg/json/JSONArray;
+    move-result-object v7
+    if-eqz v7, :g1_err_manifest
+
+    # Create installDir (v5, persistent)
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
+    invoke-static {v3, v2}, Lcom/xj/landscape/launcher/ui/menu/GogInstallPath;->getInstallDir(Landroid/content/Context;Ljava/lang/String;)Ljava/io/File;
+    move-result-object v5
+    invoke-virtual {v5}, Ljava/io/File;->mkdirs()Z
+
+    # ── Step 4: Collect files from depot manifests ───────────────────────────
+    const/16 v12, 0x28
+    const-string v0, "Processing depots..."
+    invoke-direct {p0, v12, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
+
+    new-instance v8, Ljava/util/ArrayList;
+    invoke-direct {v8}, Ljava/util/ArrayList;-><init>()V
+
+    const/4 v9, 0x0
+    invoke-virtual {v7}, Lorg/json/JSONArray;->length()I
+    move-result v10
+
+    :g1_depot_loop
+    if-ge v9, v10, :g1_depot_done
+
+    invoke-virtual {v7, v9}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
+    move-result-object v3
+
+    # Skip depots that are not windows (allow empty/absent os field)
+    const-string v0, "os"
+    invoke-virtual {v3, v0}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v0
+    invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
+    move-result v12
+    if-nez v12, :g1_depot_os_ok
+    const-string v1, "windows"
+    invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    move-result v12
+    if-eqz v12, :g1_depot_next
+    :g1_depot_os_ok
+
+    # Get manifest hash
+    const-string v0, "manifest"
+    invoke-virtual {v3, v0}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v0
+    if-eqz v0, :g1_depot_next
+    invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
+    move-result v12
+    if-nez v12, :g1_depot_next
+
+    # Build depot manifest URL
+    # https://gog-cdn-fastly.gog.com/content-system/v1/manifests/{pid}/windows/{ts}/{hash}
+    new-instance v1, Ljava/lang/StringBuilder;
+    invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v12, "https://gog-cdn-fastly.gog.com/content-system/v1/manifests/"
+    invoke-virtual {v1, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v12, "/windows/"
+    invoke-virtual {v1, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v12, "/"
+    invoke-virtual {v1, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v1}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v1
+
+    invoke-direct {p0, v1, p1}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->httpGet(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v1
+    if-eqz v1, :g1_depot_next
+
+    invoke-direct {p0, v1, v8}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->processGen1DepotManifest(Ljava/lang/String;Ljava/util/ArrayList;)V
+
+    :g1_depot_next
+    add-int/lit8 v9, v9, 0x1
+    goto :g1_depot_loop
+    :g1_depot_done
+
+    invoke-virtual {v8}, Ljava/util/ArrayList;->size()I
+    move-result v9
+    if-lez v9, :g1_err_nofiles
+
+    # ── Step 5: Exe scan (scan filesList for first non-redist .exe) ──────────
+    const/4 v9, 0x0
+    invoke-virtual {v8}, Ljava/util/ArrayList;->size()I
+    move-result v10
+
+    :g1_exe_scan_loop
+    if-ge v9, v10, :g1_exe_scan_done
+
+    invoke-virtual {v8, v9}, Ljava/util/ArrayList;->get(I)Ljava/lang/Object;
+    move-result-object v3
+    check-cast v3, Lorg/json/JSONObject;
+    const-string v0, "path"
+    invoke-virtual {v3, v0}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v0
+    if-eqz v0, :g1_exe_scan_next
+
+    invoke-virtual {v0}, Ljava/lang/String;->toLowerCase()Ljava/lang/String;
+    move-result-object v1
+    const-string v2, ".exe"
+    invoke-virtual {v1, v2}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
+    move-result v2
+    if-eqz v2, :g1_exe_scan_next
+    const-string v2, "redist"
+    invoke-virtual {v1, v2}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
+    move-result v2
+    if-nez v2, :g1_exe_scan_next
+
+    iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->c:Ljava/lang/String;
+    goto :g1_exe_scan_done
+
+    :g1_exe_scan_next
+    add-int/lit8 v9, v9, 0x1
+    goto :g1_exe_scan_loop
+    :g1_exe_scan_done
+
+    # ── Step 6: Get secure CDN link → mainBinUrl ─────────────────────────────
+    # URL: .../secure_link?_version=2&type=depot&path=/windows/{timestamp}/
+    const/16 v12, 0x2D
+    const-string v0, "Getting CDN link..."
+    invoke-direct {p0, v12, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
+
+    new-instance v0, Ljava/lang/StringBuilder;
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v1, "https://content-system.gog.com/products/"
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0, p2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v1, "/secure_link?_version=2&type=depot&path=/windows/"
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v1, "/"
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v0
+
+    invoke-direct {p0, v0, p1}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->httpGet(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v0
+    if-eqz v0, :g1_err_cdn
+
+    invoke-direct {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->parseCdnUrl(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v11
+    if-eqz v11, :g1_err_cdn
+
+    # Append /main.bin → mainBinUrl (v11, persistent through file loop)
+    new-instance v0, Ljava/lang/StringBuilder;
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v0, v11}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v1, "/main.bin"
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v11
+
+    # ── Step 7: Download all files via byte-range requests ───────────────────
+    const/4 v9, 0x0
+    invoke-virtual {v8}, Ljava/util/ArrayList;->size()I
+    move-result v10
+
+    :g1_file_loop
+    if-ge v9, v10, :g1_file_loop_done
+
+    # Per-file progress "Downloading files... X%" (45%→85%)
+    mul-int/lit8 v12, v9, 0x28
+    div-int v12, v12, v10
+    add-int/lit8 v12, v12, 0x2D
+
+    new-instance v0, Ljava/lang/StringBuilder;
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v1, "Downloading files... "
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0, v12}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    const-string v1, "%"
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v0
+
+    invoke-direct {p0, v12, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
+
+    # Get file object
+    invoke-virtual {v8, v9}, Ljava/util/ArrayList;->get(I)Ljava/lang/Object;
+    move-result-object v3
+    check-cast v3, Lorg/json/JSONObject;
+
+    # path
+    const-string v0, "path"
+    invoke-virtual {v3, v0}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v0
+    if-eqz v0, :g1_file_next
+    invoke-virtual {v0}, Ljava/lang/String;->isEmpty()Z
+    move-result v12
+    if-nez v12, :g1_file_next
+
+    # offset (int)
+    const-string v1, "offset"
+    const/4 v12, 0x0
+    invoke-virtual {v3, v1, v12}, Lorg/json/JSONObject;->optInt(Ljava/lang/String;I)I
+    move-result v1
+
+    # size (int)
+    const-string v2, "size"
+    const/4 v12, 0x0
+    invoke-virtual {v3, v2, v12}, Lorg/json/JSONObject;->optInt(Ljava/lang/String;I)I
+    move-result v2
+    if-lez v2, :g1_file_next
+
+    # Normalize path backslashes; v4/v6 are free (timestamp/productId no longer needed)
+    const-string v4, "\\"
+    const-string v6, "/"
+    invoke-virtual {v0, v4, v6}, Ljava/lang/String;->replace(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+    move-result-object v0
+
+    # Build output File
+    new-instance v4, Ljava/io/File;
+    invoke-direct {v4, v5, v0}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+
+    # downloadRange(mainBinUrl, offset, size, outFile)
+    invoke-direct {p0, v11, v1, v2, v4}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->downloadRange(Ljava/lang/String;IILjava/io/File;)Z
+
+    :g1_file_next
+    add-int/lit8 v9, v9, 0x1
+    goto :g1_file_loop
+    :g1_file_loop_done
+
+    # ── Step 8: Finalize ─────────────────────────────────────────────────────
+    const/16 v12, 0x55
+    const-string v0, "Assembling..."
+    invoke-direct {p0, v12, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
+
+    const/16 v12, 0x5A
+    const-string v0, "Finishing up..."
+    invoke-direct {p0, v12, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
+
+    # Write _gog_manifest.json
+    new-instance v3, Ljava/io/File;
+    const-string v4, "_gog_manifest.json"
+    invoke-direct {v3, v5, v4}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    :try_g1_mf_start
+    new-instance v4, Ljava/io/FileOutputStream;
+    invoke-direct {v4, v3}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
+    const-string v3, "{\"installed\":true}"
+    const-string v6, "UTF-8"
+    invoke-virtual {v3, v6}, Ljava/lang/String;->getBytes(Ljava/lang/String;)[B
+    move-result-object v3
+    invoke-virtual {v4, v3}, Ljava/io/OutputStream;->write([B)V
+    invoke-virtual {v4}, Ljava/io/FileOutputStream;->close()V
+    :try_g1_mf_end
+    .catch Ljava/lang/Exception; {:try_g1_mf_start .. :try_g1_mf_end} :g1_mf_skip
+    :g1_mf_skip
+
+    # Save install data to bh_gog_prefs
+    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
+    iget-object v12, v0, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
+    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
+    const-string v3, "bh_gog_prefs"
+    const/4 v4, 0x0
+    invoke-virtual {v0, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v3
+    invoke-interface {v3}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v3
+
+    # gog_dir_{gameId} = installDir name
+    new-instance v4, Ljava/lang/StringBuilder;
+    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v6, "gog_dir_"
+    invoke-virtual {v4, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v4
+    invoke-virtual {v5}, Ljava/io/File;->getName()Ljava/lang/String;
+    move-result-object v6
+    invoke-interface {v3, v4, v6}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+
+    # gog_cover_{gameId} = installDir/cover.jpg
+    new-instance v4, Ljava/lang/StringBuilder;
+    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v6, "gog_cover_"
+    invoke-virtual {v4, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v4
+    invoke-virtual {v5}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+    move-result-object v6
+    new-instance v7, Ljava/lang/StringBuilder;
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v6, "/cover.jpg"
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v6
+    invoke-interface {v3, v4, v6}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+
+    # gog_exe_{gameId} if field c is set
+    iget-object v4, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->c:Ljava/lang/String;
+    if-eqz v4, :g1_sp_apply
+
+    # Normalize backslashes in exe relative path
+    const-string v6, "\\"
+    const-string v7, "/"
+    invoke-virtual {v4, v6, v7}, Ljava/lang/String;->replace(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+    move-result-object v4
+
+    # Build full exe path: installDir.getAbsolutePath() + "/" + relPath
+    invoke-virtual {v5}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+    move-result-object v6
+    new-instance v7, Ljava/lang/StringBuilder;
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v6, "/"
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v7           # v7 = full exe path
+
+    # Build key
+    new-instance v8, Ljava/lang/StringBuilder;
+    invoke-direct {v8}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v9, "gog_exe_"
+    invoke-virtual {v8, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v8, v12}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v8           # v8 = "gog_exe_{gameId}"
+
+    invoke-interface {v3, v8, v7}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+
+    :g1_sp_apply
+    invoke-interface {v3}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    # Cover image download (best effort)
+    iget-object v4, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
+    iget-object v4, v4, Lcom/xj/landscape/launcher/ui/menu/GogGame;->imageUrl:Ljava/lang/String;
+    if-eqz v4, :g1_cover_skip
+    invoke-virtual {v4}, Ljava/lang/String;->isEmpty()Z
+    move-result v6
+    if-nez v6, :g1_cover_skip
+    const-string v6, ""
+    invoke-direct {p0, v4, v6}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->fetchBytes(Ljava/lang/String;Ljava/lang/String;)[B
+    move-result-object v4
+    if-eqz v4, :g1_cover_skip
+    :try_g1_cover_start
+    new-instance v6, Ljava/io/File;
+    const-string v7, "cover.jpg"
+    invoke-direct {v6, v5, v7}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    new-instance v7, Ljava/io/FileOutputStream;
+    invoke-direct {v7, v6}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
+    invoke-virtual {v7, v4}, Ljava/io/OutputStream;->write([B)V
+    invoke-virtual {v7}, Ljava/io/FileOutputStream;->close()V
+    :try_g1_cover_end
+    .catch Ljava/lang/Exception; {:try_g1_cover_start .. :try_g1_cover_end} :g1_cover_skip
+    :g1_cover_skip
+
+    # 100% complete
+    const/16 v12, 0x64
+    const-string v0, "\u2713 Complete"
+    invoke-direct {p0, v12, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
+
+    return-void
+
+    :g1_err_builds
+    const-string v0, "GOG: no Gen 1 build found"
+    invoke-direct {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->showToast(Ljava/lang/String;)V
+    return-void
+
+    :g1_err_manifest
+    const-string v0, "GOG: failed to read Gen 1 manifest"
+    invoke-direct {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->showToast(Ljava/lang/String;)V
+    return-void
+
+    :g1_err_nofiles
+    const-string v0, "GOG: no files in Gen 1 depot"
+    invoke-direct {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->showToast(Ljava/lang/String;)V
+    return-void
+
+    :g1_err_cdn
+    const-string v0, "GOG: failed to get Gen 1 CDN link"
+    invoke-direct {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->showToast(Ljava/lang/String;)V
+    return-void
+.end method
+
+
 # ─── showToast(msg) → void ───────────────────────────────────────────────────
 .method private showToast(Ljava/lang/String;)V
     .locals 4
@@ -1299,8 +1946,8 @@
     goto :run_done
 
     :err_gen1
-    const-string v4, "GOG: no Gen 2 build (Gen 1 fallback pending)"
-    invoke-direct {p0, v4}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->showToast(Ljava/lang/String;)V
+    # No Gen 2 build found — fall back to Gen 1 pipeline
+    invoke-direct {p0, v1, v2}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->runGen1(Ljava/lang/String;Ljava/lang/String;)V
     goto :run_done
 
     :err_manifest

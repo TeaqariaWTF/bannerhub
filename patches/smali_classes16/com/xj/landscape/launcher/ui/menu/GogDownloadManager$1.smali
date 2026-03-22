@@ -568,24 +568,22 @@
 # ─── assembleFile(fileObj, installDir, baseCdnUrl, chunkDir) → void ──────────
 # Downloads all chunks for one DepotFile and assembles into the output file.
 .method private assembleFile(Lorg/json/JSONObject;Ljava/io/File;Ljava/lang/String;Ljava/io/File;)V
-    .locals 14
+    .locals 11
 
-    # p0=this, p1=fileObj, p2=installDir, p3=baseCdnUrl, p4=chunkDir
+    # p0=v11=this, p1=v12=fileObj, p2=v13=installDir, p3=v14=baseCdnUrl, p4=v15=chunkDir
+    # All params p0-p4 map to v11-v15 (within 4-bit range).
 
-    # v0 = normalized path (String), then free as scratch after File created
-    # v1 = chunks JSONArray
-    # v2 = outputFile (File)
+    # v0 = normalized path (String) → free after outputFile created; BAOS during inflate
+    # v1 = chunks JSONArray (LIVE throughout)
+    # v2 = outputFile (File)  (LIVE for appending)
     # v3 = chunk index
     # v4 = chunk count
-    # v5 = chunk JSONObject
-    # v6 = compressedMd5 hash (String)
+    # v5 = chunk JSONObject → offset=0 scratch during inflate
+    # v6 = compressedMd5 hash → Inflater during inflate
     # v7 = chunkFile (File)
-    # v8 = chunkUrl (String)
-    # v9 = chunk bytes ([B)
-    # v10 = compressedSize (int)
-    # v11 = size (int)
-    # v12 = Inflater / FileOutputStream / scratch
-    # v13 = BAOS / scratch
+    # v8 = chunkUrl (String) → inflate buffer during inflate
+    # v9 = chunk bytes ([B) → inflate result
+    # v10 = compressedSize (int) → inflate count
 
     const-string v0, "path"
     invoke-virtual {p1, v0}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
@@ -664,14 +662,13 @@
     move-result-object v8  # chunkUrl
 
     # Skip download if cached non-empty
+    # v9 low-word of file length is non-zero for any non-empty chunk file (< 4GB)
     invoke-virtual {v7}, Ljava/io/File;->exists()Z
     move-result v0
     if-eqz v0, :af_download
     invoke-virtual {v7}, Ljava/io/File;->length()J
-    move-result-wide v9   # v9:v10 = file length (both free here)
-    const-wide/16 v11, 0x0  # v11:v12 = 0L (both free here)
-    cmp-long v0, v9, v11  # v0 = (length > 0) ? positive : non-positive
-    if-gtz v0, :af_cached
+    move-result-wide v9   # v9=low-word, v10=high-word (v10 was free)
+    if-nez v9, :af_cached
 
     :af_download
     invoke-direct {p0, v8, v7}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->downloadChunk(Ljava/lang/String;Ljava/io/File;)Z
@@ -697,39 +694,41 @@
     if-eq v10, v11, :af_write  # same size = uncompressed, write directly
 
     # Decompress with Inflater (zlib nowrap=false)
+    # Free registers here: v0 (path done), v5 (chunkObj done), v6 (hash done), v8 (url done), v10 (size done)
+    # v6=Inflater, v0=BAOS, v8=buffer([B), v10=inflate-count, v5=offset(0)
     :try_inflate_start
-    new-instance v12, Ljava/util/zip/Inflater;
-    invoke-direct {v12}, Ljava/util/zip/Inflater;-><init>()V
-    invoke-virtual {v12, v9}, Ljava/util/zip/Inflater;->setInput([B)V
-    new-instance v13, Ljava/io/ByteArrayOutputStream;
-    invoke-direct {v13}, Ljava/io/ByteArrayOutputStream;-><init>()V
-    const/16 v10, 0x1000
-    new-array v10, v10, [B  # inflate buffer (reuses v10, v11 free now)
+    new-instance v6, Ljava/util/zip/Inflater;
+    invoke-direct {v6}, Ljava/util/zip/Inflater;-><init>()V
+    invoke-virtual {v6, v9}, Ljava/util/zip/Inflater;->setInput([B)V
+    new-instance v0, Ljava/io/ByteArrayOutputStream;
+    invoke-direct {v0}, Ljava/io/ByteArrayOutputStream;-><init>()V
+    const/16 v8, 0x1000
+    new-array v8, v8, [B
     :inflate_loop
-    invoke-virtual {v12}, Ljava/util/zip/Inflater;->finished()Z
-    move-result v11
-    if-nez v11, :inflate_done
-    invoke-virtual {v12, v10}, Ljava/util/zip/Inflater;->inflate([B)I
-    move-result v11
-    if-eqz v11, :inflate_done
-    const/4 v0, 0x0
-    invoke-virtual {v13, v10, v0, v11}, Ljava/io/ByteArrayOutputStream;->write([BII)V
+    invoke-virtual {v6}, Ljava/util/zip/Inflater;->finished()Z
+    move-result v10
+    if-nez v10, :inflate_done
+    invoke-virtual {v6, v8}, Ljava/util/zip/Inflater;->inflate([B)I
+    move-result v10
+    if-eqz v10, :inflate_done
+    const/4 v5, 0x0
+    invoke-virtual {v0, v8, v5, v10}, Ljava/io/ByteArrayOutputStream;->write([BII)V
     goto :inflate_loop
     :inflate_done
-    invoke-virtual {v12}, Ljava/util/zip/Inflater;->end()V
-    invoke-virtual {v13}, Ljava/io/ByteArrayOutputStream;->toByteArray()[B
+    invoke-virtual {v6}, Ljava/util/zip/Inflater;->end()V
+    invoke-virtual {v0}, Ljava/io/ByteArrayOutputStream;->toByteArray()[B
     move-result-object v9
     :try_inflate_end
     .catch Ljava/lang/Exception; {:try_inflate_start .. :try_inflate_end} :af_chunk_next
 
     :af_write
-    # Append v9 bytes to outputFile v2
+    # Append v9 bytes to outputFile v2 (v6 is free here — Inflater branch done or skipped)
     :try_afwrite_start
     const/4 v0, 0x1  # append=true
-    new-instance v12, Ljava/io/FileOutputStream;
-    invoke-direct {v12, v2, v0}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;Z)V
-    invoke-virtual {v12, v9}, Ljava/io/OutputStream;->write([B)V
-    invoke-virtual {v12}, Ljava/io/FileOutputStream;->close()V
+    new-instance v6, Ljava/io/FileOutputStream;
+    invoke-direct {v6, v2, v0}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;Z)V
+    invoke-virtual {v6, v9}, Ljava/io/OutputStream;->write([B)V
+    invoke-virtual {v6}, Ljava/io/FileOutputStream;->close()V
     :try_afwrite_end
     .catch Ljava/lang/Exception; {:try_afwrite_start .. :try_afwrite_end} :af_chunk_next
 
@@ -752,8 +751,8 @@
 .method private showToast(Ljava/lang/String;)V
     .locals 3
 
-    move-object/from16 v0, p0
-    iget-object v1, v0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
+    # p0=v3=this, p1=v4=msg — all within 4-bit range
+    iget-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
     const/4 v2, 0x0
     invoke-static {v1, p1, v2}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
     move-result-object v1
@@ -790,9 +789,9 @@
 
 # ─── run() — main pipeline ────────────────────────────────────────────────────
 .method public run()V
-    .locals 16
+    .locals 15
 
-    # p0 = this (v16 slot — access via move-object/from16)
+    # p0 = this = v15 (within 4-bit range — no move-object/from16 needed)
     # v0  = ctx (Context)
     # v1  = accessToken (String)
     # v2  = gameId (String)
@@ -807,17 +806,13 @@
     # v11 = baseCdnUrl (String)  [set in step 4]
     # v12 = chunkCacheDir (File)  [set before step 5]
     # v13 = scratch
-    # v14 = scratch
-    # v15 = title (String)
+    # v14 = scratch  (title loaded fresh at step 7 toast)
 
-    move-object/from16 v0, p0
-    iget-object v0, v0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
+    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
     if-eqz v0, :run_done
 
-    move-object/from16 v3, p0
-    iget-object v3, v3, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
     iget-object v2, v3, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
-    iget-object v15, v3, Lcom/xj/landscape/launcher/ui/menu/GogGame;->title:Ljava/lang/String;
     if-eqz v2, :run_done
 
     :try_run_start
@@ -927,8 +922,7 @@
     if-eqz v7, :err_manifest
 
     # Resolve install dir
-    move-object/from16 v13, p0
-    iget-object v13, v13, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
+    iget-object v13, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
     invoke-static {v13, v4}, Lcom/xj/landscape/launcher/ui/menu/GogInstallPath;->getInstallDir(Landroid/content/Context;Ljava/lang/String;)Ljava/io/File;
     move-result-object v5  # installDir (File)
     invoke-virtual {v5}, Ljava/io/File;->mkdirs()Z
@@ -1082,13 +1076,15 @@
     # Delete chunk cache dir
     invoke-direct {p0, v12}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->deleteDir(Ljava/io/File;)V
 
-    # Toast: Install complete
+    # Toast: Install complete (reload title from game field)
+    iget-object v13, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
+    iget-object v14, v13, Lcom/xj/landscape/launcher/ui/menu/GogGame;->title:Ljava/lang/String;
     new-instance v3, Ljava/lang/StringBuilder;
     invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V
     const-string v4, "Install complete: "
     invoke-virtual {v3, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    if-eqz v15, :toast_no_title
-    invoke-virtual {v3, v15}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    if-eqz v14, :toast_no_title
+    invoke-virtual {v3, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     :toast_no_title
     invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v3

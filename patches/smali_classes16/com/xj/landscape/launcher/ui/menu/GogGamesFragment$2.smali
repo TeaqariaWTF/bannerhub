@@ -246,14 +246,94 @@
 
     invoke-virtual {v9, v11}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # ── Percentage TextView (GONE — shows "0%"→"100%" during download) ────────
+    # ── Install Button (VISIBLE — full width in right section) ────────────────
+    new-instance v8, Landroid/widget/Button;
+    invoke-direct {v8, v3}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
+    const-string v14, "Install"
+    invoke-virtual {v8, v14}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
+    const v14, 0xFFFFFFFF  # white text
+    invoke-virtual {v8, v14}, Landroid/widget/TextView;->setTextColor(I)V
+    invoke-virtual {v9, v8}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # ── ProgressBar (GONE — shown during download, horizontal style) ──────────
+    new-instance v10, Landroid/widget/ProgressBar;
+    const/4 v14, 0x0           # null AttributeSet
+    const v15, 0x1010078       # android.R.attr.progressBarStyleHorizontal
+    invoke-direct {v10, v3, v14, v15}, Landroid/widget/ProgressBar;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;I)V
+
+    const/16 v14, 0x64  # max = 100
+    invoke-virtual {v10, v14}, Landroid/widget/ProgressBar;->setMax(I)V
+    const/16 v14, 0x8  # GONE
+    invoke-virtual {v10, v14}, Landroid/view/View;->setVisibility(I)V
+    invoke-virtual {v9, v10}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # ── Status TextView (GONE — shows step text during download) ──────────────
     new-instance v11, Landroid/widget/TextView;
     invoke-direct {v11, v3}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-    const v14, 0xFFFFFFFF  # white text
+    const v14, 0xFF888888  # grey text
     invoke-virtual {v11, v14}, Landroid/widget/TextView;->setTextColor(I)V
+    const/high16 v14, 0x41200000  # 10.0f sp
+    invoke-virtual {v11, v14}, Landroid/widget/TextView;->setTextSize(F)V
     const/16 v14, 0x8  # GONE
     invoke-virtual {v11, v14}, Landroid/view/View;->setVisibility(I)V
     invoke-virtual {v9, v11}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # ── Launch Button (GONE — shown + enabled by GogDownloadManager$3 at 100%) ─
+    new-instance v12, Landroid/widget/Button;
+    invoke-direct {v12, v3}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
+    const-string v14, "Launch"
+    invoke-virtual {v12, v14}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
+    const v14, 0xFFFFFFFF  # white text
+    invoke-virtual {v12, v14}, Landroid/widget/TextView;->setTextColor(I)V
+
+    # Check gog_exe_{gameId} → show+enable Launch if already installed
+    iget-object v13, v6, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
+    if-eqz v13, :launch_gone
+
+    new-instance v15, Ljava/lang/StringBuilder;
+    invoke-direct {v15}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v14, "gog_exe_"
+    invoke-virtual {v15, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v15, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v15}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v13
+
+    const-string v14, "bh_gog_prefs"
+    const/4 v15, 0x0
+    invoke-virtual {v3, v14, v15}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v14
+
+    const-string v15, ""
+    invoke-interface {v14, v13, v15}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v13
+
+    invoke-virtual {v13}, Ljava/lang/String;->isEmpty()Z
+    move-result v13
+    if-nez v13, :launch_gone
+
+    # Already installed: show + enable Launch, hide Install button
+    const/4 v13, 0x0  # VISIBLE
+    invoke-virtual {v12, v13}, Landroid/view/View;->setVisibility(I)V
+    const/4 v13, 0x1
+    invoke-virtual {v12, v13}, Landroid/view/View;->setEnabled(Z)V
+    const/16 v13, 0x8  # GONE
+    invoke-virtual {v8, v13}, Landroid/view/View;->setVisibility(I)V
+    goto :set_launch_click
+
+    :launch_gone
+    const/16 v13, 0x8  # GONE
+    invoke-virtual {v12, v13}, Landroid/view/View;->setVisibility(I)V
+
+    :set_launch_click
+    new-instance v13, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;
+    invoke-direct {v13, v3, v6}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;)V
+    invoke-virtual {v12, v13}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+    invoke-virtual {v9, v12}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # ── Wire Install button click → $6 (shows size dialog) ───────────────────
+    new-instance v13, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;
+    invoke-direct {v13, v3, v6, v10, v11, v12}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;)V
+    invoke-virtual {v8, v13}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
     # ── Add right layout to card with weight=1 ────────────────────────────────
     new-instance v13, Landroid/widget/LinearLayout$LayoutParams;
@@ -262,98 +342,6 @@
     const/high16 v12, 0x3f800000  # weight = 1.0f
     invoke-direct {v13, v14, v15, v12}, Landroid/widget/LinearLayout$LayoutParams;-><init>(IIF)V
     invoke-virtual {v7, v9, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
-
-    # ── Square button column (far right of card) ──────────────────────────────
-    # Two 40dp×40dp square buttons stacked vertically, centered in column.
-    new-instance v8, Landroid/widget/LinearLayout;
-    invoke-direct {v8, v3}, Landroid/widget/LinearLayout;-><init>(Landroid/content/Context;)V
-    const/4 v14, 0x1  # VERTICAL
-    invoke-virtual {v8, v14}, Landroid/widget/LinearLayout;->setOrientation(I)V
-    const/16 v14, 0x11  # Gravity.CENTER
-    invoke-virtual {v8, v14}, Landroid/widget/LinearLayout;->setGravity(I)V
-
-    # Button width: 90dp, height: 40dp
-    const/high16 v14, 0x42B40000  # 90.0f
-    mul-float v14, v2, v14
-    float-to-int v14, v14  # v14 = 90dp px (width)
-    const/high16 v15, 0x42200000  # 40.0f
-    mul-float v15, v2, v15
-    float-to-int v15, v15  # v15 = 40dp px (height)
-
-    # ── Launch Button — created first so Download listener can hold its ref ───
-    new-instance v12, Landroid/widget/Button;
-    invoke-direct {v12, v3}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
-    const-string v15, "Launch"
-    invoke-virtual {v12, v15}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
-    const v15, 0xFFFFFFFF  # white text
-    invoke-virtual {v12, v15}, Landroid/widget/TextView;->setTextColor(I)V
-
-    # Check gog_exe_{gameId} → enable Launch if already installed
-    iget-object v13, v6, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
-    if-eqz v13, :launch_disabled
-
-    new-instance v15, Ljava/lang/StringBuilder;
-    invoke-direct {v15}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v10, "gog_exe_"  # v10 free (Download button not yet created)
-    invoke-virtual {v15, v10}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v15, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v15}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v13
-
-    const-string v10, "bh_gog_prefs"
-    const/4 v15, 0x0
-    invoke-virtual {v3, v10, v15}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-    move-result-object v10
-
-    const-string v15, ""
-    invoke-interface {v10, v13, v15}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-    move-result-object v13
-
-    invoke-virtual {v13}, Ljava/lang/String;->isEmpty()Z
-    move-result v13
-    if-nez v13, :launch_disabled
-
-    const/4 v13, 0x1
-    invoke-virtual {v12, v13}, Landroid/view/View;->setEnabled(Z)V
-    goto :set_launch_click
-
-    :launch_disabled
-    const/4 v13, 0x0
-    invoke-virtual {v12, v13}, Landroid/view/View;->setEnabled(Z)V
-
-    :set_launch_click
-    new-instance v13, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;
-    invoke-direct {v13, v3, v6}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;)V
-    invoke-virtual {v12, v13}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
-
-    # ── Download Button ───────────────────────────────────────────────────────
-    new-instance v10, Landroid/widget/Button;
-    invoke-direct {v10, v3}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
-    const-string v15, "Download"
-    invoke-virtual {v10, v15}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
-    const v15, 0xFFFFFFFF  # white text
-    invoke-virtual {v10, v15}, Landroid/widget/TextView;->setTextColor(I)V
-
-    new-instance v13, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;
-    invoke-direct {v13, v3, v6, v11, v12}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/TextView;Landroid/widget/Button;)V
-    invoke-virtual {v10, v13}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
-
-    # Add Download (top) with fixed 90dp×40dp LP
-    new-instance v13, Landroid/widget/LinearLayout$LayoutParams;
-    invoke-direct {v13, v14, v15}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
-    invoke-virtual {v8, v10, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
-
-    # Add Launch (bottom) with fixed 90dp×40dp LP
-    new-instance v13, Landroid/widget/LinearLayout$LayoutParams;
-    invoke-direct {v13, v14, v15}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
-    invoke-virtual {v8, v12, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
-
-    # Add column to card: WRAP_CONTENT × MATCH_PARENT
-    new-instance v13, Landroid/widget/LinearLayout$LayoutParams;
-    const/4 v14, -0x2  # WRAP_CONTENT
-    const/4 v15, -0x1  # MATCH_PARENT
-    invoke-direct {v13, v14, v15}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
-    invoke-virtual {v7, v8, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
     # ── Click listener: $3 takes GogGame, opens detail dialog ────────────────
     new-instance v12, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$3;

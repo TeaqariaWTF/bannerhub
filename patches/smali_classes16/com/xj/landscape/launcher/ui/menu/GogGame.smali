@@ -13,6 +13,7 @@
 .field public category:Ljava/lang/String;
 .field public description:Ljava/lang/String;
 .field public developer:Ljava/lang/String;
+.field public fileSize:J  # download size in bytes (from downloads.installers[].total_size)
 
 
 .method public constructor <init>()V

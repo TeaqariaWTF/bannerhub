@@ -490,6 +490,49 @@
     iput-object v14, v11, Lcom/xj/landscape/launcher/ui/menu/GogGame;->category:Ljava/lang/String;
     :no_cat
 
+    # ── fileSize: downloads.installers[N] where os=windows → total_size (long) ─
+    const-string v4, "downloads"
+    invoke-virtual {v3, v4}, Lorg/json/JSONObject;->optJSONObject(Ljava/lang/String;)Lorg/json/JSONObject;
+    move-result-object v4
+    if-eqz v4, :no_filesize
+
+    const-string v5, "installers"
+    invoke-virtual {v4, v5}, Lorg/json/JSONObject;->optJSONArray(Ljava/lang/String;)Lorg/json/JSONArray;
+    move-result-object v4
+    if-eqz v4, :no_filesize
+
+    const/4 v5, 0x0
+    :fsize_loop
+    invoke-virtual {v4}, Lorg/json/JSONArray;->length()I
+    move-result v12
+    if-ge v5, v12, :no_filesize
+
+    invoke-virtual {v4, v5}, Lorg/json/JSONArray;->optJSONObject(I)Lorg/json/JSONObject;
+    move-result-object v12
+    if-eqz v12, :fsize_next
+
+    const-string v13, "os"
+    const-string v14, ""
+    invoke-virtual {v12, v13, v14}, Lorg/json/JSONObject;->optString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v13
+    const-string v14, "windows"
+    invoke-virtual {v13, v14}, Ljava/lang/String;->equalsIgnoreCase(Ljava/lang/String;)Z
+    move-result v13
+    if-eqz v13, :fsize_next
+
+    const-string v13, "total_size"
+    const-wide/16 v6, 0x0
+    invoke-virtual {v12, v13, v6, v7}, Lorg/json/JSONObject;->optLong(Ljava/lang/String;J)J
+    move-result-wide v6
+    iput-wide v6, v11, Lcom/xj/landscape/launcher/ui/menu/GogGame;->fileSize:J
+    goto :no_filesize
+
+    :fsize_next
+    add-int/lit8 v5, v5, 0x1
+    goto :fsize_loop
+
+    :no_filesize
+
     invoke-virtual {v2, v11}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
 
     :loop_next

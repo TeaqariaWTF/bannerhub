@@ -15,20 +15,22 @@
 .field public final a:Landroid/content/Context;
 .field public final b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
 .field public c:Ljava/lang/String;
-.field public d:Landroid/widget/TextView;
+.field public d:Landroid/widget/ProgressBar;
 .field public e:Landroid/widget/Button;
+.field public g:Landroid/widget/TextView;   # statusTV
 .field public f:Landroid/os/Handler;
 
 
-.method public constructor <init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/TextView;Landroid/widget/Button;)V
+.method public constructor <init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;)V
     .locals 2
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
     iput-object p1, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
     iput-object p2, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
-    iput-object p3, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->d:Landroid/widget/TextView;
-    iput-object p4, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->e:Landroid/widget/Button;
+    iput-object p3, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->d:Landroid/widget/ProgressBar;
+    iput-object p4, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->g:Landroid/widget/TextView;
+    iput-object p5, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->e:Landroid/widget/Button;
 
     # Create Handler on main looper for UI progress updates
     new-instance v0, Landroid/os/Handler;
@@ -43,14 +45,16 @@
 
 # ─── postProgress(progress, message) → void ─────────────────────────────────
 .method private postProgress(ILjava/lang/String;)V
-    .locals 3
+    .locals 4
 
-    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->d:Landroid/widget/TextView;
+    # v0 = ProgressBar, v2 = statusTV, v3 = launchButton
+    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->d:Landroid/widget/ProgressBar;
     if-eqz v0, :pp_done
 
     new-instance v1, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;
-    iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->e:Landroid/widget/Button;
-    invoke-direct {v1, v0, v2, p1, p2}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;-><init>(Landroid/widget/TextView;Landroid/widget/Button;ILjava/lang/String;)V
+    iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->g:Landroid/widget/TextView;
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->e:Landroid/widget/Button;
+    invoke-direct {v1, v0, v2, v3, p1, p2}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;-><init>(Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;ILjava/lang/String;)V
 
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->f:Landroid/os/Handler;
     invoke-virtual {v0, v1}, Landroid/os/Handler;->post(Ljava/lang/Runnable;)Z
@@ -861,7 +865,7 @@
     if-eqz v1, :err_token
 
     const/4 v4, 0x5
-    const/4 v13, 0x0
+    const-string v13, "Fetching build info..."
     invoke-direct {p0, v4, v13}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
 
     # ── Step 1: builds API ────────────────────────────────────────────────────
@@ -930,7 +934,7 @@
     # ── Step 2: fetch+decompress build manifest ───────────────────────────────
     # v4 = manifest link URL (must not be clobbered); v3 is free (JSONObject consumed)
     const/16 v13, 0x14
-    const/4 v3, 0x0
+    const-string v3, "Fetching manifest..."
     invoke-direct {p0, v13, v3}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
 
     invoke-direct {p0, v4, v1}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->fetchBytes(Ljava/lang/String;Ljava/lang/String;)[B
@@ -1122,7 +1126,7 @@
     if-lez v9, :err_no_files
 
     const/16 v9, 0x28
-    const/4 v4, 0x0
+    const-string v4, "Getting CDN link..."
     invoke-direct {p0, v9, v4}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
 
     # ── Step 4: secure CDN link ───────────────────────────────────────────────
@@ -1146,7 +1150,7 @@
 
     # ── Step 5+6: download+assemble all files ─────────────────────────────────
     const/16 v4, 0x2D
-    const/4 v13, 0x0
+    const-string v13, "Downloading files..."
     invoke-direct {p0, v4, v13}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
 
     # Create chunk cache dir
@@ -1173,12 +1177,12 @@
     :file_loop_done
 
     const/16 v9, 0x55
-    const/4 v4, 0x0
+    const-string v4, "Assembling..."
     invoke-direct {p0, v9, v4}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
 
     # ── Step 7: finalize ──────────────────────────────────────────────────────
     const/16 v13, 0x5A
-    const/4 v4, 0x0
+    const-string v4, "Finishing up..."
     invoke-direct {p0, v13, v4}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->postProgress(ILjava/lang/String;)V
 
     # Write _gog_manifest.json

@@ -3350,3 +3350,13 @@ After Step 1 extracted the build manifest URL into v4, the progress-update call 
 ### 404 — v2.7.0-beta41 — test: option 1 — Z: drive path for Wine exe launch (2026-03-22)
 **Files changed:**
 - `GogGamesFragment$7.smali`: Z: drive conversion (/ → \, prepend Z:) applied to exePath before WineActivityData constructor
+
+### 407 — v2.7.0-beta48 — fix: square ↓/▶ buttons at far right of card (2026-03-22)
+**Files changed:**
+- `GogGamesFragment$2.smali`: .locals 17→16; removed weight=1 button row from right section; added vertical button column (v8) with Gravity.CENTER, attached to card root after right section; each button 40dp×40dp fixed LP; "↓" Download (v10) on top, "▶" Launch (v12) below; white text color via explicit setTextColor(0xFFFFFFFF); ProgressBar (v11) stays in right section spanning full width
+
+### Root-cause / design
+The weight=1 LP inside a horizontal LinearLayout caused each button to take half the right-section width but zero height (WRAP_CONTENT with no minimum height on a programmatic Button gives ~0dp). Moving to a separate vertical column with fixed 40dp×40dp LP gives both correct size and square shape. Symbols (↓/▶) replace text labels to fit the square, and explicit white text color is needed because the GameHub theme's default Button text color is not white on dark backgrounds.
+
+### CI result
+→ ✅ run 23397624611 — Normal APK built successfully

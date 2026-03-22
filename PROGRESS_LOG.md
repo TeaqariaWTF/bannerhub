@@ -4,6 +4,15 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.7.0-beta48 — fix: square ↓/▶ buttons at far right of card (2026-03-22)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta48
+**Commit:** `6508495`
+**What changed:** Replace wide weight=1 button row (rendered as thin unreadable strips) with a vertical column of two 40dp×40dp square buttons pinned to the card's far right. ProgressBar now spans full width between thumbnail and button column. Buttons use ↓/▶ symbols with white text. .locals 17→16.
+**Files touched:** `GogGamesFragment$2.smali`
+**CI result:** ✅ run 23397624611
+
+---
+
 ## [beta] — v2.7.0-beta47 — feat: Download+Launch buttons on game card (2026-03-22)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta47
 **Commit:** `89f26e0`

@@ -3321,6 +3321,22 @@ WineActivity launched but called finish() on itself (app-request) 2-3 seconds af
 ### CI result
 → ✅ Normal APK built successfully
 
+### 406 — v2.7.0-beta47 — feat: Download+Launch buttons on game card (2026-03-22)
+**Files changed:**
+- `GogGamesFragment$2.smali`: .locals 16→17; Gravity CENTER_VERTICAL→TOP; button row (v8=LL, v10=Download, v11=ProgressBar, v12=Launch) added to right section; SP check enables Launch if gog_exe_ present; `invoke-direct/range {v13..v16}` for LP(IIF) weight=1.0f
+- `GogGamesFragment$3.smali`: removed ProgressBar, statusTV, setNegativeButton "Install", setNeutralButton "Launch", and post-show() override; dialog is now info-only with Close button only
+- `GogGamesFragment$6.smali`: field d: TextView→Button; constructor/iput/startDownload call TextView→Button
+- `GogGamesFragment$7.smali`: implements DialogInterface$OnClickListener→View$OnClickListener; onClick(DialogInterface,I)V→onClick(View)V
+- `GogDownloadManager.smali`: startDownload signature TextView→Button
+- `GogDownloadManager$1.smali`: field e: TextView→Button; constructor/iput/GogDownloadManager$3 init call TextView→Button
+- `GogDownloadManager$3.smali`: field b: TextView→Button; run() no longer shows status text; at progress≥100: GONE progressBar + setEnabled(true) on launch button
+
+### Root-cause / design
+Download and Launch are now card-level UI. The GogDownloadManager$3 runnable holds a Button reference (the card's Launch button) and enables it when the pipeline reaches 100%. The card build-time SP check ensures already-installed games show an enabled Launch button without requiring a re-download. The detail dialog (GogGamesFragment$3) becomes a read-only info sheet with a single Close button.
+
+### CI result
+→ ✅ run 23397440034 — Normal APK built successfully
+
 ### 405 — v2.7.0-beta46 — fix: manifest link URL clobbered before fetchBytes (2026-03-22)
 **Files changed:**
 - `GogDownloadManager$1.smali` (run() step 2): `const/4 v4, 0x0` → `const/4 v3, 0x0`; `invoke-direct {p0, v13, v4}` → `invoke-direct {p0, v13, v3}` for postProgress null-message arg

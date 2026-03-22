@@ -4,6 +4,15 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.7.0-beta47 — feat: Download+Launch buttons on game card (2026-03-22)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta47
+**Commit:** `89f26e0`
+**What changed:** Moved Download and Launch buttons from the detail dialog to each game card. Card shows [Download][Launch] row + ProgressBar (GONE until download starts). Launch is disabled until GogDownloadManager$3 enables it at progress=100. Dialog simplified to info-only (Close only). GogGamesFragment$7 changed to View$OnClickListener. GogDownloadManager chain: TextView→Button for launch ref.
+**Files touched:** `GogGamesFragment$2`, `$3`, `$6`, `$7`, `GogDownloadManager`, `GogDownloadManager$1`, `GogDownloadManager$3`
+**CI result:** ✅ run 23397440034
+
+---
+
 ## [beta] — v2.7.0-beta46 — fix: manifest link URL clobbered by const/4 v4 null arg (2026-03-22)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta46
 **Commit:** `05ab138`

@@ -13,9 +13,10 @@
 .field public final c:Landroid/widget/ProgressBar;
 .field public final d:Landroid/widget/TextView;  # statusTV
 .field public final e:Landroid/widget/Button;    # launch button
+.field public final f:Landroid/widget/TextView;  # checkmark ("✓ Installed")
 
 
-.method public constructor <init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;)V
+.method public constructor <init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;Landroid/widget/TextView;)V
     .locals 0
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -25,6 +26,7 @@
     iput-object p3, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;->c:Landroid/widget/ProgressBar;
     iput-object p4, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;->d:Landroid/widget/TextView;
     iput-object p5, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;->e:Landroid/widget/Button;
+    iput-object p6, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;->f:Landroid/widget/TextView;
 
     return-void
 .end method
@@ -77,18 +79,19 @@
     const-string v8, " GB"
     invoke-virtual {v7, v8}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v7          # v7 = message string (v8 now free for $8 new-instance)
+    move-result-object v5          # v5 = message string (v6..v13 free for $8 range)
 
-    # ── Create $8 listener (range invoke: v8=this v9..v14=args) ───────────────
+    # ── Create $8 listener (range invoke: v6=this v7..v13=args) ───────────────
     # p1 (install button View) = v16 with .locals 15; use move-object/from16
-    new-instance v8, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;
-    move-object v9, v0             # context
-    move-object v10, v1            # GogGame
-    move-object/from16 v11, p1     # install button (View clicked) — p1=v16
-    move-object v12, v2            # ProgressBar
-    move-object v13, v3            # statusTV
-    move-object v14, v4            # launch Button
-    invoke-direct/range {v8 .. v14}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/view/View;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;)V
+    new-instance v6, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;
+    move-object v7, v0             # context
+    move-object v8, v1             # GogGame
+    move-object/from16 v9, p1      # install button (View clicked) — p1=v16
+    move-object v10, v2            # ProgressBar
+    move-object v11, v3            # statusTV
+    move-object v12, v4            # launch Button
+    iget-object v13, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;->f:Landroid/widget/TextView;
+    invoke-direct/range {v6 .. v13}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/view/View;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;Landroid/widget/TextView;)V
 
     # ── Build and show AlertDialog ─────────────────────────────────────────────
     new-instance v9, Landroid/app/AlertDialog$Builder;
@@ -97,14 +100,14 @@
     const-string v10, "Download Game"
     invoke-virtual {v9, v10}, Landroid/app/AlertDialog$Builder;->setTitle(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
 
-    invoke-virtual {v9, v7}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+    invoke-virtual {v9, v5}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
 
     const-string v10, "Cancel"
     const/4 v11, 0x0
     invoke-virtual {v9, v10, v11}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
 
     const-string v10, "Download"
-    invoke-virtual {v9, v10, v8}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+    invoke-virtual {v9, v10, v6}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
 
     invoke-virtual {v9}, Landroid/app/AlertDialog$Builder;->show()Landroid/app/AlertDialog;
 

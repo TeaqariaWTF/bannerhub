@@ -4,7 +4,7 @@
 # BannerHub: UI-thread Runnable posted by GogDownloadManager$1 to update the
 # card-level ProgressBar and statusTV during download.
 # progress 0-99: setProgress on bar + setText on statusTV (if message non-null).
-# progress >= 100: hide bar + hide statusTV + show+enable Launch button.
+# progress >= 100: hide bar + hide statusTV + show+enable Launch button + show checkmark.
 
 .implements Ljava/lang/Runnable;
 
@@ -13,9 +13,10 @@
 .field public final c:Landroid/widget/Button;     # launch button
 .field public final d:I                           # progress (0-100)
 .field public final e:Ljava/lang/String;          # status message (may be null)
+.field public final f:Landroid/widget/TextView;   # checkmark ("✓ Installed")
 
 
-.method public constructor <init>(Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;ILjava/lang/String;)V
+.method public constructor <init>(Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;ILjava/lang/String;Landroid/widget/TextView;)V
     .locals 0
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -25,6 +26,7 @@
     iput-object p3, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->c:Landroid/widget/Button;
     iput p4, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->d:I
     iput-object p5, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->e:Ljava/lang/String;
+    iput-object p6, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->f:Landroid/widget/TextView;
 
     return-void
 .end method
@@ -61,11 +63,18 @@
 
     # Show + enable Launch button
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->c:Landroid/widget/Button;
-    if-eqz v0, :run_done
+    if-eqz v0, :show_checkmark
     const/4 v1, 0x0  # VISIBLE
     invoke-virtual {v0, v1}, Landroid/view/View;->setVisibility(I)V
     const/4 v1, 0x1  # enabled
     invoke-virtual {v0, v1}, Landroid/view/View;->setEnabled(Z)V
+
+    :show_checkmark
+    # Show checkmark ("✓ Installed") on the card
+    iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->f:Landroid/widget/TextView;
+    if-eqz v2, :run_done
+    const/4 v0, 0x0  # VISIBLE
+    invoke-virtual {v2, v0}, Landroid/view/View;->setVisibility(I)V
 
     :run_done
     return-void

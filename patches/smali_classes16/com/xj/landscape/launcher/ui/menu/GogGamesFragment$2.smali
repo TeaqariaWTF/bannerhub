@@ -30,10 +30,11 @@
 
 
 .method public run()V
-    .locals 16
+    .locals 17
 
-    # p0 = v16 with .locals 16 — too high for iget-object (4-bit limit).
+    # p0 = v17 with .locals 17 — too high for iget-object (4-bit limit).
     # Move this into v14 (free at start of method) for the two field reads.
+    # v16 is now a free local used to hold the checkmark TextView (persistent).
     move-object/from16 v14, p0
     iget-object v0, v14, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$2;->a:Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment;
     iget-object v1, v14, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$2;->b:Ljava/util/ArrayList;
@@ -246,9 +247,24 @@
 
     invoke-virtual {v9, v11}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # ── Installed checkmark ("✓ Installed", green 10sp) — only if gog_exe_ set ──
+    # ── Installed checkmark ("✓ Installed", green 10sp) ─────────────────────────
+    # Always created; saved in v16 (persistent) so $6 can flip it VISIBLE on install.
+    # Starts GONE; set VISIBLE immediately if gog_exe_ pref is already populated.
+    new-instance v16, Landroid/widget/TextView;
+    invoke-direct {v16, v3}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+    const-string v13, "✓ Installed"
+    invoke-virtual {v16, v13}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    const v13, 0xFF4CAF50
+    invoke-virtual {v16, v13}, Landroid/widget/TextView;->setTextColor(I)V
+    const/high16 v13, 0x41200000  # 10.0f sp
+    invoke-virtual {v16, v13}, Landroid/widget/TextView;->setTextSize(F)V
+
+    # Default GONE; check pref to decide initial visibility
+    const/16 v13, 0x8  # GONE
+    invoke-virtual {v16, v13}, Landroid/view/View;->setVisibility(I)V
+
     iget-object v13, v6, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
-    if-eqz v13, :ck_done
+    if-eqz v13, :ck_add_view  # no gameId → stays GONE
 
     new-instance v14, Ljava/lang/StringBuilder;
     invoke-direct {v14}, Ljava/lang/StringBuilder;-><init>()V
@@ -256,30 +272,27 @@
     invoke-virtual {v14, v15}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v14, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v14}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v13
+    move-result-object v14  # "gog_exe_{gameId}"
 
-    const-string v14, "bh_gog_prefs"
-    const/4 v15, 0x0
-    invoke-virtual {v3, v14, v15}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-    move-result-object v14
+    const-string v15, "bh_gog_prefs"
+    const/4 v13, 0x0
+    invoke-virtual {v3, v15, v13}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v15  # SP
 
-    const-string v15, ""
-    invoke-interface {v14, v13, v15}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    const-string v13, ""
+    invoke-interface {v15, v14, v13}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
     move-result-object v13
 
     invoke-virtual {v13}, Ljava/lang/String;->isEmpty()Z
     move-result v13
-    if-nez v13, :ck_done
+    if-nez v13, :ck_add_view  # empty = not installed → stays GONE
 
-    new-instance v11, Landroid/widget/TextView;
-    invoke-direct {v11, v3}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
-    const-string v15, "✓ Installed"
-    invoke-virtual {v11, v15}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-    const v15, 0xFF4CAF50
-    invoke-virtual {v11, v15}, Landroid/widget/TextView;->setTextColor(I)V
-    const/high16 v15, 0x41200000  # 10.0f sp
-    invoke-virtual {v11, v15}, Landroid/widget/TextView;->setTextSize(F)V
-    invoke-virtual {v9, v11}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+    # Already installed → show VISIBLE immediately
+    const/4 v13, 0x0  # VISIBLE
+    invoke-virtual {v16, v13}, Landroid/view/View;->setVisibility(I)V
+
+    :ck_add_view
+    invoke-virtual {v9, v16}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
     :ck_done
 
@@ -435,16 +448,17 @@
     invoke-virtual {v9, v12, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
     # ── Wire Install button click → $6 (shows size dialog) ───────────────────
-    # $6.<init> needs 6 consecutive regs. v10=bar, v11=statusTV, v12=launchBtn.
+    # $6.<init> needs 7 consecutive regs. v10=bar, v11=statusTV, v12=launchBtn.
     # Save them to v13/v14/v15, place new-instance at v10, ctx/game at v11/v12.
+    # v16=checkmark TextView (persistent from checkmark block above).
     move-object v13, v10   # save ProgressBar
     move-object v14, v11   # save statusTV
     move-object v15, v12   # save Launch Button
     new-instance v10, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;
     move-object v11, v3    # Context
     move-object v12, v6    # GogGame
-    # v13=ProgressBar, v14=statusTV, v15=LaunchButton — set above
-    invoke-direct/range {v10 .. v15}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;)V
+    # v13=ProgressBar, v14=statusTV, v15=LaunchButton, v16=checkmark
+    invoke-direct/range {v10 .. v16}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;Landroid/widget/TextView;)V
     invoke-virtual {v8, v10}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
     # ── Add right layout to card with weight=1 ────────────────────────────────

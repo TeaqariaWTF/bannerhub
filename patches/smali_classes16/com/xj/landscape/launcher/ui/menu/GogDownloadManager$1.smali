@@ -19,9 +19,10 @@
 .field public e:Landroid/widget/Button;
 .field public g:Landroid/widget/TextView;   # statusTV
 .field public f:Landroid/os/Handler;
+.field public h:Landroid/widget/TextView;   # checkmark
 
 
-.method public constructor <init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;)V
+.method public constructor <init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;Landroid/widget/TextView;)V
     .locals 2
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -31,6 +32,7 @@
     iput-object p3, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->d:Landroid/widget/ProgressBar;
     iput-object p4, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->g:Landroid/widget/TextView;
     iput-object p5, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->e:Landroid/widget/Button;
+    iput-object p6, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->h:Landroid/widget/TextView;
 
     # Create Handler on main looper for UI progress updates
     new-instance v0, Landroid/os/Handler;
@@ -45,21 +47,22 @@
 
 # ─── postProgress(progress, message) → void ─────────────────────────────────
 .method private postProgress(ILjava/lang/String;)V
-    .locals 6
+    .locals 7
 
-    # null-check ProgressBar (v1); with .locals 6, p0=v6 p1=v7 p2=v8 so
-    # {v0..v5} are 6 consecutive locals usable for invoke-direct/range
+    # null-check ProgressBar (v1); with .locals 7, p0=v7 p1=v8 p2=v9 so
+    # {v0..v6} are 7 consecutive locals usable for invoke-direct/range
     iget-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->d:Landroid/widget/ProgressBar;
     if-eqz v1, :pp_done
 
-    # Build GogDownloadManager$3 with consecutive {v0..v5} for range invoke
+    # Build GogDownloadManager$3 with consecutive {v0..v6} for range invoke
     new-instance v0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;
     # v1 = ProgressBar (already loaded above)
     iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->g:Landroid/widget/TextView;
     iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->e:Landroid/widget/Button;
     move v4, p1
     move-object v5, p2
-    invoke-direct/range {v0 .. v5}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;-><init>(Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;ILjava/lang/String;)V
+    iget-object v6, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->h:Landroid/widget/TextView;
+    invoke-direct/range {v0 .. v6}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;-><init>(Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;ILjava/lang/String;Landroid/widget/TextView;)V
 
     # v0 = $3 instance (still valid); load Handler into v1, post
     iget-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->f:Landroid/os/Handler;

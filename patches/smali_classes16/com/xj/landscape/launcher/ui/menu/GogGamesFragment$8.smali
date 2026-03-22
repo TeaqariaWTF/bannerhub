@@ -13,9 +13,10 @@
 .field public final d:Landroid/widget/ProgressBar;
 .field public final e:Landroid/widget/TextView;    # statusTV
 .field public final f:Landroid/widget/Button;      # launch button
+.field public final g:Landroid/widget/TextView;    # checkmark ("✓ Installed")
 
 
-.method public constructor <init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/view/View;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;)V
+.method public constructor <init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/view/View;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;Landroid/widget/TextView;)V
     .locals 0
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -26,6 +27,7 @@
     iput-object p4, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;->d:Landroid/widget/ProgressBar;
     iput-object p5, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;->e:Landroid/widget/TextView;
     iput-object p6, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;->f:Landroid/widget/Button;
+    iput-object p7, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;->g:Landroid/widget/TextView;
 
     return-void
 .end method
@@ -58,7 +60,8 @@
     iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;->d:Landroid/widget/ProgressBar;
     iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;->e:Landroid/widget/TextView;
     iget-object v4, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;->f:Landroid/widget/Button;
-    invoke-static {v0, v1, v2, v3, v4}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager;->startDownload(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;)V
+    iget-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$8;->g:Landroid/widget/TextView;
+    invoke-static/range {v0 .. v5}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager;->startDownload(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/TextView;Landroid/widget/Button;Landroid/widget/TextView;)V
 
     return-void
 .end method

@@ -122,7 +122,7 @@ Some very old GOG titles pre-date the content-system entirely and return `total_
 
 - **Persistent install state** — on every app open, BannerHub reads `bh_gog_prefs` for each game card. Cards for already-installed games show the checkmark and Add button automatically, without re-downloading anything.
 - **Launch** — the Add button reads the stored executable path from prefs and passes it directly to GameHub's `EditImportedGameInfoDialog`, where you can verify the path and launch the game.
-- **Copy to Downloads** — the game detail dialog includes a **Copy to Downloads** button. This recursively copies the entire install directory from `filesDir/gog_games/{title}/` to `Downloads/BannerHub/GOG/{title}/` so the files are accessible from any file manager without root.
+- **Copy to Downloads** — the game detail dialog includes a **Copy to Downloads** button. This recursively copies the entire install directory from `filesDir/gog_games/{dirName}/` to `Downloads/{dirName}/` so the files are accessible from any file manager without root.
 - **Uninstall** — the game detail dialog includes an **Uninstall** button. This recursively deletes the install directory, removes all associated prefs keys (`gog_dir_`, `gog_exe_`, `gog_cover_`, `gog_gen_`), and resets the card to its default state. A library re-sync runs automatically after uninstall to rebuild the card list.
 
 ---
@@ -137,7 +137,7 @@ The Component Manager gives you full control over the WCP/ZIP components that Ga
 
 Each installed component is displayed as a compact card with:
 
-- **Color-coded type badge** — DXVK (red), VKD3D (purple), Box64 (blue), FEXCore (teal), GPU Driver (green), WCP (grey) — with a matching left accent strip
+- **Color-coded type badge** — DXVK (blue), VKD3D (purple), Box64 (green), FEXCore (orange), GPU Driver (yellow), WCP (grey) — with a matching left accent strip
 - **Source badge** — components downloaded via BannerHub show the repo they came from (e.g. "Arihany WCPHub", "Nightlies by The412Banner")
 - **Install count** in the header showing total managed components
 - **Live search bar** — type any part of a component name to filter cards in real time
@@ -147,7 +147,7 @@ Each installed component is displayed as a compact card with:
 | Action | How to trigger | What it does |
 |--------|---------------|-------------|
 | **Inject file** | Tap a card, select a WCP or ZIP | Replaces the component's contents with the new file. The folder is cleared first — no stale files |
-| **Add New Component** | Tap "Add New Component" | Injects a WCP or ZIP as a brand new component slot. It immediately appears in GameHub's DXVK/VKD3D/Box64/FEXCore/GPU Driver selection menus and persists across restarts |
+| **Add New Component** | Tap **"+ Add New"** in the bottom bar | Injects a WCP or ZIP as a brand new component slot. It immediately appears in GameHub's DXVK/VKD3D/Box64/FEXCore/GPU Driver selection menus and persists across restarts |
 | **Backup** | Swipe RIGHT on a card | Copies the component folder to `Downloads/BannerHub/{name}/` |
 | **Remove** | Swipe LEFT on a card | Unregisters the component from GameHub's in-memory map, deletes the folder on disk, and clears its downloaded indicator in the online repo browser |
 | **Remove All** | Tap "Remove All" | Removes only BannerHub-managed components (those injected or downloaded via the Component Manager). The confirmation dialog shows the exact count. Stock GameHub components are never touched |
@@ -168,7 +168,7 @@ Before every extraction, the component's destination folder is fully cleared so 
 
 ### In-App Component Downloader
 
-Inside the Component Manager, tap **Download from Online Repos** to browse and install components directly from GitHub without leaving the app.
+Inside the Component Manager, tap **Download** at the bottom of the screen to open the **Download Components** browser and install components directly from GitHub without leaving the app.
 
 #### Navigation
 
@@ -401,7 +401,7 @@ Yes. BannerHub supports Gen 1 downloads via the legacy byte-range download pipel
 
 **Q: Where are GOG games installed?**
 
-Inside the app's private storage: `Android/data/<package>/files/gog_games/<title>/`. The **Copy to Downloads** button in the game detail dialog copies the files to `Downloads/BannerHub/GOG/<title>/` if you need to access them from a file manager.
+Inside the app's private storage: `Android/data/<package>/files/gog_games/<dirName>/`. The **Copy to Downloads** button in the game detail dialog copies the files to `Downloads/<dirName>/` if you need to access them from a file manager.
 
 ---
 

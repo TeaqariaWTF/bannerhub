@@ -4,6 +4,17 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [fix] — v2.7.0 — Patch versionName, BannerHub labels, dynamic APK naming (2026-03-24)
+**Branch:** `main`  |  **Tag:** v2.7.0 (retagged — CI rebuild)
+**Commit:** `5dd70e0`
+**What changed:**
+- Added "Patch versionName" step in prepare job: strips `v` from tag, sets correct versionName in apktool.yml so APK reports e.g. `2.7.0` internally
+- Renamed all variant app labels from "GameHub Revanced ..." to "BannerHub ..." (Normal→BannerHub, PuBG→BannerHub PuBG, AnTuTu→BannerHub AnTuTu, alt-AnTuTu→BannerHub AnTuTu, PuBG-CrossFire→BannerHub PuBG CrossFire, Ludashi→BannerHub Ludashi, Genshin→BannerHub Genshin, Original→BannerHub Original)
+- Sign step now uses `id: sign` + `$GITHUB_OUTPUT` to pass `apk_name` dynamically; upload step uses `steps.sign.outputs.apk_name`
+- v2.7.0 release APKs rebuilt and re-uploaded; release description restored after CI
+
+---
+
 ## [docs] — v2.7.1-pre — Thorough README rewrite (2026-03-23)
 **Branch:** `main`  |  **Tag:** v2.7.1-pre (no new CI — docs only)
 **Commit:** `3e62286`

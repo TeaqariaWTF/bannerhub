@@ -41,7 +41,7 @@ Download the APK that matches your existing GameHub package name from the [lates
 | APK | Package | App Label |
 |-----|---------|-----------|
 | `BannerHub-vX.Y.Z-Normal.apk` | `banner.hub` | BannerHub |
-| `BannerHub-vX.Y.Z-Normal(GHL).apk` | `gamehub.lite` | BannerHub |
+| `BannerHub-vX.Y.Z-Normal.GHL.apk` | `gamehub.lite` | BannerHub |
 | `BannerHub-vX.Y.Z-PuBG.apk` | `com.tencent.ig` | BannerHub PuBG |
 | `BannerHub-vX.Y.Z-AnTuTu.apk` | `com.antutu.ABenchMark` | BannerHub AnTuTu |
 | `BannerHub-vX.Y.Z-alt-AnTuTu.apk` | `com.antutu.benchmark.full` | BannerHub AnTuTu |
@@ -52,7 +52,7 @@ Download the APK that matches your existing GameHub package name from the [lates
 
 **Which APK do I need?**
 
-If you do not already have any GameHub variant installed, use the **Normal APK** (`banner.hub`). It installs as a completely separate app alongside the official GameHub Lite — both can coexist. If you already have the official GameHub Lite (`gamehub.lite`) installed and want BannerHub to replace it, use **Normal(GHL)**. If you use a specific GameHub variant for a particular game (e.g. PuBG or Genshin), pick the matching APK so BannerHub replaces that variant's slot.
+If you do not already have any GameHub variant installed, use the **Normal APK** (`banner.hub`). It installs as a completely separate app alongside the official GameHub Lite — both can coexist. If you already have the official GameHub Lite (`gamehub.lite`) installed and want BannerHub to replace it, use **Normal.GHL**. If you use a specific GameHub variant for a particular game (e.g. PuBG or Genshin), pick the matching APK so BannerHub replaces that variant's slot.
 
 All 9 variants can be installed simultaneously. All APKs are signed with AOSP testkey (v1/v2/v3).
 
@@ -387,7 +387,7 @@ Most features work without root. The only features that require root are the two
 
 **Q: Will this replace my existing GameHub install?**
 
-Only if you choose a matching package APK. The **Normal APK** (`banner.hub`) installs as a completely separate app alongside the official GameHub Lite. The **Normal(GHL) APK** (`gamehub.lite`) will replace the official GameHub Lite slot — uninstall it first. All other variant APKs replace their respective GameHub variant slots.
+Only if you choose a matching package APK. The **Normal APK** (`banner.hub`) installs as a completely separate app alongside the official GameHub Lite. The **Normal.GHL APK** (`gamehub.lite`) will replace the official GameHub Lite slot — uninstall it first. All other variant APKs replace their respective GameHub variant slots.
 
 **Q: Can I use BCI (BannersComponentInjector) with BannerHub?**
 

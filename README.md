@@ -125,6 +125,8 @@ Some very old GOG titles pre-date the content-system entirely and return `total_
 
 - Tapping **Install** on a card opens a confirmation dialog showing the download size and available storage — nothing downloads until you confirm.
 - A `ProgressBar` + status text replaces the Install button during download, showing the current step (Fetching build info → Fetching manifest → Getting CDN link → Downloading files X% → Assembling → Finishing up → Complete).
+- A red **Cancel** button appears during the download. Tapping it stops the download thread and deletes all partial files from the install directory, then resets the card to its pre-install state.
+- After install, BannerHub scans the install directory for qualifying executables (excluding redist/setup/unins/crash/helper/dotnet/vcredist/directx paths). If exactly one is found it is selected automatically. If two or more are found, a picker dialog lets you choose the correct one before the Add button appears.
 - On completion, the progress bar is hidden and an **Add** button appears. Tapping **Add** opens GameHub's `EditImportedGameInfoDialog`, pre-populated with the game's executable path, so you can register it with the launcher in one tap.
 - A green **"Installed"** checkmark appears on the card immediately when the download finishes — no app restart needed.
 
@@ -132,6 +134,7 @@ Some very old GOG titles pre-date the content-system entirely and return `total_
 
 - **Persistent install state** — on every app open, BannerHub reads `bh_gog_prefs` for each game card. Cards for already-installed games show the checkmark and Add button automatically, without re-downloading anything.
 - **Launch** — the Add button reads the stored executable path from prefs and passes it directly to GameHub's `EditImportedGameInfoDialog`, where you can verify the path and launch the game.
+- **Set .exe** — the game detail dialog shows the current launch executable filename and a **Set .exe…** button. Tapping it re-scans the install directory and shows the exe picker, letting you correct a wrong selection at any time. The new path is saved immediately to prefs and the label in the dialog updates live.
 - **Copy to Downloads** — the game detail dialog includes a **Copy to Downloads** button. This recursively copies the entire install directory from `filesDir/gog_games/{dirName}/` to `Downloads/{dirName}/` so the files are accessible from any file manager without root.
 - **Uninstall** — the game detail dialog includes an **Uninstall** button. This recursively deletes the install directory, removes all associated prefs keys (`gog_dir_`, `gog_exe_`, `gog_cover_`, `gog_gen_`), and resets the card to its default state. A library re-sync runs automatically after uninstall to rebuild the card list.
 

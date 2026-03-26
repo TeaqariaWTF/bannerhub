@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.3-pre — GOG cancel download button (2026-03-26)
+**Branch:** `main`  |  **Tag:** v2.7.3-pre (retagged)
+**Commit:** `6f277b670`
+**What changed:**
+- Pre-install confirmation dialog (added in prior commit): shows game size (async-fetched) and available storage before download starts
+- Cancel download button: Install button turns red and becomes Cancel during download; pressing it stops thread + deletes partial files from GOG install dir + resets to Install
+- Works in all 3 GOG install UI surfaces (list view inline, grid tile action row, grid/poster dialog)
+**Files touched:** `extension/GogDownloadManager.java`, `extension/GogGamesActivity.java`
+**CI result:** ✅ run 23595376744
+
+---
+
 ## [stable] — v2.7.1 — Restore Steam card, standalone Normal variant, Normal(GHL) (2026-03-24)
 **Branch:** `main`  |  **Tag:** v2.7.1
 **Commit:** `029ae6b`
@@ -2075,3 +2087,17 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - GogGamesActivity, GogMainActivity, GogLoginActivity, GogDownloadManager, GogLaunchHelper compiled as Java (classes18.dex)
 - All 29 GOG smali files removed
 - CI: build-quick.yml (pre-release, Normal APK)
+
+### [feat] — v2.7.3-pre — GOG install confirmation dialog with game size + free storage (2026-03-26)
+**Commit:** `e13536c`  |  **Tag:** v2.7.3-pre  |  **CI:** ✅
+#### What changed
+- All 3 GOG install buttons (list inline, grid tile action row, grid/poster dialog) now show a confirmation dialog before starting any download
+- Dialog shows: game title, game size (async-fetched), available storage on install path, Install / Cancel buttons
+- Game size fetched in background: Gen 2 → builds → manifest → sum `depots[].size`; Gen 1 → `items[].total_size`; shows "Unknown" if unavailable
+- ⚠ warning + red text if game size exceeds available storage
+- `GogDownloadManager.fetchGameSize(ctx, game)` — 2 HTTP calls (builds + manifest), returns bytes or -1
+- `GogDownloadManager.formatBytes(bytes)` — formats as KB / MB / GB
+- `GogGamesActivity.showInstallConfirm(game, onConfirm)` — wraps all 3 install handlers
+#### Files touched
+- `extension/GogDownloadManager.java`
+- `extension/GogGamesActivity.java`

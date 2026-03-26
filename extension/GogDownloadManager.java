@@ -845,6 +845,87 @@ public final class GogDownloadManager {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Pre-install size check
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Fetches the estimated installed size in bytes for a game.
+     * Gen 2: fetches builds → manifest → sums depot[].size fields (2 HTTP calls).
+     * Gen 1: checks items[].total_size in builds response.
+     * Returns -1 if the size cannot be determined.
+     * Runs on the calling thread — call from a background thread.
+     */
+    public static long fetchGameSize(Context ctx, GogGame game) {
+        try {
+            SharedPreferences prefs = ctx.getSharedPreferences("bh_gog_prefs", 0);
+            String token = prefs.getString("access_token", null);
+            if (token == null) return -1;
+
+            // Gen 2: builds → manifest → sum depot sizes
+            String buildsUrl = "https://content-system.gog.com/products/" + game.gameId
+                    + "/os/windows/builds?generation=2";
+            String buildsJson = httpGet(buildsUrl, null);
+            if (buildsJson == null) buildsJson = httpGet(buildsUrl, token);
+            if (buildsJson != null) {
+                JSONObject builds = new JSONObject(buildsJson);
+                JSONArray items = builds.optJSONArray("items");
+                if (items != null) {
+                    for (int i = 0; i < items.length(); i++) {
+                        JSONObject item = items.getJSONObject(i);
+                        if (!"windows".equals(item.optString("os"))) continue;
+                        String mUrl = item.optString("link");
+                        if (mUrl == null || mUrl.isEmpty()) mUrl = item.optString("meta_url");
+                        if (mUrl == null || mUrl.isEmpty()) break;
+                        byte[] raw = fetchBytes(mUrl, token);
+                        if (raw == null) break;
+                        String mStr = decompressBytes(raw);
+                        if (mStr == null) break;
+                        JSONObject manifest = new JSONObject(mStr);
+                        JSONArray depots = manifest.optJSONArray("depots");
+                        if (depots != null) {
+                            long total = 0;
+                            for (int d = 0; d < depots.length(); d++)
+                                total += depots.getJSONObject(d).optLong("size", 0);
+                            if (total > 0) return total;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Gen 1 fallback: check total_size in build items
+            String builds1Url = "https://content-system.gog.com/products/" + game.gameId
+                    + "/os/windows/builds?generation=1";
+            String builds1Json = httpGet(builds1Url, null);
+            if (builds1Json == null) builds1Json = httpGet(builds1Url, token);
+            if (builds1Json != null) {
+                JSONObject builds1 = new JSONObject(builds1Json);
+                JSONArray items1 = builds1.optJSONArray("items");
+                if (items1 != null) {
+                    for (int i = 0; i < items1.length(); i++) {
+                        JSONObject item = items1.getJSONObject(i);
+                        if (!"windows".equals(item.optString("os"))) continue;
+                        long sz = item.optLong("total_size", 0);
+                        if (sz > 0) return sz;
+                        break;
+                    }
+                }
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /** Formats a byte count as a human-readable string (KB / MB / GB). */
+    public static String formatBytes(long bytes) {
+        if (bytes <= 0) return "Unknown";
+        if (bytes < 1024L * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        if (bytes < 1024L * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024));
+        return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Copy to Downloads (public, called from GogGamesActivity)
     // ─────────────────────────────────────────────────────────────────────────
 

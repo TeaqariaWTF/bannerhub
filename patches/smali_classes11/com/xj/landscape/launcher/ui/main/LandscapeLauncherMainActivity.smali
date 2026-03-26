@@ -8265,7 +8265,7 @@
 .end method
 
 .method public onResume()V
-    .locals 3
+    .locals 6
 
     .line 1
     .line 2
@@ -8406,8 +8406,24 @@
     .line 73
     invoke-virtual {p0}, Lcom/xj/common/trace/collectors/HudEventCollector;->j()V
 
-    # BannerHub: GOG launch helper — fires EditImportedGameInfoDialog after GOG install
-    invoke-static {p0}, Lapp/revanced/extension/gamehub/GogLaunchHelper;->checkPendingLaunch(Landroid/app/Activity;)V
+    # BannerHub: GOG pending launch check (inline — avoids new type/method IDs in classes11)
+    const-string v3, "bh_gog_prefs"
+    const/4 v4, 0x0
+    invoke-virtual {p0, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v3
+    const-string v4, "pending_gog_exe"
+    const/4 v5, 0x0
+    invoke-interface {v3, v4, v5}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v4
+    if-eqz v4, :bh_no_gog_launch
+    invoke-interface {v3}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v3
+    const-string v5, "pending_gog_exe"
+    invoke-interface {v3, v5}, Landroid/content/SharedPreferences$Editor;->remove(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+    move-result-object v3
+    invoke-interface {v3}, Landroid/content/SharedPreferences$Editor;->apply()V
+    invoke-virtual {p0, v4}, Lcom/xj/landscape/launcher/ui/main/LandscapeLauncherMainActivity;->B3(Ljava/lang/String;)V
+    :bh_no_gog_launch
 
     .line 74
     return-void

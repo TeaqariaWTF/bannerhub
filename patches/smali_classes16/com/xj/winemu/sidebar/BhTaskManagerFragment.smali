@@ -351,6 +351,10 @@
     invoke-virtual {v4, v5}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
     const v5, -0x1
     invoke-virtual {v4, v5}, Landroid/widget/Button;->setTextColor(I)V
+    const/high16 v5, 0x41200000   # 10.0f sp
+    invoke-virtual {v4, v5}, Landroid/widget/Button;->setTextSize(F)V
+    const/4 v5, 0x0
+    invoke-virtual {v4, v5}, Landroid/widget/TextView;->setAllCaps(Z)V
     new-instance v5, Lcom/xj/winemu/sidebar/BhTabListener;
     const/4 v6, 0x0
     invoke-direct {v5, p0, v6}, Lcom/xj/winemu/sidebar/BhTabListener;-><init>(Lcom/xj/winemu/sidebar/BhTaskManagerFragment;I)V
@@ -370,6 +374,10 @@
     invoke-virtual {v4, v5}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
     const v5, -0x1
     invoke-virtual {v4, v5}, Landroid/widget/Button;->setTextColor(I)V
+    const/high16 v5, 0x41200000
+    invoke-virtual {v4, v5}, Landroid/widget/Button;->setTextSize(F)V
+    const/4 v5, 0x0
+    invoke-virtual {v4, v5}, Landroid/widget/TextView;->setAllCaps(Z)V
     new-instance v5, Lcom/xj/winemu/sidebar/BhTabListener;
     const/4 v6, 0x1
     invoke-direct {v5, p0, v6}, Lcom/xj/winemu/sidebar/BhTabListener;-><init>(Lcom/xj/winemu/sidebar/BhTaskManagerFragment;I)V
@@ -389,6 +397,10 @@
     invoke-virtual {v4, v5}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
     const v5, -0x1
     invoke-virtual {v4, v5}, Landroid/widget/Button;->setTextColor(I)V
+    const/high16 v5, 0x41200000
+    invoke-virtual {v4, v5}, Landroid/widget/Button;->setTextSize(F)V
+    const/4 v5, 0x0
+    invoke-virtual {v4, v5}, Landroid/widget/TextView;->setAllCaps(Z)V
     new-instance v5, Lcom/xj/winemu/sidebar/BhTabListener;
     const/4 v6, 0x2
     invoke-direct {v5, p0, v6}, Lcom/xj/winemu/sidebar/BhTabListener;-><init>(Lcom/xj/winemu/sidebar/BhTaskManagerFragment;I)V
@@ -619,11 +631,11 @@
     invoke-virtual {v11, v12}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
     invoke-virtual {v7, v11}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # Route row to appsLayout (.exe) or procsLayout (wine infra)
+    # Route row: .exe Windows processes → procsLayout; Wine infra (non-.exe) → appsLayout
     const-string v9, ".exe"
     invoke-virtual {v5, v9}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
     move-result v12
-    if-eqz v12, :add_to_procs
+    if-nez v12, :add_to_procs
     invoke-virtual {v0, v7}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
     goto :next_proc
     :add_to_procs
@@ -638,7 +650,7 @@
     invoke-virtual {v0}, Landroid/widget/LinearLayout;->getChildCount()I
     move-result v3
     if-nez v3, :check_procs
-    const-string v3, "No applications detected"
+    const-string v3, "No Wine processes running"
     invoke-static {v2, v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
     move-result-object v3
     const v4, -0x555556    # gray
@@ -649,7 +661,7 @@
     invoke-virtual {v1}, Landroid/widget/LinearLayout;->getChildCount()I
     move-result v3
     if-nez v3, :done
-    const-string v3, "No Wine processes detected"
+    const-string v3, "No Windows processes running"
     invoke-static {v2, v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
     move-result-object v3
     const v4, -0x555556    # gray

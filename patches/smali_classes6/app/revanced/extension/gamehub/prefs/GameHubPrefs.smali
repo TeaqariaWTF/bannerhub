@@ -1508,6 +1508,53 @@
     return v0
 .end method
 
+# Sets the selected API source (0=GameHub, 1=EmuReady, 2=BannerHub), saves pref, clears caches, shows toast
+.method public static setApiSource(I)V
+    .locals 4
+
+    # Save api_source pref
+    invoke-static {}, Lapp/revanced/extension/gamehub/prefs/GameHubPrefs;->getPrefs()Landroid/content/SharedPreferences;
+    move-result-object v0
+    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v1
+    const-string v2, "api_source"
+    invoke-interface {v1, v2, p0}, Landroid/content/SharedPreferences$Editor;->putInt(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;
+    move-result-object v1
+    invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    # Save last_api_source (used for startup mismatch detection)
+    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v1
+    const-string v2, "last_api_source"
+    invoke-interface {v1, v2, p0}, Landroid/content/SharedPreferences$Editor;->putInt(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;
+    move-result-object v1
+    invoke-interface {v1}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    # Clear all component / token caches
+    invoke-static {}, Lapp/revanced/extension/gamehub/prefs/GameHubPrefs;->clearComponentAndTokenCaches()V
+
+    # Build toast message based on chosen source
+    const/4 v1, 0x0
+    if-eqz p0, :api_src_gamehub
+    const/4 v2, 0x1
+    if-ne p0, v2, :api_src_bannerhub
+    const-string v3, "Switched to EmuReady API \u2014 restart to refresh components"
+    goto :api_src_toast
+    :api_src_bannerhub
+    const-string v3, "Switched to BannerHub API \u2014 restart to refresh components"
+    goto :api_src_toast
+    :api_src_gamehub
+    const-string v3, "Switched to Official API \u2014 restart to refresh components"
+    :api_src_toast
+    invoke-static {}, Lcom/blankj/utilcode/util/Utils;->a()Landroid/app/Application;
+    move-result-object v0
+    invoke-static {v0, v3, v1}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
+    move-result-object v0
+    invoke-virtual {v0}, Landroid/widget/Toast;->show()V
+
+    return-void
+.end method
+
 .method public static isLogAllRequestsEnabled()Z
     .locals 3
 

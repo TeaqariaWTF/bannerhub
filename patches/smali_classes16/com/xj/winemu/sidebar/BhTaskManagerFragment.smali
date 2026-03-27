@@ -474,14 +474,37 @@
     move-result-object v3
     invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # RAM row (container-accurate: WINEMU_MEMORY_LIMIT env var)
+    # Sys RAM row (device-wide /proc/meminfo used/total)
     invoke-static {}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->getContainerRamInfo()Ljava/lang/String;
     move-result-object v3
     new-instance v4, Ljava/lang/StringBuilder;
     invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v5, "RAM:         "
+    const-string v5, "Sys RAM:     "
     invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v3
+    invoke-static {v0, v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
+    move-result-object v3
+    invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # VRam Limit row (WINEMU_MEMORY_LIMIT from wine child environ; null = Unlimited)
+    const-string v3, "WINEMU_MEMORY_LIMIT"
+    invoke-static {v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->readWineEnv(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v3
+    new-instance v4, Ljava/lang/StringBuilder;
+    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v5, "VRam Limit:  "
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    if-eqz v3, :vram_unlimited
+    invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v5, " MB"
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    goto :vram_done
+    :vram_unlimited
+    const-string v5, "Unlimited"
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    :vram_done
     invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v3
     invoke-static {v0, v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;

@@ -145,7 +145,7 @@
     move-result-object v0
     invoke-static {v0}, Ljava/lang/Long;->parseLong(Ljava/lang/String;)J
     move-result-wide v0
-    const-wide/16 v2, 0x100000  # 1 MB = 1048576
+    const-wide/32 v2, 0x100000  # 1 MB = 1048576
     div-long/2addr v0, v2
     new-instance v2, Ljava/lang/StringBuilder;
     invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V

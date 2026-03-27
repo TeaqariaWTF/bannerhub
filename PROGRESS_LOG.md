@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.4-pre4 — fix: smali if-ltz for readWineEnv zero comparisons (2026-03-27)
+**Branch:** `main`  |  **Tag:** v2.7.4-pre4
+**Commit:** `b258d3848`  |  **CI:** ✅ run 23666627847
+**What changed:**
+- Fixed two invalid smali instructions in `readWineEnv()`: `if-lt vX, 0, :label` → `if-ltz vX, :label`
+- `if-lt` requires two register operands; literal `0` is not a register — caused "mismatched input '0' expecting REGISTER" CI failure
+- `readWineEnv()` now correctly reads WINEMU_CPU_AFFINITY from Wine child `/proc/<pid>/environ`
+#### Files touched
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment.smali`
+
+---
+
 ## [pre] — v2.7.4-pre4 — Wine Task Manager: container-accurate CPU + RAM (2026-03-27)
 **Branch:** `main`  |  **Tag:** v2.7.4-pre4
 **Commit:** `3e444a792`  |  **CI:** ✅ run 23664109023

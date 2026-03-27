@@ -3733,6 +3733,20 @@ AlertDialog with radio buttons pre-selected from the current `api_source` pref.
 
 ---
 
+## Entry 85 — v2.7.4-pre4 — fix: smali if-ltz for readWineEnv() zero comparisons (2026-03-27)
+**Commit:** `b258d3848`  |  **Tag:** v2.7.4-pre4  |  **Branch:** main  |  **[CI✅]** run 23666627847
+
+**Root-cause analysis:**
+Entry 84's `readWineEnv()` used `if-lt vX, 0, :label` at two points (indexOf result checks). Smali's `if-lt` instruction requires two register operands — a literal `0` is not a register. The assembler rejected it: "mismatched input '0' expecting REGISTER". The correct single-register form for "less than zero" is `if-ltz vX, :label`.
+
+**Methods changed:**
+- `readWineEnv(String)V` in `BhTaskManagerFragment.smali` — line 229: `if-lt v6, 0, :next_proc` → `if-ltz v6, :next_proc`; line 241: `if-lt v7, 0, :value_to_end` → `if-ltz v7, :value_to_end`
+
+**Files modified:** 1
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment.smali`
+
+---
+
 ## Entry 84 — v2.7.4-pre4 — Wine Task Manager container-accurate CPU + RAM (2026-03-27)
 **Commit:** `3e444a792`  |  **Tag:** v2.7.4-pre4  |  **Branch:** main  |  **[CI✅]** run 23664109023
 

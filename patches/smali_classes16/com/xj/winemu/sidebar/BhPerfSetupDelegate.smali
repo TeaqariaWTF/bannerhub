@@ -2,10 +2,6 @@
 .super Landroid/view/View;
 .source "SourceFile"
 
-# Static cache for root availability — checked once, not on every sidebar open.
-.field private static rootChecked:Z
-.field private static rootAvailable:Z
-
 # direct methods
 .method public constructor <init>(Landroid/content/Context;Landroid/util/AttributeSet;)V
     .locals 0
@@ -13,67 +9,6 @@
     invoke-direct {p0, p1, p2}, Landroid/view/View;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;)V
 
     return-void
-.end method
-
-# Returns true if root (su) is available and granted.
-# Runs "su -c id" and checks exit code — returns false on any failure.
-# Result is cached in static fields so the su process only spawns once.
-.method public static isRootAvailable()Z
-    .locals 4
-
-    # Return cached result if already checked
-    sget-boolean v0, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootChecked:Z
-    if-eqz v0, :do_check
-    sget-boolean v0, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootAvailable:Z
-    return v0
-
-    :do_check
-    :try_start_0
-    invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
-    move-result-object v0
-
-    const/4 v1, 0x3
-    new-array v1, v1, [Ljava/lang/String;
-
-    const-string v2, "su"
-    const/4 v3, 0x0
-    aput-object v2, v1, v3
-
-    const-string v2, "-c"
-    const/4 v3, 0x1
-    aput-object v2, v1, v3
-
-    const-string v2, "id"
-    const/4 v3, 0x2
-    aput-object v2, v1, v3
-
-    invoke-virtual {v0, v1}, Ljava/lang/Runtime;->exec([Ljava/lang/String;)Ljava/lang/Process;
-    move-result-object v0
-
-    invoke-virtual {v0}, Ljava/lang/Process;->waitFor()I
-    move-result v1
-
-    invoke-virtual {v0}, Ljava/lang/Process;->destroy()V
-
-    const/4 v0, 0x0
-    if-nez v1, :cond_no_root
-    const/4 v0, 0x1
-    :cond_no_root
-    # Cache result
-    const/4 v1, 0x1
-    sput-boolean v1, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootChecked:Z
-    sput-boolean v0, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootAvailable:Z
-    return v0
-    :try_end_0
-
-    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
-    :catch_0
-    # Cache as unavailable
-    const/4 v0, 0x1
-    sput-boolean v0, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootChecked:Z
-    const/4 v0, 0x0
-    sput-boolean v0, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootAvailable:Z
-    return v0
 .end method
 
 
@@ -100,8 +35,10 @@
     invoke-virtual {v1, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
     move-result-object v2
 
-    # v5 = isRootAvailable
-    invoke-static {}, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->isRootAvailable()Z
+    # v5 = root_granted pref (set by BhRootGrantHelper via app settings — never call su here)
+    const-string v3, "root_granted"
+    const/4 v4, 0x0
+    invoke-interface {v2, v3, v4}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
     move-result v5
 
     # ── Sustained Perf switch ──────────────────────────────────────────────

@@ -3679,3 +3679,15 @@ Porting BannerHub (5.3.5 smali) UI upgrades to BannerHub Lite (5.1.4 Java extens
 4. **GPU showing 0%**: `gpu_busy_percentage` sysfs file may not be world-readable. Switched to `gpubusy` (same file GameHub uses natively, format "busy total") as primary source.
 
 **CI:** v2.7.5-pre
+
+## Entry 80 — v2.7.5-pre — Fix root call + real FPS from HudDataProvider (2026-03-27)
+
+**Files touched:**
+- `extension/BhFrameRating.java`
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
+
+**Root cause analysis:**
+1. **Sidebar still requesting root**: `isRootAvailable()` was still present (just cached) — but any `su` call triggers the Magisk dialog. Full fix: removed `isRootAvailable()` entirely from `BhPerfSetupDelegate`. Sidebar now reads `root_granted` boolean from `bh_prefs` SharedPreferences (written by `BhRootGrantHelper` via the app settings menu). Zero su calls from sidebar.
+2. **FPS still 1**: `WinUIBridge.M()` internally calls `ProfilePuller.Companion.a().c()` — which is GPU ratio (0.0-1.0), exactly the same wrong path. Real FPS source: `WineActivity.j` field → `HudDataProvider.a()` which returns the averaged FPS from a sampled LinkedList (the same data GameHub's HUD displays). Fixed via reflection on field `j` then method `a`.
+
+**CI:** v2.7.5-pre (re-tagged)

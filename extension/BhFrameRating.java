@@ -280,17 +280,17 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         return 0;
     }
 
-    /** Reads FPS via WineActivity.h (WinUIBridge) field → M() method. */
+    /** Reads FPS via WineActivity.j (HudDataProvider) field → a() method. */
     private float readFps() {
         if (activity == null) return 0f;
         try {
-            // WineActivity.h = WinUIBridge instance
-            Field hField = activity.getClass().getField("h");
-            Object bridge = hField.get(activity);
-            if (bridge == null) return 0f;
-            // WinUIBridge.M() → float FPS
-            Method getM = bridge.getClass().getMethod("M");
-            Object result = getM.invoke(bridge);
+            // WineActivity.j = HudDataProvider instance
+            Field jField = activity.getClass().getField("j");
+            Object provider = jField.get(activity);
+            if (provider == null) return 0f;
+            // HudDataProvider.a() → float average FPS
+            Method getA = provider.getClass().getMethod("a");
+            Object result = getA.invoke(provider);
             return result == null ? 0f : (float) result;
         } catch (Exception e) {
             return 0f;

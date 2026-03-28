@@ -3819,6 +3819,21 @@ Task Manager RAM row (5718 MB / 15278 MB total) showed device system RAM — no 
 
 ---
 
+## Entry 86 — v2.7.5-pre4 — feat: tap-to-toggle vertical/horizontal FPS overlay (2026-03-28)
+**Commit:** `1b7994096`  |  **Tag:** v2.7.5-pre4  |  **Branch:** main  |  **[CI✅]** run 23688722622
+
+**Root-cause analysis:**
+The FPS overlay had no way to switch layout once placed. Horizontal mode takes up screen width; vertical mode is useful on narrow screen edges. Single tap (< 10px drag = tap) now calls `toggleOrientation()` which flips `LinearLayout` orientation, hides/shows separators (GONE in vertical), and updates `FpsGraphView` LayoutParams (60dp wide × MATCH_PARENT tall horizontal; MATCH_PARENT wide × 40dp tall vertical). `dragMoved` flag tracks whether `ACTION_MOVE` exceeded slop before `ACTION_UP` fires.
+
+**Methods added/changed:**
+- `toggleOrientation()V` — new method in `BhFrameRating.java`; flips `isVertical`, calls `setOrientation()`, iterates `sepViews` list, updates fpsGraph and all label `LayoutParams`, calls `requestLayout()`
+- `onTouch()` (anonymous `OnTouchListener`) — added `dragStartX/Y`, `dragMoved` tracking; `ACTION_UP` branch triggers `toggleOrientation()` when not dragged
+
+**Files modified:** 1
+- `extension/BhFrameRating.java`
+
+---
+
 ## Entry 85 — v2.7.4-pre4 — fix: smali if-ltz for readWineEnv() zero comparisons (2026-03-27)
 **Commit:** `b258d3848`  |  **Tag:** v2.7.4-pre4  |  **Branch:** main  |  **[CI✅]** run 23666627847
 

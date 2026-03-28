@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.5-pre4 — feat: tap-to-toggle vertical/horizontal FPS overlay (2026-03-28)
+**Branch:** `main`  |  **Tag:** v2.7.5-pre4
+**Commit:** `1b7994096`  |  **CI:** ✅ run 23688722622
+**What changed:**
+- Single tap on the overlay (no drag, < 10px movement) toggles between horizontal bar mode and vertical column mode
+- `toggleOrientation()`: flips `LinearLayout` orientation, hides `" | "` separators (GONE) in vertical mode, updates `FpsGraphView` LayoutParams, re-centers label gravity
+- `sepViews` List populated during construction to track all separator views
+- Drag-to-reposition unchanged; `dragMoved` flag prevents tap/drag conflict
+#### Files touched
+- `extension/BhFrameRating.java`
+
+---
+
 ## [pre] — v2.7.5-pre3 — FPS overlay: fix API label reading runtime engine name (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre3
 **Commit:** `62aa09c68`  |  **CI:** ✅ run 23687466600

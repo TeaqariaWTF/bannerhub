@@ -4,6 +4,13 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [stable] — v2.7.5 — Winlator HUD overlay + opacity slider (2026-03-28)
+**Branch:** `main`  |  **Tag:** v2.7.5
+**Commit:** `2a4bae8a7`  |  **CI:** ✅ run 23695765757 (9 APKs)
+**What changed:** Full Winlator HUD overlay: live stats, tap H/V toggle, drag reposition, opacity slider, text outline at low opacity. See release notes for full feature list.
+
+---
+
 ## [fix] — v2.7.5-pre30 — combine stroke + shadow below 10% opacity (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre30
 **Commit:** `cfe330d31`  |  **CI:** queued

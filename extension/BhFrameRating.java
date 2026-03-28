@@ -17,7 +17,6 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -50,7 +49,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
     // Extra detail group
     private final LinearLayout extraDetailGroup;
-    private final TextView tvCpuCores, tvGpuInfo, tvGpuTemp, tvTime;
+    private final TextView tvCpuCores, tvGpuMhzLabel, tvGpuMhzVal, tvTime;
     private boolean extraDetail = false;
 
     // CPU stat tracking across samples
@@ -112,8 +111,8 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
         tvTime     = addExtraLabel(ctx, "TIME --:--", 0xFFFFFFFF);
         tvCpuCores = addExtraLabel(ctx, "C0:--\nC1:--\nC2:--\nC3:--\nC4:--\nC5:--\nC6:--\nC7:--", 0xFFFFFFFF);
-        tvGpuInfo  = addExtraLabel(ctx, "--\n--MHz", 0xFFFFAB91);
-        tvGpuTemp  = addExtraLabel(ctx, "TMP --\u00b0C", 0xFFEF9A9A);
+        tvGpuMhzLabel = addExtraLabel(ctx, "GPU:", 0xFFFFAB91);
+        tvGpuMhzVal   = addExtraLabel(ctx, "--MHz", 0xFFFFAB91);
 
         LinearLayout.LayoutParams egLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -336,9 +335,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                         .getSharedPreferences("bh_prefs", 0)
                         .getBoolean("hud_extra_detail", false);
                 final int[] coreMhz     = newExtra ? readCoreMhz() : null;
-                final String gpuModel   = newExtra ? readGpuModel() : null;
                 final int gpuMhz        = newExtra ? readGpuMhz() : 0;
-                final int gpuThermal    = newExtra ? readGpuThermal() : 0;
                 final String timeStr    = newExtra ? readTime() : null;
 
                 handler.post(new Runnable() {
@@ -373,14 +370,12 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                         if (extraDetail && isVertical) {
                             if (coreMhz != null && coreMhz.length >= 8) {
                                 tvCpuCores.setText(String.format(
-                                        "C0:%4d\nC1:%4d\nC2:%4d\nC3:%4d\n" +
-                                        "C4:%4d\nC5:%4d\nC6:%4d\nC7:%4d",
+                                        "C0:%4dMHz\nC1:%4dMHz\nC2:%4dMHz\nC3:%4dMHz\n" +
+                                        "C4:%4dMHz\nC5:%4dMHz\nC6:%4dMHz\nC7:%4dMHz",
                                         coreMhz[0], coreMhz[1], coreMhz[2], coreMhz[3],
                                         coreMhz[4], coreMhz[5], coreMhz[6], coreMhz[7]));
                             }
-                            String model = gpuModel != null ? gpuModel : "--";
-                            tvGpuInfo.setText(model + "\n" + gpuMhz + "MHz");
-                            tvGpuTemp.setText("TMP " + gpuThermal + "\u00b0C");
+                            tvGpuMhzVal.setText(gpuMhz + "MHz");
                             if (timeStr != null) tvTime.setText("TIME " + timeStr);
                         }
                     }
@@ -577,34 +572,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         if (v != null) {
             try { return Integer.parseInt(v.trim()); }
             catch (NumberFormatException ignored) {}
-        }
-        return 0;
-    }
-
-    private String readGpuModel() {
-        String v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/gpu_model");
-        if (v != null) {
-            return v.trim().replace("(TM)", "").replaceAll("\\s+", " ").trim();
-        }
-        return null;
-    }
-
-    private int readGpuThermal() {
-        return readThermalZone("gpu");
-    }
-
-    private int readThermalZone(String typeName) {
-        for (int i = 0; i < 30; i++) {
-            String type = readSysfsLine("/sys/class/thermal/thermal_zone" + i + "/type");
-            if (type != null && type.trim().equalsIgnoreCase(typeName)) {
-                String temp = readSysfsLine("/sys/class/thermal/thermal_zone" + i + "/temp");
-                if (temp != null) {
-                    try {
-                        int t = Integer.parseInt(temp.trim());
-                        return t > 1000 ? t / 1000 : t;
-                    } catch (NumberFormatException ignored) {}
-                }
-            }
         }
         return 0;
     }

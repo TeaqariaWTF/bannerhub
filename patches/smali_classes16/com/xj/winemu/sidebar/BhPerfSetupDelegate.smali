@@ -180,6 +180,8 @@
     float-to-int v5, v5
     iput v5, v4, Landroid/widget/LinearLayout$LayoutParams;->topMargin:I
 
+    # v0 may be View at this join point depending on path — re-cast to ViewGroup
+    check-cast v0, Landroid/view/ViewGroup;
     invoke-virtual {v0, v3, v4}, Landroid/view/ViewGroup;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
     :cond_extra_cb_exists

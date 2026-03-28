@@ -155,12 +155,12 @@
     const-string v4, "bh_hud_extra_cb"
     invoke-virtual {v3, v4}, Landroid/view/View;->setTag(Ljava/lang/Object;)V
 
-    # setText("Extra Detailed")
-    const-string v4, "Extra Detailed"
+    # setText("Extra Detailed (coming soon)")
+    const-string v4, "Extra Detailed (coming soon)"
     invoke-virtual {v3, v4}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
 
-    # setTextColor(white)
-    const v4, 0xFFFFFFFF
+    # setTextColor(gray — grayed out, feature not yet ready)
+    const v4, 0xFF888888
     invoke-virtual {v3, v4}, Landroid/widget/TextView;->setTextColor(I)V
 
     # LayoutParams: MATCH_PARENT x WRAP_CONTENT, topMargin = round(density * 4)
@@ -187,17 +187,12 @@
     :cond_extra_cb_exists
     check-cast v3, Landroid/widget/CheckBox;
 
-    # Sync checked state from pref
-    const-string v4, "hud_extra_detail"
-    const/4 v5, 0x0
-    invoke-interface {v2, v4, v5}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
-    move-result v4
+    # Grayed out / disabled — feature coming soon; force unchecked and disable
+    const/4 v4, 0x0
     invoke-virtual {v3, v4}, Landroid/widget/CompoundButton;->setChecked(Z)V
+    invoke-virtual {v3, v4}, Landroid/view/View;->setEnabled(Z)V
 
-    # Set listener
-    new-instance v4, Lcom/xj/winemu/sidebar/BhHudExtraDetailListener;
-    invoke-direct {v4, v1}, Lcom/xj/winemu/sidebar/BhHudExtraDetailListener;-><init>(Landroid/content/Context;)V
-    invoke-virtual {v3, v4}, Landroid/widget/CompoundButton;->setOnCheckedChangeListener(Landroid/widget/CompoundButton$OnCheckedChangeListener;)V
+    # No listener — disabled checkbox should not fire changes
 
     # ── Inject BhFrameRating into DecorView (once per WineActivity instance) ─
     check-cast v1, Landroid/app/Activity;

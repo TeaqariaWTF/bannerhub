@@ -42,6 +42,8 @@ import java.util.Locale;
 public class BhFrameRating extends LinearLayout implements Runnable {
 
     private final TextView tvApi, tvGpu, tvCpu, tvRam, tvBat, tvTmp, tvFps;
+    private final TextView tvTimeH; // time shown in horizontal mode (after graph)
+    private final TextView tvTimeV; // time shown in vertical mode (under API)
     private final FpsGraphView fpsGraph;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Activity activity;
@@ -74,6 +76,13 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
         // API name at far left (purple)
         tvApi = addLabel(ctx, "API", 0xFFCE93D8);
+
+        // Vertical-mode time: inserted right after tvApi (index 1), hidden in horizontal
+        tvTimeV = makeTimeLabel(ctx);
+        tvTimeV.setVisibility(GONE);
+        addView(tvTimeV, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
         sepViews.add(addSep(ctx));
         tvGpu = addLabel(ctx, "GPU --%", 0xFFFFAB91);
         sepViews.add(addSep(ctx));
@@ -94,6 +103,14 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         gp.gravity = Gravity.CENTER_VERTICAL;
         gp.leftMargin = dpToPx(ctx, 6);
         addView(fpsGraph, gp);
+
+        // Horizontal-mode time: after graph, shown only in horizontal mode
+        tvTimeH = makeTimeLabel(ctx);
+        LinearLayout.LayoutParams thLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        thLp.gravity = Gravity.CENTER_VERTICAL;
+        thLp.leftMargin = dpToPx(ctx, 6);
+        addView(tvTimeH, thLp);
 
         // Extra detail group — vertical sub-layout, shown only in vertical mode when pref is on
         extraDetailGroup = new LinearLayout(ctx);
@@ -181,7 +198,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         TextView tv = new TextView(ctx);
         tv.setText(text);
         tv.setTextColor(color);
-        tv.setTextSize(8f);
+        tv.setTextSize(9f);
         tv.setPadding(4, 0, 4, 0);
         tv.setTypeface(Typeface.MONOSPACE);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -206,12 +223,23 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         return tv;
     }
 
+    /** Creates a time TextView for use in main bar (horizontal or vertical). */
+    private TextView makeTimeLabel(Context ctx) {
+        TextView tv = new TextView(ctx);
+        tv.setText("--:--");
+        tv.setTextColor(0xFFFFFFFF);
+        tv.setTextSize(9f);
+        tv.setPadding(6, 0, 4, 0);
+        tv.setTypeface(Typeface.MONOSPACE);
+        return tv;
+    }
+
     /** Adds a label row to the extra detail group. */
     private TextView addExtraLabel(Context ctx, String text, int color) {
         TextView tv = new TextView(ctx);
         tv.setText(text);
         tv.setTextColor(color);
-        tv.setTextSize(7f);
+        tv.setTextSize(8f);
         tv.setPadding(4, 2, 4, 2);
         tv.setTypeface(Typeface.MONOSPACE);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -260,11 +288,15 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
         // Center labels in vertical mode
         int labelGravity = isVertical ? Gravity.CENTER_HORIZONTAL : Gravity.CENTER_VERTICAL;
-        for (TextView tv : new TextView[]{tvApi, tvGpu, tvCpu, tvRam, tvBat, tvTmp, tvFps}) {
+        for (TextView tv : new TextView[]{tvApi, tvTimeV, tvGpu, tvCpu, tvRam, tvBat, tvTmp, tvFps, tvTimeH}) {
             LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) tv.getLayoutParams();
             lp.gravity = labelGravity;
             tv.setLayoutParams(lp);
         }
+
+        // Swap main-bar time label based on orientation
+        tvTimeH.setVisibility(isVertical ? GONE : VISIBLE);
+        tvTimeV.setVisibility(isVertical ? VISIBLE : GONE);
 
         // Extra detail group only visible in vertical mode when pref is on
         extraDetailGroup.setVisibility(extraDetail && isVertical ? VISIBLE : GONE);
@@ -342,13 +374,15 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                 final int tmp         = readTemp();
                 final float fps       = readFps();
 
+                // Time is always read (shown in main bar in both orientations)
+                final String timeStr = readTime();
+
                 // Extra detail — only read when pref is on
                 final boolean newExtra = getContext()
                         .getSharedPreferences("bh_prefs", 0)
                         .getBoolean("hud_extra_detail", false);
-                final int[] coreMhz     = newExtra ? readCoreMhz() : null;
-                final int gpuMhz        = newExtra ? readGpuMhz() : 0;
-                final String timeStr    = newExtra ? readTime() : null;
+                final int[] coreMhz = newExtra ? readCoreMhz() : null;
+                final int gpuMhz    = newExtra ? readGpuMhz() : 0;
 
                 handler.post(new Runnable() {
                     @Override public void run() {
@@ -366,6 +400,8 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                         tvTmp.setText("TMP " + tmp + "\u00b0C");
                         tvFps.setText(fps > 0 ? String.format("FPS %.0f", fps) : "FPS --");
                         fpsGraph.push(fps);
+                        tvTimeH.setText(timeStr);
+                        tvTimeV.setText(timeStr);
 
                         // Sync extra detail visibility if pref changed
                         if (newExtra != extraDetail) {
@@ -388,7 +424,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                                         coreMhz[4], coreMhz[5], coreMhz[6], coreMhz[7]));
                             }
                             tvGpuMhzVal.setText(gpuMhz + "MHz");
-                            if (timeStr != null) tvTime.setText("TIME " + timeStr);
+                            tvTime.setText("TIME " + timeStr);
                         }
                     }
                 });

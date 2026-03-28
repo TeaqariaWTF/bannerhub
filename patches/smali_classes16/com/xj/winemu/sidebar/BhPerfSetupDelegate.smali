@@ -140,6 +140,63 @@
     invoke-direct {v8, v6, v1}, Lcom/xj/winemu/sidebar/BhHudStyleSwitchListener;-><init>(Lcom/xj/winemu/view/SidebarSwitchItemView;Landroid/content/Context;)V
     invoke-virtual {v6, v8}, Lcom/xj/winemu/view/SidebarSwitchItemView;->setClickListener(Lkotlin/jvm/functions/Function0;)V
 
+    # ── "Extra Detailed" CheckBox (below Winlator HUD switch) ────────────────
+    const-string v3, "bh_hud_extra_cb"
+    invoke-virtual {v0, v3}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
+    move-result-object v3
+
+    if-nez v3, :cond_extra_cb_exists
+
+    # Create CheckBox(context)
+    new-instance v3, Landroid/widget/CheckBox;
+    invoke-direct {v3, v1}, Landroid/widget/CheckBox;-><init>(Landroid/content/Context;)V
+
+    # Tag for re-lookup
+    const-string v4, "bh_hud_extra_cb"
+    invoke-virtual {v3, v4}, Landroid/view/View;->setTag(Ljava/lang/Object;)V
+
+    # setText("Extra Detailed")
+    const-string v4, "Extra Detailed"
+    invoke-virtual {v3, v4}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    # setTextColor(white)
+    const v4, 0xFFFFFFFF
+    invoke-virtual {v3, v4}, Landroid/widget/TextView;->setTextColor(I)V
+
+    # LayoutParams: MATCH_PARENT x WRAP_CONTENT, topMargin = round(density * 4)
+    new-instance v4, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v5, -0x1
+    const/4 v6, -0x2
+    invoke-direct {v4, v5, v6}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+
+    invoke-virtual {v1}, Landroid/content/Context;->getResources()Landroid/content/res/Resources;
+    move-result-object v5
+    invoke-virtual {v5}, Landroid/content/res/Resources;->getDisplayMetrics()Landroid/util/DisplayMetrics;
+    move-result-object v5
+    iget v5, v5, Landroid/util/DisplayMetrics;->density:F
+    const/4 v6, 0x4
+    int-to-float v6, v6
+    mul-float v5, v5, v6
+    float-to-int v5, v5
+    iput v5, v4, Landroid/widget/LinearLayout$LayoutParams;->topMargin:I
+
+    invoke-virtual {v0, v3, v4}, Landroid/view/ViewGroup;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    :cond_extra_cb_exists
+    check-cast v3, Landroid/widget/CheckBox;
+
+    # Sync checked state from pref
+    const-string v4, "hud_extra_detail"
+    const/4 v5, 0x0
+    invoke-interface {v2, v4, v5}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+    move-result v4
+    invoke-virtual {v3, v4}, Landroid/widget/CompoundButton;->setChecked(Z)V
+
+    # Set listener
+    new-instance v4, Lcom/xj/winemu/sidebar/BhHudExtraDetailListener;
+    invoke-direct {v4, v1}, Lcom/xj/winemu/sidebar/BhHudExtraDetailListener;-><init>(Landroid/content/Context;)V
+    invoke-virtual {v3, v4}, Landroid/widget/CompoundButton;->setOnCheckedChangeListener(Landroid/widget/CompoundButton$OnCheckedChangeListener;)V
+
     # ── Inject BhFrameRating into DecorView (once per WineActivity instance) ─
     check-cast v1, Landroid/app/Activity;
     invoke-virtual {v1}, Landroid/app/Activity;->getWindow()Landroid/view/Window;

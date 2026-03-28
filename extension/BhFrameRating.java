@@ -5,6 +5,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -25,16 +26,18 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Winlator-style compact HUD overlay bar.
  * Shows: API | GPU | CPU | RAM | BAT (hidden when charging) | TMP | FPS [graph]
- * API name read from same SharedPreferences GameHub uses (pc_g_setting{gameId}).
- * FPS via WineActivity.j (HudDataProvider) field → a() method.
- * Charging detection via ACTION_BATTERY_CHANGED, same as HudDataProvider.b().
- * Tag: "bh_frame_rating"
+ * Tap to toggle between horizontal bar and vertical column.
+ * "Extra Detailed" pref (hud_extra_detail) adds per-core MHz, GPU model/freq/temp,
+ * RAM GB, SWAP, BAT%, SKN temp, FAN speed, and TIME — only visible in vertical mode.
  */
 public class BhFrameRating extends LinearLayout implements Runnable {
 
@@ -43,6 +46,12 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Activity activity;
     private final List<View> sepViews = new ArrayList<>();
+
+    // Extra detail group
+    private final LinearLayout extraDetailGroup;
+    private final TextView tvCpuCores, tvGpuInfo, tvGpuTemp, tvRamDetail,
+            tvSwap, tvBatPct, tvSkn, tvFan, tvTime;
+    private boolean extraDetail = false;
 
     // CPU stat tracking across samples
     private long prevTotal = 0, prevIdle = 0;
@@ -86,6 +95,34 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         gp.gravity = Gravity.CENTER_VERTICAL;
         gp.leftMargin = dpToPx(ctx, 6);
         addView(fpsGraph, gp);
+
+        // Extra detail group — vertical sub-layout, shown only in vertical mode when pref is on
+        extraDetailGroup = new LinearLayout(ctx);
+        extraDetailGroup.setOrientation(VERTICAL);
+        extraDetailGroup.setVisibility(GONE);
+
+        // Thin divider between main stats and extra detail
+        View divider = new View(ctx);
+        divider.setBackgroundColor(0xFF333333);
+        LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(ctx, 1));
+        divLp.topMargin = dpToPx(ctx, 4);
+        divLp.bottomMargin = dpToPx(ctx, 4);
+        extraDetailGroup.addView(divider, divLp);
+
+        tvCpuCores = addExtraLabel(ctx, "C0:--  C1:--  C2:--  C3:--\nC4:--  C5:--  C6:--  C7:--", 0xFFFFFFFF);
+        tvGpuInfo  = addExtraLabel(ctx, "GPU -- | --MHz", 0xFFFFAB91);
+        tvGpuTemp  = addExtraLabel(ctx, "GPU TMP --\u00b0C", 0xFFEF9A9A);
+        tvRamDetail= addExtraLabel(ctx, "RAM --G / --G", 0xFF90CAF9);
+        tvSwap     = addExtraLabel(ctx, "SWAP --G / --G", 0xFFB39DDB);
+        tvBatPct   = addExtraLabel(ctx, "BAT --%", 0xFFFFD54F);
+        tvSkn      = addExtraLabel(ctx, "SKN --\u00b0C", 0xFFEF9A9A);
+        tvFan      = addExtraLabel(ctx, "FAN --", 0xFFB0BEC5);
+        tvTime     = addExtraLabel(ctx, "TIME --:--", 0xFFFFFFFF);
+
+        LinearLayout.LayoutParams egLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        addView(extraDetailGroup, egLp);
 
         // Drag to reposition; tap (no significant move) to toggle orientation
         setOnTouchListener(new OnTouchListener() {
@@ -162,6 +199,21 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         return tv;
     }
 
+    /** Adds a label row to the extra detail group. */
+    private TextView addExtraLabel(Context ctx, String text, int color) {
+        TextView tv = new TextView(ctx);
+        tv.setText(text);
+        tv.setTextColor(color);
+        tv.setTextSize(10f);
+        tv.setPadding(4, 2, 4, 2);
+        tv.setTypeface(Typeface.MONOSPACE);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        extraDetailGroup.addView(tv, lp);
+        return tv;
+    }
+
     private int dpToPx(Context ctx, int dp) {
         return Math.round(dp * ctx.getResources().getDisplayMetrics().density);
     }
@@ -199,12 +251,21 @@ public class BhFrameRating extends LinearLayout implements Runnable {
             tv.setLayoutParams(lp);
         }
 
+        // Extra detail group only visible in vertical mode when pref is on
+        extraDetailGroup.setVisibility(extraDetail && isVertical ? VISIBLE : GONE);
+
         requestLayout();
     }
 
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        // Restore extra detail state from pref
+        try {
+            SharedPreferences sp = getContext().getSharedPreferences("bh_prefs", 0);
+            extraDetail = sp.getBoolean("hud_extra_detail", false);
+            extraDetailGroup.setVisibility(extraDetail && isVertical ? VISIBLE : GONE);
+        } catch (Exception ignored) {}
         running = true;
         Thread t = new Thread(this, "BhFrameRating");
         t.setDaemon(true);
@@ -230,9 +291,25 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                 final int tmp         = readTemp();
                 final float fps       = readFps();
 
+                // Extra detail — only read when pref is on
+                final boolean newExtra = getContext()
+                        .getSharedPreferences("bh_prefs", 0)
+                        .getBoolean("hud_extra_detail", false);
+                final int[] coreMhz       = newExtra ? readCoreMhz() : null;
+                final String gpuModel     = newExtra ? readGpuModel() : null;
+                final int gpuMhz          = newExtra ? readGpuMhz() : 0;
+                final int gpuThermal      = newExtra ? readGpuThermal() : 0;
+                final float[] ramDetail   = newExtra ? readRamDetail() : null;
+                final String swapStr      = newExtra ? readSwap() : null;
+                final int batPct          = newExtra ? readBatPercent() : 0;
+                final int skinTemp        = newExtra ? readSkinTemp() : 0;
+                final int fanSpeed        = newExtra ? readFanSpeed() : 0;
+                final String timeStr      = newExtra ? readTime() : null;
+
                 handler.post(new Runnable() {
                     @Override public void run() {
                         if (!isAttachedToWindow()) return;
+
                         tvApi.setText(api);
                         tvGpu.setText("GPU " + gpu + "%");
                         tvCpu.setText("CPU " + cpu + "%");
@@ -245,6 +322,39 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                         tvTmp.setText("TMP " + tmp + "\u00b0C");
                         tvFps.setText(fps > 0 ? String.format("FPS %.0f", fps) : "FPS --");
                         fpsGraph.push(fps);
+
+                        // Sync extra detail visibility if pref changed
+                        if (newExtra != extraDetail) {
+                            extraDetail = newExtra;
+                            extraDetailGroup.setVisibility(
+                                    extraDetail && isVertical ? VISIBLE : GONE);
+                        }
+
+                        // Update extra detail rows
+                        if (extraDetail && isVertical) {
+                            // Per-core MHz (2 cores per line)
+                            if (coreMhz != null && coreMhz.length >= 8) {
+                                tvCpuCores.setText(String.format(
+                                        "C0:%4d  C1:%4d  C2:%4d  C3:%4d\n" +
+                                        "C4:%4d  C5:%4d  C6:%4d  C7:%4d",
+                                        coreMhz[0], coreMhz[1], coreMhz[2], coreMhz[3],
+                                        coreMhz[4], coreMhz[5], coreMhz[6], coreMhz[7]));
+                            }
+                            // GPU info
+                            String model = gpuModel != null ? gpuModel : "--";
+                            tvGpuInfo.setText("GPU " + model + " | " + gpuMhz + "MHz");
+                            tvGpuTemp.setText("GPU TMP " + gpuThermal + "\u00b0C");
+                            // RAM as GB
+                            if (ramDetail != null && ramDetail.length >= 2) {
+                                tvRamDetail.setText(String.format(
+                                        "RAM %.1fG / %.1fG", ramDetail[0], ramDetail[1]));
+                            }
+                            if (swapStr != null) tvSwap.setText(swapStr);
+                            tvBatPct.setText("BAT " + batPct + "%");
+                            tvSkn.setText("SKN " + skinTemp + "\u00b0C");
+                            tvFan.setText(fanSpeed > 0 ? "FAN " + fanSpeed : "FAN --");
+                            if (timeStr != null) tvTime.setText("TIME " + timeStr);
+                        }
                     }
                 });
 
@@ -257,40 +367,24 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     }
 
     // ── API name ─────────────────────────────────────────────────────────
-    // Reads the runtime engine name from UnifiedHUDView.a — the same field the
-    // original GameHub HUD renders. Wine (DXVK/VKD3D/WineD3D) reports this via
-    // a native perf socket callback when the first frame is presented.
-    //
-    // Reflection chain:
-    //   WineActivity.g → ActivityWineBinding
-    //   .hudLayer       → HUDLayer
-    //   .b              → UnifiedHUDView
-    //   .a              → engine name String (uppercased by setEngineName())
-    //
-    // Falls back to "API" if reflection fails or Wine hasn't reported yet ("N/A").
-
     private String readApiName() {
         if (activity == null) return "API";
         try {
-            // WineActivity.g = ActivityWineBinding
             Field gField = activity.getClass().getDeclaredField("g");
             gField.setAccessible(true);
             Object binding = gField.get(activity);
             if (binding == null) return "API";
 
-            // ActivityWineBinding.hudLayer = HUDLayer
             Field hudLayerField = binding.getClass().getDeclaredField("hudLayer");
             hudLayerField.setAccessible(true);
             Object hudLayer = hudLayerField.get(binding);
             if (hudLayer == null) return "API";
 
-            // HUDLayer.b = UnifiedHUDView
             Field bField = hudLayer.getClass().getDeclaredField("b");
             bField.setAccessible(true);
             Object unifiedHud = bField.get(hudLayer);
             if (unifiedHud == null) return "API";
 
-            // UnifiedHUDView.a = engine name (e.g. "DXVK", "VKD3D", "WINEDD3D")
             Field aField = unifiedHud.getClass().getDeclaredField("a");
             aField.setAccessible(true);
             Object nameObj = aField.get(unifiedHud);
@@ -305,9 +399,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     }
 
     // ── Charging detection ────────────────────────────────────────────────
-    // Uses ACTION_BATTERY_CHANGED sticky broadcast — same method as HudDataProvider.b().
-    // Returns true when CHARGING or FULL so the BAT watts label is hidden.
-
     private boolean isCharging() {
         try {
             Intent intent = getContext().registerReceiver(
@@ -324,7 +415,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     // ── Data readers ─────────────────────────────────────────────────────
 
     private int readGpu() {
-        // Adreno: gpubusy format "busy total"
         String v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/gpubusy");
         if (v != null) {
             try {
@@ -336,13 +426,11 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                 }
             } catch (NumberFormatException ignored) {}
         }
-        // Adreno: gpu_busy_percentage
         v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage");
         if (v != null) {
             try { return Integer.parseInt(v.trim().replaceAll("[^0-9]", "")); }
             catch (NumberFormatException ignored) {}
         }
-        // Mali
         v = readSysfsLine("/sys/class/misc/mali0/device/utilisation");
         if (v != null) {
             try { return Integer.parseInt(v.trim().replaceAll("[^0-9]", "")); }
@@ -389,21 +477,16 @@ public class BhFrameRating extends LinearLayout implements Runnable {
             BatteryManager bm = (BatteryManager)
                     getContext().getSystemService(Context.BATTERY_SERVICE);
             if (bm == null) return 0f;
-
             long currentNow = bm.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
             if (currentNow == Long.MIN_VALUE) return 0f;
-
-            // Voltage from sysfs (µV → V)
             float voltage = 3.7f;
             String voltStr = readSysfsLine("/sys/class/power_supply/battery/voltage_now");
             if (voltStr != null) {
                 try { voltage = Float.parseFloat(voltStr.trim()) / 1_000_000f; }
                 catch (NumberFormatException ignored) {}
             }
-
-            // currentNow may be µA or mA depending on device
-            float currentA = Math.abs(currentNow) / 1_000_000f; // assume µA
-            if (currentA < 0.01f) currentA = Math.abs(currentNow) / 1_000f; // mA fallback
+            float currentA = Math.abs(currentNow) / 1_000_000f;
+            if (currentA < 0.01f) currentA = Math.abs(currentNow) / 1_000f;
             return voltage * currentA;
         } catch (Exception e) {
             return 0f;
@@ -411,13 +494,11 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     }
 
     private int readTemp() {
-        // Battery temp (tenths of °C)
         String v = readSysfsLine("/sys/class/power_supply/battery/temp");
         if (v != null) {
             try { return Integer.parseInt(v.trim()) / 10; }
             catch (NumberFormatException ignored) {}
         }
-        // CPU thermal zone0
         v = readSysfsLine("/sys/class/thermal/thermal_zone0/temp");
         if (v != null) {
             try {
@@ -443,6 +524,147 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         }
     }
 
+    // ── Extra detail readers ──────────────────────────────────────────────
+
+    /** Reads per-core MHz from cpufreq scaling_cur_freq (kHz → MHz). Returns 8-element array. */
+    private int[] readCoreMhz() {
+        int[] result = new int[8];
+        for (int i = 0; i < 8; i++) {
+            String v = readSysfsLine(
+                    "/sys/devices/system/cpu/cpu" + i + "/cpufreq/scaling_cur_freq");
+            if (v != null) {
+                try { result[i] = Integer.parseInt(v.trim()) / 1000; }
+                catch (NumberFormatException ignored) {}
+            }
+        }
+        return result;
+    }
+
+    /** GPU clock in MHz. Tries gpuclk (Hz) then clock_mhz. */
+    private int readGpuMhz() {
+        String v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/gpuclk");
+        if (v != null) {
+            try { return (int) (Long.parseLong(v.trim()) / 1_000_000L); }
+            catch (NumberFormatException ignored) {}
+        }
+        v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/clock_mhz");
+        if (v != null) {
+            try { return Integer.parseInt(v.trim()); }
+            catch (NumberFormatException ignored) {}
+        }
+        return 0;
+    }
+
+    /** GPU model name from sysfs, e.g. "Adreno 750". */
+    private String readGpuModel() {
+        String v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/gpu_model");
+        if (v != null) {
+            // Strip trademark markers, collapse whitespace
+            return v.trim().replace("(TM)", "").replaceAll("\\s+", " ").trim();
+        }
+        return null;
+    }
+
+    /** GPU thermal zone temperature. */
+    private int readGpuThermal() {
+        return readThermalZone("gpu");
+    }
+
+    /** Skin temperature from thermal zone. */
+    private int readSkinTemp() {
+        return readThermalZone("skin");
+    }
+
+    /** Scans thermal zones for the first one matching typeName. */
+    private int readThermalZone(String typeName) {
+        for (int i = 0; i < 30; i++) {
+            String type = readSysfsLine("/sys/class/thermal/thermal_zone" + i + "/type");
+            if (type != null && type.trim().equalsIgnoreCase(typeName)) {
+                String temp = readSysfsLine("/sys/class/thermal/thermal_zone" + i + "/temp");
+                if (temp != null) {
+                    try {
+                        int t = Integer.parseInt(temp.trim());
+                        return t > 1000 ? t / 1000 : t;
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+        return 0;
+    }
+
+    /** RAM used and total in GB: [usedGB, totalGB]. */
+    private float[] readRamDetail() {
+        ActivityManager am = (ActivityManager)
+                getContext().getSystemService(Context.ACTIVITY_SERVICE);
+        if (am == null) return null;
+        ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+        am.getMemoryInfo(mi);
+        float total = mi.totalMem / 1_073_741_824f;
+        float used  = (mi.totalMem - mi.availMem) / 1_073_741_824f;
+        return new float[]{used, total};
+    }
+
+    /** SWAP used/total as formatted string from /proc/meminfo. */
+    private String readSwap() {
+        long swapTotal = 0, swapFree = 0;
+        try (BufferedReader br = new BufferedReader(new FileReader("/proc/meminfo"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith("SwapTotal:")) {
+                    swapTotal = parseMemInfoKb(line);
+                } else if (line.startsWith("SwapFree:")) {
+                    swapFree = parseMemInfoKb(line);
+                    break;
+                }
+            }
+        } catch (IOException ignored) {}
+        float total = swapTotal / (1024f * 1024f); // kB → GB
+        float used  = (swapTotal - swapFree) / (1024f * 1024f);
+        return String.format("SWAP %.1fG / %.1fG", used, total);
+    }
+
+    private long parseMemInfoKb(String line) {
+        try {
+            String[] parts = line.trim().split("\\s+");
+            return Long.parseLong(parts[1]);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /** Battery level in percent. */
+    private int readBatPercent() {
+        try {
+            BatteryManager bm = (BatteryManager)
+                    getContext().getSystemService(Context.BATTERY_SERVICE);
+            if (bm == null) return 0;
+            int pct = (int) bm.getLongProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+            return Math.max(0, Math.min(100, pct));
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /** Fan speed from hwmon (returns 0 if no fan sensor found). */
+    private int readFanSpeed() {
+        for (int h = 0; h < 5; h++) {
+            for (int f = 1; f <= 3; f++) {
+                String v = readSysfsLine(
+                        "/sys/class/hwmon/hwmon" + h + "/fan" + f + "_input");
+                if (v != null) {
+                    try { return Integer.parseInt(v.trim()); }
+                    catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+        return 0;
+    }
+
+    /** Current time as HH:mm string. */
+    private String readTime() {
+        return new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
+    }
+
     private String readSysfsLine(String path) {
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             return br.readLine();
@@ -452,9 +674,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     }
 
     // ── FPS Graph ─────────────────────────────────────────────────────────
-    // 30-sample ring buffer, rendered as a bar chart.
-    // Bar color shifts green → red based on how each sample compares to the
-    // highest FPS seen in the current window (green = at max, red = near 0).
 
     private static class FpsGraphView extends View {
         private static final int HISTORY = 30;
@@ -470,7 +689,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
             bgPaint.setColor(0x44000000);
         }
 
-        /** Called from the update loop on the main thread. */
         public void push(float fps) {
             samples[head] = fps;
             head = (head + 1) % HISTORY;
@@ -485,7 +703,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
             canvas.drawRect(0, 0, w, h, bgPaint);
             if (count == 0) return;
 
-            // Scale bars relative to the max sample in the current window
             float max = 1f;
             for (int i = 0; i < count; i++) {
                 if (samples[i] > max) max = samples[i];
@@ -498,7 +715,6 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                 float barH = (fps / max) * h;
                 float left = i * barW;
                 float top  = h - barH;
-                // green at max FPS, red near zero
                 float ratio = fps / max;
                 barPaint.setColor(Color.rgb(
                         (int) (255 * (1f - ratio)),

@@ -17,6 +17,7 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -109,12 +110,12 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         divLp.bottomMargin = dpToPx(ctx, 4);
         extraDetailGroup.addView(divider, divLp);
 
+        tvTime     = addExtraLabel(ctx, "TIME --:--", 0xFFFFFFFF);
         tvCpuCores = addExtraLabel(ctx, "C0:--  C1:--  C2:--  C3:--\nC4:--  C5:--  C6:--  C7:--", 0xFFFFFFFF);
         tvGpuInfo  = addExtraLabel(ctx, "GPU -- | --MHz", 0xFFFFAB91);
         tvGpuTemp  = addExtraLabel(ctx, "GPU TMP --\u00b0C", 0xFFEF9A9A);
         tvRamDetail= addExtraLabel(ctx, "RAM --G / --G", 0xFF90CAF9);
         tvSwap     = addExtraLabel(ctx, "SWAP --G / --G", 0xFFB39DDB);
-        tvTime     = addExtraLabel(ctx, "TIME --:--", 0xFFFFFFFF);
 
         LinearLayout.LayoutParams egLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -260,6 +261,27 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         extraDetailGroup.setVisibility(extraDetail && isVertical ? VISIBLE : GONE);
 
         requestLayout();
+        reclampPosition();
+    }
+
+    /** Re-clamps overlay position after layout has settled (e.g. after orientation toggle). */
+    private void reclampPosition() {
+        getViewTreeObserver().addOnGlobalLayoutListener(
+                new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override public void onGlobalLayout() {
+                getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                ViewGroup.LayoutParams vlp = getLayoutParams();
+                if (!(vlp instanceof FrameLayout.LayoutParams)) return;
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) vlp;
+                int screenW = getRootView().getWidth();
+                int screenH = getRootView().getHeight();
+                if (lp.leftMargin < 0) lp.leftMargin = 0;
+                if (lp.topMargin  < 0) lp.topMargin  = 0;
+                if (lp.leftMargin + getWidth()  > screenW) lp.leftMargin = screenW - getWidth();
+                if (lp.topMargin  + getHeight() > screenH) lp.topMargin  = screenH - getHeight();
+                setLayoutParams(lp);
+            }
+        });
     }
 
     @Override
@@ -330,6 +352,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                             extraDetail = newExtra;
                             extraDetailGroup.setVisibility(
                                     extraDetail && isVertical ? VISIBLE : GONE);
+                            reclampPosition();
                         }
 
                         // Update extra detail rows (vertical mode only)

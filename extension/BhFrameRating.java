@@ -25,6 +25,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Winlator-style compact HUD overlay bar.
@@ -40,6 +42,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     private final FpsGraphView fpsGraph;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Activity activity;
+    private final List<View> sepViews = new ArrayList<>();
 
     // CPU stat tracking across samples
     private long prevTotal = 0, prevIdle = 0;
@@ -48,6 +51,11 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
     // Drag state
     private float dragLastX, dragLastY;
+    private float dragStartX, dragStartY;
+    private boolean dragMoved;
+
+    // Orientation toggle
+    private boolean isVertical = false;
 
     public BhFrameRating(Context ctx) {
         super(ctx);
@@ -58,17 +66,17 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
         // API name at far left (purple)
         tvApi = addLabel(ctx, "API", 0xFFCE93D8);
-        addSep(ctx);
+        sepViews.add(addSep(ctx));
         tvGpu = addLabel(ctx, "GPU --%", 0xFFFFAB91);
-        addSep(ctx);
+        sepViews.add(addSep(ctx));
         tvCpu = addLabel(ctx, "CPU --%", 0xFFFFFFFF);
-        addSep(ctx);
+        sepViews.add(addSep(ctx));
         tvRam = addLabel(ctx, "RAM --%", 0xFF90CAF9);
-        addSep(ctx);
+        sepViews.add(addSep(ctx));
         tvBat = addLabel(ctx, "BAT --W", 0xFFFFD54F);
-        addSep(ctx);
+        sepViews.add(addSep(ctx));
         tvTmp = addLabel(ctx, "TMP --\u00b0C", 0xFFEF9A9A);
-        addSep(ctx);
+        sepViews.add(addSep(ctx));
         tvFps = addLabel(ctx, "FPS --", 0xFF76FF03);
 
         // FPS graph at far right
@@ -79,8 +87,9 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         gp.leftMargin = dpToPx(ctx, 6);
         addView(fpsGraph, gp);
 
-        // Drag to reposition
+        // Drag to reposition; tap (no significant move) to toggle orientation
         setOnTouchListener(new OnTouchListener() {
+            private static final int TAP_SLOP = 10; // px
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
@@ -95,8 +104,16 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                         }
                         dragLastX = event.getRawX();
                         dragLastY = event.getRawY();
+                        dragStartX = event.getRawX();
+                        dragStartY = event.getRawY();
+                        dragMoved = false;
                         return true;
                     case MotionEvent.ACTION_MOVE:
+                        float mx = event.getRawX() - dragStartX;
+                        float my = event.getRawY() - dragStartY;
+                        if (!dragMoved && (Math.abs(mx) > TAP_SLOP || Math.abs(my) > TAP_SLOP)) {
+                            dragMoved = true;
+                        }
                         int dx = (int) (event.getRawX() - dragLastX);
                         int dy = (int) (event.getRawY() - dragLastY);
                         lp.leftMargin += dx;
@@ -104,6 +121,11 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                         v.setLayoutParams(lp);
                         dragLastX = event.getRawX();
                         dragLastY = event.getRawY();
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        if (!dragMoved) {
+                            toggleOrientation();
+                        }
                         return true;
                 }
                 return false;
@@ -142,6 +164,42 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
     private int dpToPx(Context ctx, int dp) {
         return Math.round(dp * ctx.getResources().getDisplayMetrics().density);
+    }
+
+    private void toggleOrientation() {
+        isVertical = !isVertical;
+        setOrientation(isVertical ? VERTICAL : HORIZONTAL);
+
+        // Show/hide " | " separators
+        int sepVis = isVertical ? GONE : VISIBLE;
+        for (View sep : sepViews) {
+            sep.setVisibility(sepVis);
+        }
+
+        // Resize FPS graph: horizontal = (60dp wide, MATCH_PARENT tall)
+        //                   vertical   = (MATCH_PARENT wide, 40dp tall)
+        LinearLayout.LayoutParams gp;
+        if (isVertical) {
+            gp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(getContext(), 40));
+            gp.topMargin = dpToPx(getContext(), 4);
+        } else {
+            gp = new LinearLayout.LayoutParams(
+                    dpToPx(getContext(), 60), ViewGroup.LayoutParams.MATCH_PARENT);
+            gp.gravity = Gravity.CENTER_VERTICAL;
+            gp.leftMargin = dpToPx(getContext(), 6);
+        }
+        fpsGraph.setLayoutParams(gp);
+
+        // Center labels in vertical mode
+        int labelGravity = isVertical ? Gravity.CENTER_HORIZONTAL : Gravity.CENTER_VERTICAL;
+        for (TextView tv : new TextView[]{tvApi, tvGpu, tvCpu, tvRam, tvBat, tvTmp, tvFps}) {
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) tv.getLayoutParams();
+            lp.gravity = labelGravity;
+            tv.setLayoutParams(lp);
+        }
+
+        requestLayout();
     }
 
     @Override

@@ -6,7 +6,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ## [pre] — v2.7.5-pre1 — FPS overlay: API label, FPS graph, charging detection (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre1
-**Commit:** `ffefa9c32`  |  **CI:** ⏳ pending
+**Commit:** `ffefa9c32`  |  **CI:** ✅ run 23686862934 (3m46s)
 **What changed:**
 - `tvApi` TextView at far left: reads active renderer from `pc_g_setting{gameId}` SP (same source as GameHub) — `pc_ls_DXVK` → "DXVK name", `pc_ls_VK3k` → "VKD3D name", fallback "WineD3D"; mirrors PcSettingDataEntity.getShowName() logic
 - `FpsGraphView` inner class at far right: 30-sample ring buffer, Canvas bar chart, bars shift green→red relative to max FPS in window

@@ -422,6 +422,9 @@ public class AmazonGamesActivity extends Activity {
                     this, game, token, installDir, cb, null);
 
             if (ok) {
+                // Ensure SDK DLLs are cached (non-blocking, best-effort)
+                uiHandler.post(() -> installBtn.setText("Fetching SDK…"));
+                AmazonSdkManager.ensureSdkFiles(this, token);
                 game.isInstalled = true;
                 game.installPath  = installDir.getAbsolutePath();
                 // Update cache with install status

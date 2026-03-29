@@ -2690,3 +2690,12 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `extension/AmazonLaunchHelper.java` (new)
 - `patches/smali_classes11/.../LandscapeLauncherMainActivity.smali`
 - `extension/AmazonGamesActivity.java` (Launch wired)
+
+### [feat] — amazon-integration branch — Phase 5: SDK DLL manager (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- AmazonSdkManager.java: GET SDK channel spec → downloadUrl; parse manifest.proto (same pipeline as game); filter "Amazon Games Services" files; FuelSDK_x64.dll → Legacy/; AmazonGamesSDK_* → AmazonGamesSDK/; cache at filesDir/amazon_sdk/ + .sdk_version sentinel; deploySdkToPrefix() idempotent copy to Wine prefix ProgramData; isSdkCached() checks VERSION_FILE + hasAnyFile in Amazon Games Services/
+- AmazonGamesActivity.java: call ensureSdkFiles() after successful game install
+#### Files touched
+- `extension/AmazonSdkManager.java` (new)
+- `extension/AmazonGamesActivity.java` (ensureSdkFiles after install)

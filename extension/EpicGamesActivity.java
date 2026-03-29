@@ -786,35 +786,8 @@ public class EpicGamesActivity extends Activity {
                         manifestJson,
                         finalToken,
                         installDir.getAbsolutePath(),
-                        (msg) -> {
+                        (msg, pct) -> {
                             if (cancelled.get()) return;
-                            // Parse progress percentage from message if possible
-                            int pct = 0;
-                            if (msg.contains("chunks (")) {
-                                try {
-                                    int slash = msg.indexOf('/');
-                                    int open  = msg.lastIndexOf('(') + 1;
-                                    if (open > 0 && slash > open) {
-                                        int done  = Integer.parseInt(msg.substring(open, slash).trim());
-                                        int close = msg.indexOf(')', slash);
-                                        int ttl   = Integer.parseInt(msg.substring(slash + 1,
-                                                close > slash ? close : msg.length()).trim());
-                                        if (ttl > 0) pct = (int)(done * 80L / ttl); // 0-80%
-                                    }
-                                } catch (Exception ignored) {}
-                            } else if (msg.contains("files (")) {
-                                try {
-                                    int slash = msg.indexOf('/');
-                                    int open  = msg.lastIndexOf('(') + 1;
-                                    if (open > 0 && slash > open) {
-                                        int done  = Integer.parseInt(msg.substring(open, slash).trim());
-                                        int close = msg.indexOf(')', slash);
-                                        int ttl   = Integer.parseInt(msg.substring(slash + 1,
-                                                close > slash ? close : msg.length()).trim());
-                                        if (ttl > 0) pct = 80 + (int)(done * 20L / ttl); // 80-100%
-                                    }
-                                } catch (Exception ignored) {}
-                            }
                             cb.onProgress(msg, pct);
                         });
 

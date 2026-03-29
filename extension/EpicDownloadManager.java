@@ -21,6 +21,11 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.Inflater;
 
 /**
@@ -45,7 +50,7 @@ public class EpicDownloadManager {
     // ── Public interface ──────────────────────────────────────────────────────
 
     public interface ProgressCallback {
-        void onProgress(String message);
+        void onProgress(String message, int pct);
     }
 
     // ── Data classes (public for EpicApiClient size calc) ─────────────────────
@@ -160,7 +165,7 @@ public class EpicDownloadManager {
             String installDirPath,
             ProgressCallback progressCallback) {
         try {
-            progress(progressCallback, "Parsing CDN URLs...");
+            progress(progressCallback, "Parsing CDN URLs...", 0);
 
             List<CdnUrl> cdnUrls = parseCdnUrls(manifestApiJson);
             if (cdnUrls.isEmpty()) {
@@ -171,7 +176,7 @@ public class EpicDownloadManager {
                 Log.i(TAG, "  CDN: " + c.baseUrl + "  auth: " + (c.authParams.isEmpty() ? "(none)" : "YES"));
             }
 
-            progress(progressCallback, "Downloading manifest...");
+            progress(progressCallback, "Downloading manifest...", 0);
             byte[] manifestBytes = downloadManifest(manifestApiJson, cdnUrls);
             if (manifestBytes == null) {
                 Log.e(TAG, "Manifest binary download failed");
@@ -179,7 +184,7 @@ public class EpicDownloadManager {
             }
             Log.i(TAG, "Manifest bytes: " + manifestBytes.length);
 
-            progress(progressCallback, "Parsing manifest...");
+            progress(progressCallback, "Parsing manifest...", 0);
             EpicManifest.ParsedManifest manifest = parseManifest(manifestBytes);
             if (manifest == null) {
                 Log.e(TAG, "Manifest parse failed");
@@ -195,25 +200,51 @@ public class EpicDownloadManager {
             File chunkCacheDir = new File(installDir, ".chunks");
             chunkCacheDir.mkdirs();
 
-            // Download unique chunks
-            int totalChunks = manifest.uniqueChunks.size();
-            int doneChunks  = 0;
+            // Calculate total download bytes for smooth byte-level progress
+            long totalBytes = 0;
+            for (ChunkInfo chunk : manifest.uniqueChunks) totalBytes += Math.max(chunk.fileSize, 1);
+            final long fTotalBytes = totalBytes;
+            final int totalChunks  = manifest.uniqueChunks.size();
+            final AtomicLong completedBytes   = new AtomicLong(0);
+            final AtomicInteger completedCount = new AtomicInteger(0);
+            final AtomicInteger failCount      = new AtomicInteger(0);
+
+            // Download unique chunks — 6 parallel threads
+            ExecutorService pool = Executors.newFixedThreadPool(6);
             for (ChunkInfo chunk : manifest.uniqueChunks) {
-                File cachedFile = new File(chunkCacheDir, chunk.guidStr());
-                if (!cachedFile.exists()) {
-                    if (!downloadChunk(chunk, manifest.chunkDir, cdnUrls, cachedFile)) {
-                        Log.e(TAG, "Chunk download failed: " + chunk.guidStr());
-                        return false;
+                final ChunkInfo fc = chunk;
+                pool.submit(() -> {
+                    File cachedFile = new File(chunkCacheDir, fc.guidStr());
+                    if (!cachedFile.exists()) {
+                        if (!downloadChunk(fc, manifest.chunkDir, cdnUrls, cachedFile)) {
+                            Log.e(TAG, "Chunk download failed: " + fc.guidStr());
+                            failCount.incrementAndGet();
+                            return;
+                        }
                     }
-                }
-                doneChunks++;
-                if (doneChunks % 500 == 0 || doneChunks == totalChunks) {
-                    progress(progressCallback, "Downloading chunks (" + doneChunks + "/" + totalChunks + ")");
-                }
+                    long done = completedBytes.addAndGet(Math.max(fc.fileSize, 1));
+                    int  cnt  = completedCount.incrementAndGet();
+                    int  pct  = (int)(done * 80L / fTotalBytes);
+                    String mb = String.format("%.1f / %.1f MB",
+                            done / 1048576.0, fTotalBytes / 1048576.0);
+                    progress(progressCallback,
+                            "Downloading chunks (" + cnt + "/" + totalChunks + ")  " + mb, pct);
+                });
+            }
+            pool.shutdown();
+            try {
+                pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
             }
 
-            // Assemble files
-            progress(progressCallback, "Assembling files...");
+            if (failCount.get() > 0) {
+                Log.e(TAG, failCount.get() + " chunks failed to download");
+                return false;
+            }
+
+            // Assemble files — show each filename as it is written
             int totalFiles = manifest.files.size();
             int doneFiles  = 0;
             for (FileInfo file : manifest.files) {
@@ -221,6 +252,11 @@ public class EpicDownloadManager {
                 File outFile   = new File(installDir, relPath);
                 File parent    = outFile.getParentFile();
                 if (parent != null) parent.mkdirs();
+
+                String displayName = relPath.contains("/")
+                        ? relPath.substring(relPath.lastIndexOf('/') + 1) : relPath;
+                int pct = 80 + (int)(doneFiles * 20L / totalFiles);
+                progress(progressCallback, "Writing: " + displayName, pct);
 
                 try (FileOutputStream fos = new FileOutputStream(outFile);
                      BufferedOutputStream bos = new BufferedOutputStream(fos, 65536)) {
@@ -236,9 +272,6 @@ public class EpicDownloadManager {
                 }
 
                 doneFiles++;
-                if (doneFiles % 200 == 0 || doneFiles == totalFiles) {
-                    progress(progressCallback, "Assembling files (" + doneFiles + "/" + totalFiles + ")");
-                }
             }
 
             deleteDir(chunkCacheDir);
@@ -774,8 +807,8 @@ public class EpicDownloadManager {
         dir.delete();
     }
 
-    private static void progress(ProgressCallback cb, String msg) {
-        if (cb != null) cb.onProgress(msg);
-        Log.i(TAG, msg);
+    private static void progress(ProgressCallback cb, String msg, int pct) {
+        if (cb != null) cb.onProgress(msg, pct);
+        Log.i(TAG, "[" + pct + "%] " + msg);
     }
 }

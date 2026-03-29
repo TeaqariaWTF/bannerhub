@@ -2,17 +2,22 @@ package app.revanced.extension.gamehub;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import java.io.File;
 import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -25,64 +30,75 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Amazon Games library screen.
+ * Amazon Games library screen — UI mirrors GogGamesActivity.
  *
- * Shows all owned games as collapsible cards.
- * Each card: cover art | title | developer | Install/Launch buttons
- *
- * Library sync: GetEntitlements (paginated) → cache in SharedPreferences JSON.
- * Install/Launch: Phase 3/4 (stub buttons for now).
+ * View modes: LIST (collapsible cards) · GRID · POSTER
+ * Install flow: Install → progress bar → Cancel → Add to Launcher
+ * Exe picker shown on install complete if multiple .exe files found.
+ * Installed state stored in bh_amazon_prefs: amazon_exe_{productId}.
  */
 public class AmazonGamesActivity extends Activity {
 
-    private static final String TAG        = "BH_AMAZON";
-    private static final String PREFS_NAME = "bh_amazon_prefs";
-    private static final String CACHE_KEY  = "amazon_library_cache";
+    private static final String TAG          = "BH_AMAZON";
+    private static final String PREFS_NAME   = "bh_amazon_prefs";
+    private static final String CACHE_KEY    = "amazon_library_cache";
+    private static final String VIEW_MODE_KEY = "amazon_view_mode";
+
+    // Amazon brand colours
+    private static final int COLOR_ACCENT   = 0xFFFF9900;   // orange — install btn / title
+    private static final int COLOR_ADD      = 0xFF2E7D32;   // green  — Add to Launcher btn
+    private static final int COLOR_CANCEL   = 0xFFCC3333;   // red    — cancel btn
+    private static final int COLOR_CARD_BG  = 0xFF1A1410;   // dark brownish card background
+    private static final int COLOR_HDR_BG   = 0xFF1A1410;
+    private static final int COLOR_ROOT_BG  = 0xFF0D0D0D;
 
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
 
-    private TextView     syncText;
+    private SharedPreferences prefs;
+    private TextView    syncText;
     private LinearLayout gameListLayout;
-    private ScrollView   scrollView;
-    private ProgressBar  loadingBar;
+    private ScrollView  scrollView;
+    private Button      refreshBtn;
+    private Button      viewToggleBtn;
+    private EditText    searchBar;
+    private List<AmazonGame> allGames = new ArrayList<>();
+    private View        expandedSection = null;
+    private TextView    expandedArrow   = null;
+    private String      viewMode;
 
-    private List<AmazonGame> allGames       = new ArrayList<>();
-    private View             expandedCard   = null;
-    private TextView         expandedArrow  = null;
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        prefs    = getSharedPreferences(PREFS_NAME, 0);
+        viewMode = prefs.getString(VIEW_MODE_KEY, "list");
         buildUi();
-
         List<AmazonGame> cached = loadCachedGames();
         if (cached != null && !cached.isEmpty()) {
             showGames(cached);
-            setSyncText(cached.size() + " game(s) — cached  •  tap ↺ to refresh");
+            setSync(cached.size() + " game(s) — cached  •  tap ↺ to refresh");
         }
         startSync(cached == null || cached.isEmpty());
     }
 
-    // ── UI ────────────────────────────────────────────────────────────────────
+    // ── UI construction ───────────────────────────────────────────────────────
 
     private void buildUi() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF0D0D0D);
+        root.setBackgroundColor(COLOR_ROOT_BG);
 
         // Header
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
-        header.setBackgroundColor(0xFF1A1410);
+        header.setBackgroundColor(COLOR_HDR_BG);
         header.setGravity(Gravity.CENTER_VERTICAL);
         header.setPadding(dp(8), dp(8), dp(8), dp(8));
 
@@ -97,13 +113,31 @@ public class AmazonGamesActivity extends Activity {
 
         TextView titleTV = new TextView(this);
         titleTV.setText("Amazon Games");
-        titleTV.setTextColor(0xFFFF9900);
+        titleTV.setTextColor(COLOR_ACCENT);
         titleTV.setTextSize(18f);
         titleTV.setTypeface(null, Typeface.BOLD);
         titleTV.setPadding(dp(12), 0, 0, 0);
         header.addView(titleTV, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        Button refreshBtn = new Button(this);
+        viewToggleBtn = new Button(this);
+        viewToggleBtn.setText(viewModeIcon(viewMode));
+        viewToggleBtn.setTextColor(0xFFFFFFFF);
+        viewToggleBtn.setBackgroundColor(0xFF333333);
+        viewToggleBtn.setTextSize(16f);
+        viewToggleBtn.setPadding(dp(12), 0, dp(12), 0);
+        viewToggleBtn.setOnClickListener(v -> {
+            if ("list".equals(viewMode))        viewMode = "grid";
+            else if ("grid".equals(viewMode))   viewMode = "poster";
+            else                                viewMode = "list";
+            prefs.edit().putString(VIEW_MODE_KEY, viewMode).apply();
+            viewToggleBtn.setText(viewModeIcon(viewMode));
+            expandedSection = null;
+            expandedArrow   = null;
+            applyFilter(searchBar != null ? searchBar.getText().toString() : "");
+        });
+        header.addView(viewToggleBtn, new LinearLayout.LayoutParams(-2, dp(40)));
+
+        refreshBtn = new Button(this);
         refreshBtn.setText("↺");
         refreshBtn.setTextColor(0xFFFFFFFF);
         refreshBtn.setBackgroundColor(0xFF333333);
@@ -114,124 +148,90 @@ public class AmazonGamesActivity extends Activity {
 
         root.addView(header, new LinearLayout.LayoutParams(-1, -2));
 
+        // Search bar
+        searchBar = new EditText(this);
+        searchBar.setHint("Search games…");
+        searchBar.setHintTextColor(0xFF666666);
+        searchBar.setTextColor(0xFFFFFFFF);
+        searchBar.setTextSize(14f);
+        searchBar.setBackgroundColor(0xFF221A10);
+        searchBar.setPadding(dp(12), dp(8), dp(12), dp(8));
+        searchBar.setSingleLine(true);
+        searchBar.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
+            @Override public void onTextChanged(CharSequence s, int st, int b, int c) {
+                applyFilter(s.toString());
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        });
+        root.addView(searchBar, new LinearLayout.LayoutParams(-1, -2));
+
         // Sync status
         syncText = new TextView(this);
         syncText.setText("Loading Amazon library…");
         syncText.setTextColor(0xFFCCCCCC);
         syncText.setTextSize(13f);
         syncText.setPadding(dp(12), dp(6), dp(12), dp(6));
+        syncText.setBackgroundColor(0xFF111111);
         root.addView(syncText, new LinearLayout.LayoutParams(-1, -2));
 
-        // Loading bar
-        loadingBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        loadingBar.setIndeterminate(true);
-        loadingBar.setVisibility(View.GONE);
-        root.addView(loadingBar, new LinearLayout.LayoutParams(-1, dp(4)));
-
-        // Game list
+        // Scrollable game list
         scrollView = new ScrollView(this);
+        scrollView.setBackgroundColor(COLOR_ROOT_BG);
+        scrollView.setVisibility(View.GONE);
+
         gameListLayout = new LinearLayout(this);
         gameListLayout.setOrientation(LinearLayout.VERTICAL);
-        gameListLayout.setPadding(dp(8), dp(4), dp(8), dp(8));
-        scrollView.addView(gameListLayout);
-        root.addView(scrollView, new LinearLayout.LayoutParams(-1, 0, 1f));
+        gameListLayout.setPadding(dp(8), dp(8), dp(8), dp(8));
+        scrollView.addView(gameListLayout, new FrameLayout.LayoutParams(-1, -2));
 
+        root.addView(scrollView, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
     }
 
     // ── Library sync ──────────────────────────────────────────────────────────
 
-    private void clearDebugFile() {
-        try {
-            File ext = getExternalFilesDir(null);
-            if (ext == null) ext = getFilesDir();
-            File f = new File(ext, "bh_amazon_debug.txt");
-            try (FileWriter fw = new FileWriter(f, false)) {
-                fw.write("=== BannerHub Amazon Debug ===\n");
-                fw.write("timestamp=" + System.currentTimeMillis() + "\n");
-            }
-        } catch (Exception ignored) {}
+    private void startSync(boolean showProgress) {
+        uiHandler.post(() -> {
+            if (refreshBtn != null) refreshBtn.setEnabled(false);
+            if (showProgress) setSync("Loading Amazon library…");
+        });
+        new Thread(() -> syncLibrary(showProgress), "amazon-sync").start();
     }
 
-    private void startSync(boolean forceRefresh) {
-        if (!forceRefresh) return;
-
-        // Enable debug output to bh_amazon_debug.txt
-        clearDebugFile();
-        AmazonApiClient.sDebugCtx = this;
-
-        uiHandler.post(() -> {
-            setSyncText("Fetching Amazon library…");
-            loadingBar.setVisibility(View.VISIBLE);
-        });
-
-        new Thread(() -> {
-            AmazonApiClient.dbg("startSync thread started");
-
-            // Check credentials file existence
-            java.io.File credsFile = new java.io.File(
-                    new java.io.File(getFilesDir(), "amazon"), "credentials.json");
-            AmazonApiClient.dbg("credentials file path=" + credsFile.getAbsolutePath());
-            AmazonApiClient.dbg("credentials file exists=" + credsFile.exists()
-                    + " size=" + (credsFile.exists() ? credsFile.length() : 0));
-
-            AmazonCredentialStore.Credentials creds = AmazonCredentialStore.load(AmazonGamesActivity.this);
-            AmazonApiClient.dbg("creds loaded: null=" + (creds == null));
-            if (creds != null) {
-                AmazonApiClient.dbg("  creds.accessToken null=" + (creds.accessToken == null)
-                        + " len=" + (creds.accessToken != null ? creds.accessToken.length() : 0));
-                AmazonApiClient.dbg("  creds.refreshToken null=" + (creds.refreshToken == null)
-                        + " len=" + (creds.refreshToken != null ? creds.refreshToken.length() : 0));
-                AmazonApiClient.dbg("  creds.deviceSerial=" + creds.deviceSerial);
-                AmazonApiClient.dbg("  creds.clientId len=" + (creds.clientId != null ? creds.clientId.length() : 0));
-                AmazonApiClient.dbg("  creds.expiresAt=" + creds.expiresAt
-                        + " now=" + System.currentTimeMillis()
-                        + " expired=" + (creds.expiresAt > 0 && System.currentTimeMillis() > creds.expiresAt));
-            }
-
+    private void syncLibrary(boolean showProgress) {
+        try {
+            if (showProgress) setSync("Checking credentials…");
+            AmazonCredentialStore.Credentials creds =
+                    AmazonCredentialStore.load(AmazonGamesActivity.this);
             if (creds == null || creds.accessToken == null) {
-                AmazonApiClient.dbg("ABORT: not logged in");
+                setSync("Not logged in");
+                enableRefresh();
                 uiHandler.post(() -> {
-                    loadingBar.setVisibility(View.GONE);
-                    setSyncText("Not logged in");
-                    Toast.makeText(AmazonGamesActivity.this,
-                            "Please log in to Amazon Games first", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Please log in to Amazon Games first",
+                            Toast.LENGTH_SHORT).show();
                     finish();
                 });
                 return;
             }
 
-            // Auto-refresh token if near expiry
-            AmazonApiClient.dbg("calling getValidAccessToken...");
-            String token = AmazonCredentialStore.getValidAccessToken(AmazonGamesActivity.this);
-            AmazonApiClient.dbg("token null=" + (token == null)
-                    + " len=" + (token != null ? token.length() : 0));
-            if (token == null) {
-                AmazonApiClient.dbg("ABORT: token refresh failed");
-                uiHandler.post(() -> {
-                    loadingBar.setVisibility(View.GONE);
-                    setSyncText("Token refresh failed");
-                });
-                return;
-            }
+            if (showProgress) setSync("Refreshing token…");
+            String token = AmazonCredentialStore.getValidAccessToken(this);
+            if (token == null) { setSync("Token refresh failed"); enableRefresh(); return; }
 
-            Log.d(TAG, "Fetching Amazon entitlements...");
-            AmazonApiClient.dbg("calling getEntitlements deviceSerial=" + creds.deviceSerial);
+            if (showProgress) setSync("Fetching game list…");
+            AmazonApiClient.sDebugCtx = this;
             List<AmazonGame> games = AmazonApiClient.getEntitlements(token, creds.deviceSerial);
-            AmazonApiClient.dbg("getEntitlements returned " + (games != null ? games.size() : "null") + " games");
 
             if (games == null || games.isEmpty()) {
-                uiHandler.post(() -> {
-                    loadingBar.setVisibility(View.GONE);
-                    setSyncText("No games found in Amazon library");
-                });
+                setSync("No games found in Amazon library");
+                enableRefresh();
                 return;
             }
 
-            // Sort by title
-            Collections.sort(games, Comparator.comparing(g -> g.title.toLowerCase()));
+            Collections.sort(games, (a, b) -> a.title.compareToIgnoreCase(b.title));
 
-            // Preserve install state from cache
+            // Restore install state from cache
             List<AmazonGame> cached = loadCachedGames();
             if (cached != null) {
                 for (AmazonGame fresh : games) {
@@ -248,414 +248,728 @@ public class AmazonGamesActivity extends Activity {
                 }
             }
 
-            // Check for updates on installed games
-            checkForUpdates(token, games);
-
             saveCachedGames(games);
 
+            final List<AmazonGame> finalGames = games;
             uiHandler.post(() -> {
-                loadingBar.setVisibility(View.GONE);
-                setSyncText(games.size() + " game(s) in library");
-                showGames(games);
+                showGames(finalGames);
+                setSync(finalGames.size() + " game(s) — tap a card to install");
+                enableRefresh();
             });
-
-        }).start();
+        } catch (Exception e) {
+            Log.e(TAG, "syncLibrary error", e);
+            setSync("Error: " + e.getMessage());
+            enableRefresh();
+        }
     }
-
-    // ── Render game cards ─────────────────────────────────────────────────────
 
     private void showGames(List<AmazonGame> games) {
         allGames = games;
-        gameListLayout.removeAllViews();
-        expandedCard  = null;
-        expandedArrow = null;
-        for (AmazonGame game : games) {
-            gameListLayout.addView(buildCard(game));
-        }
+        String q = searchBar != null ? searchBar.getText().toString() : "";
+        applyFilter(q);
+        scrollView.setVisibility(View.VISIBLE);
     }
 
-    private View buildCard(AmazonGame game) {
+    private void applyFilter(String query) {
+        List<AmazonGame> filtered;
+        if (query == null || query.trim().isEmpty()) {
+            filtered = allGames;
+        } else {
+            String q = query.trim().toLowerCase();
+            filtered = new ArrayList<>();
+            for (AmazonGame g : allGames)
+                if (g.title.toLowerCase().contains(q)) filtered.add(g);
+        }
+        final List<AmazonGame> result = filtered;
+        uiHandler.post(() -> {
+            gameListLayout.removeAllViews();
+            if ("grid".equals(viewMode)) {
+                gameListLayout.setPadding(dp(4), dp(4), dp(4), dp(4));
+                addGamesAsGrid(result, 105, dp(3), dp(6));
+            } else if ("poster".equals(viewMode)) {
+                gameListLayout.setPadding(dp(4), dp(4), dp(4), dp(4));
+                addGamesAsGrid(result, 176, dp(10), dp(10));
+            } else {
+                gameListLayout.setPadding(dp(8), dp(8), dp(8), dp(8));
+                for (AmazonGame g : result) addGameCard(g);
+            }
+            scrollView.setVisibility(View.VISIBLE);
+        });
+    }
+
+    private void enableRefresh() {
+        uiHandler.post(() -> { if (refreshBtn != null) refreshBtn.setEnabled(true); });
+    }
+
+    // ── LIST view: collapsible game cards ─────────────────────────────────────
+
+    private void addGameCard(AmazonGame game) {
+        boolean isInstalled = prefs.getString("amazon_exe_" + game.productId, null) != null;
+
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundColor(0xFF1A1410);
+        card.setPadding(dp(10), dp(10), dp(10), dp(10));
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(COLOR_CARD_BG);
+        cardBg.setCornerRadius(dp(6));
+        card.setBackground(cardBg);
+        card.setFocusable(true);
         LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(-1, -2);
-        cardLp.topMargin = dp(6);
-        card.setLayoutParams(cardLp);
+        cardLp.bottomMargin = dp(8);
 
-        // ── Top row ────────────────────────────────────────────────────────
+        // ── Collapsed header row ───────────────────────────────────────────────
         LinearLayout topRow = new LinearLayout(this);
         topRow.setOrientation(LinearLayout.HORIZONTAL);
         topRow.setGravity(Gravity.CENTER_VERTICAL);
-        topRow.setPadding(dp(8), dp(8), dp(8), dp(8));
-        topRow.setClickable(true);
-        topRow.setFocusable(true);
 
-        // Cover art (60×60)
-        ImageView cover = new ImageView(this);
-        cover.setBackgroundColor(0xFF2A2018);
-        cover.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        ImageView coverIV = new ImageView(this);
+        coverIV.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        GradientDrawable coverBg = new GradientDrawable();
+        coverBg.setColor(0xFF221A10);
+        coverBg.setCornerRadius(dp(4));
+        coverIV.setBackground(coverBg);
         LinearLayout.LayoutParams coverLp = new LinearLayout.LayoutParams(dp(60), dp(60));
         coverLp.rightMargin = dp(10);
-        topRow.addView(cover, coverLp);
+        topRow.addView(coverIV, coverLp);
+        loadImage(game, coverIV);
 
-        if (!game.artUrl.isEmpty()) {
-            loadCoverAsync(cover, game.artUrl);
-        }
-
-        // Title + developer
-        LinearLayout info = new LinearLayout(this);
-        info.setOrientation(LinearLayout.VERTICAL);
-        info.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout titleRow = new LinearLayout(this);
+        titleRow.setOrientation(LinearLayout.HORIZONTAL);
+        titleRow.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView titleTV = new TextView(this);
         titleTV.setText(game.title);
         titleTV.setTextColor(0xFFFFFFFF);
-        titleTV.setTextSize(14f);
+        titleTV.setTextSize(15f);
         titleTV.setTypeface(null, Typeface.BOLD);
-        titleTV.setSingleLine(true);
-        info.addView(titleTV, new LinearLayout.LayoutParams(-1, -2));
+        titleTV.setMaxLines(1);
+        titleTV.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        titleRow.addView(titleTV, new LinearLayout.LayoutParams(-2, -2));
 
-        if (!game.developer.isEmpty()) {
-            TextView devTV = new TextView(this);
-            devTV.setText(game.developer);
-            devTV.setTextColor(0xFF888888);
-            devTV.setTextSize(11f);
-            devTV.setSingleLine(true);
-            info.addView(devTV, new LinearLayout.LayoutParams(-1, -2));
-        }
+        TextView collapsedCheckTV = new TextView(this);
+        collapsedCheckTV.setText(" ✓");
+        collapsedCheckTV.setTextColor(0xFF4CAF50);
+        collapsedCheckTV.setTextSize(14f);
+        collapsedCheckTV.setTypeface(null, Typeface.BOLD);
+        collapsedCheckTV.setVisibility(isInstalled ? View.VISIBLE : View.GONE);
+        titleRow.addView(collapsedCheckTV, new LinearLayout.LayoutParams(-2, -2));
 
-        if (game.isInstalled) {
-            boolean updateAvailable = game.versionId.endsWith("_UPDATE_AVAILABLE");
-            TextView instTV = new TextView(this);
-            instTV.setText(updateAvailable ? "✓ Installed — Update Available" : "✓ Installed");
-            instTV.setTextColor(updateAvailable ? 0xFFFFAA00 : 0xFF44CC44);
-            instTV.setTextSize(11f);
-            info.addView(instTV, new LinearLayout.LayoutParams(-1, -2));
-        }
+        titleRow.addView(new View(this), new LinearLayout.LayoutParams(0, 0, 1f));
+        topRow.addView(titleRow, new LinearLayout.LayoutParams(0, -2, 1f));
 
-        topRow.addView(info, new LinearLayout.LayoutParams(0, -2, 1f));
-
-        // Expand arrow
-        TextView arrow = new TextView(this);
-        arrow.setText("▼");
-        arrow.setTextColor(0xFF888888);
-        arrow.setTextSize(14f);
-        arrow.setPadding(dp(8), 0, dp(4), 0);
-        topRow.addView(arrow, new LinearLayout.LayoutParams(-2, -2));
+        TextView arrowTV = new TextView(this);
+        arrowTV.setText("▼");
+        arrowTV.setTextColor(0xFF888888);
+        arrowTV.setTextSize(14f);
+        arrowTV.setPadding(dp(8), 0, 0, 0);
+        topRow.addView(arrowTV, new LinearLayout.LayoutParams(-2, -2));
 
         card.addView(topRow, new LinearLayout.LayoutParams(-1, -2));
 
-        // ── Expand section ─────────────────────────────────────────────────
-        LinearLayout expandSection = buildExpandSection(game);
+        // ── Expandable section ─────────────────────────────────────────────────
+        LinearLayout expandSection = new LinearLayout(this);
+        expandSection.setOrientation(LinearLayout.VERTICAL);
         expandSection.setVisibility(View.GONE);
+
+        if (!game.developer.isEmpty() || !game.publisher.isEmpty()) {
+            String meta = game.developer.isEmpty() ? game.publisher
+                        : game.publisher.isEmpty() ? game.developer
+                        : game.developer + " · " + game.publisher;
+            TextView metaTV = new TextView(this);
+            metaTV.setText(meta);
+            metaTV.setTextColor(0xFF888888);
+            metaTV.setTextSize(11f);
+            LinearLayout.LayoutParams metaLp = new LinearLayout.LayoutParams(-1, -2);
+            metaLp.topMargin = dp(6);
+            expandSection.addView(metaTV, metaLp);
+        }
+
+        TextView checkmark = new TextView(this);
+        checkmark.setText("✓ Installed");
+        checkmark.setTextColor(0xFF4CAF50);
+        checkmark.setTextSize(10f);
+        checkmark.setVisibility(isInstalled ? View.VISIBLE : View.GONE);
+        LinearLayout.LayoutParams ckLp = new LinearLayout.LayoutParams(-1, -2);
+        ckLp.topMargin = dp(4);
+        expandSection.addView(checkmark, ckLp);
+
+        ProgressBar progressBar = new ProgressBar(this, null,
+                android.R.attr.progressBarStyleHorizontal);
+        progressBar.setMax(100);
+        progressBar.setProgress(0);
+        progressBar.setVisibility(View.GONE);
+        LinearLayout.LayoutParams pbLp = new LinearLayout.LayoutParams(-1, dp(6));
+        pbLp.topMargin = dp(6);
+        expandSection.addView(progressBar, pbLp);
+
+        TextView pctTV = new TextView(this);
+        pctTV.setTextColor(COLOR_ACCENT);
+        pctTV.setTextSize(12f);
+        pctTV.setTypeface(null, Typeface.BOLD);
+        pctTV.setVisibility(View.GONE);
+        expandSection.addView(pctTV, new LinearLayout.LayoutParams(-2, -2));
+
+        TextView statusTV = new TextView(this);
+        statusTV.setTextColor(0xFFAAAAAA);
+        statusTV.setTextSize(11f);
+        statusTV.setVisibility(View.GONE);
+        LinearLayout.LayoutParams stLp = new LinearLayout.LayoutParams(-1, -2);
+        stLp.topMargin = dp(2);
+        expandSection.addView(statusTV, stLp);
+
+        Button actionBtn = new Button(this);
+        actionBtn.setText(isInstalled ? "Add to Launcher" : "Install");
+        actionBtn.setTextColor(0xFFFFFFFF);
+        actionBtn.setBackgroundColor(isInstalled ? COLOR_ADD : COLOR_ACCENT);
+        actionBtn.setTextSize(13f);
+        LinearLayout.LayoutParams abLp = new LinearLayout.LayoutParams(-1, dp(40));
+        abLp.topMargin = dp(8);
+        expandSection.addView(actionBtn, abLp);
+
         card.addView(expandSection, new LinearLayout.LayoutParams(-1, -2));
 
-        // Toggle on card click
-        topRow.setOnClickListener(v -> {
-            boolean isExpanded = expandSection.getVisibility() == View.VISIBLE;
+        // ── Button click logic ─────────────────────────────────────────────────
+        final Runnable[] cancelRef = {null};
+        actionBtn.setOnClickListener(v -> {
+            String lbl = actionBtn.getText().toString();
 
-            // Collapse previously expanded card
-            if (expandedCard != null && expandedCard != expandSection) {
-                expandedCard.setVisibility(View.GONE);
-                if (expandedArrow != null) expandedArrow.setText("▼");
+            if ("Cancel".equals(lbl)) {
+                if (cancelRef[0] != null) cancelRef[0].run();
+                return;
             }
-
-            if (isExpanded) {
-                expandSection.setVisibility(View.GONE);
-                arrow.setText("▼");
-                expandedCard  = null;
-                expandedArrow = null;
-            } else {
-                expandSection.setVisibility(View.VISIBLE);
-                arrow.setText("▲");
-                expandedCard  = expandSection;
-                expandedArrow = arrow;
-            }
-        });
-
-        return card;
-    }
-
-    private LinearLayout buildExpandSection(AmazonGame game) {
-        LinearLayout section = new LinearLayout(this);
-        section.setOrientation(LinearLayout.VERTICAL);
-        section.setBackgroundColor(0xFF111009);
-        section.setPadding(dp(12), dp(8), dp(12), dp(12));
-
-        // Publisher
-        if (!game.publisher.isEmpty()) {
-            TextView pub = new TextView(this);
-            pub.setText("Publisher: " + game.publisher);
-            pub.setTextColor(0xFF999999);
-            pub.setTextSize(12f);
-            section.addView(pub, new LinearLayout.LayoutParams(-1, -2));
-        }
-
-        // Product ID
-        TextView pid = new TextView(this);
-        pid.setText("ID: " + game.shortId());
-        pid.setTextColor(0xFF666666);
-        pid.setTextSize(11f);
-        LinearLayout.LayoutParams pidLp = new LinearLayout.LayoutParams(-1, -2);
-        pidLp.topMargin = dp(4);
-        section.addView(pid, pidLp);
-
-        // Button row
-        LinearLayout btnRow = new LinearLayout(this);
-        btnRow.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams btnRowLp = new LinearLayout.LayoutParams(-1, -2);
-        btnRowLp.topMargin = dp(10);
-        section.addView(btnRow, btnRowLp);
-
-        if (!game.isInstalled) {
-            // Install button
-            Button installBtn = new Button(this);
-            installBtn.setText("Install");
-            installBtn.setBackgroundColor(0xFFFF9900);
-            installBtn.setTextColor(0xFF000000);
-            installBtn.setTextSize(13f);
-            installBtn.setOnClickListener(v -> startInstall(game, installBtn));
-            btnRow.addView(installBtn, new LinearLayout.LayoutParams(-2, dp(40)));
-        } else {
-            // Launch button
-            Button launchBtn = new Button(this);
-            launchBtn.setText("Launch");
-            launchBtn.setBackgroundColor(0xFFFF9900);
-            launchBtn.setTextColor(0xFF000000);
-            launchBtn.setTextSize(13f);
-            launchBtn.setOnClickListener(v -> launchGame(game));
-            btnRow.addView(launchBtn, new LinearLayout.LayoutParams(-2, dp(40)));
-
-            // Uninstall button
-            Button unBtn = new Button(this);
-            unBtn.setText("Uninstall");
-            unBtn.setBackgroundColor(0xFF444444);
-            unBtn.setTextColor(0xFFFFFFFF);
-            unBtn.setTextSize(13f);
-            LinearLayout.LayoutParams unLp = new LinearLayout.LayoutParams(-2, dp(40));
-            unLp.leftMargin = dp(8);
-            unBtn.setOnClickListener(v -> confirmUninstall(game));
-            btnRow.addView(unBtn, unLp);
-        }
-
-        return section;
-    }
-
-    // ── Install / Uninstall ───────────────────────────────────────────────────
-
-    // ── Update check ──────────────────────────────────────────────────────────
-
-    private void checkForUpdates(String token, List<AmazonGame> games) {
-        for (AmazonGame game : games) {
-            if (!game.isInstalled || game.productId.isEmpty()) continue;
-            try {
-                String liveVersion = AmazonApiClient.getLiveVersionId(token, game.productId);
-                if (liveVersion != null && !liveVersion.isEmpty()
-                        && !liveVersion.equals(game.versionId)) {
-                    Log.d(TAG, "Update available for: " + game.title
-                            + " (" + game.versionId + " → " + liveVersion + ")");
-                    game.versionId = liveVersion + "_UPDATE_AVAILABLE";
-                }
-            } catch (Exception e) {
-                Log.w(TAG, "Update check failed for: " + game.title, e);
-            }
-        }
-    }
-
-    private void startInstall(AmazonGame game, Button installBtn) {
-        installBtn.setEnabled(false);
-        installBtn.setText("Installing…");
-
-        new Thread(() -> {
-            String token = AmazonCredentialStore.getValidAccessToken(this);
-            if (token == null) {
-                uiHandler.post(() -> {
-                    installBtn.setEnabled(true);
-                    installBtn.setText("Install");
-                    Toast.makeText(this, "Login required", Toast.LENGTH_SHORT).show();
-                });
+            if ("Add to Launcher".equals(lbl) || "Add Game".equals(lbl)) {
+                String exe = prefs.getString("amazon_exe_" + game.productId, null);
+                if (exe != null) pendingLaunchExe(exe);
                 return;
             }
 
-            // Install dir: filesDir/Amazon/{title sanitized}
+            showInstallConfirm(game, () -> {
+                cancelRef[0] = null;
+                actionBtn.setEnabled(true);
+                actionBtn.setText("Cancel");
+                actionBtn.setBackgroundColor(COLOR_CANCEL);
+                progressBar.setVisibility(View.VISIBLE);
+                statusTV.setVisibility(View.VISIBLE);
+                pctTV.setText("0%");
+                pctTV.setVisibility(View.VISIBLE);
+
+                cancelRef[0] = startAmazonDownload(game, new DownloadCallback() {
+                    @Override public void onProgress(String msg, int pct) {
+                        uiHandler.post(() -> {
+                            statusTV.setText(msg);
+                            progressBar.setProgress(pct);
+                            pctTV.setText(pct + "%");
+                        });
+                    }
+                    @Override public void onComplete(String exePath) {
+                        uiHandler.post(() -> {
+                            cancelRef[0] = null;
+                            progressBar.setProgress(100);
+                            pctTV.setVisibility(View.GONE);
+                            checkmark.setVisibility(View.VISIBLE);
+                            collapsedCheckTV.setVisibility(View.VISIBLE);
+                            statusTV.setText("Installed");
+                            actionBtn.setText("Add to Launcher");
+                            actionBtn.setBackgroundColor(COLOR_ADD);
+                            actionBtn.setEnabled(true);
+                        });
+                    }
+                    @Override public void onError(String msg) {
+                        uiHandler.post(() -> {
+                            cancelRef[0] = null;
+                            pctTV.setVisibility(View.GONE);
+                            statusTV.setText("Error: " + msg);
+                            actionBtn.setText("Install");
+                            actionBtn.setBackgroundColor(COLOR_ACCENT);
+                            actionBtn.setEnabled(true);
+                            Toast.makeText(AmazonGamesActivity.this, "Error: " + msg,
+                                    Toast.LENGTH_LONG).show();
+                        });
+                    }
+                    @Override public void onCancelled() {
+                        uiHandler.post(() -> {
+                            cancelRef[0] = null;
+                            progressBar.setProgress(0);
+                            progressBar.setVisibility(View.GONE);
+                            pctTV.setVisibility(View.GONE);
+                            statusTV.setText("");
+                            actionBtn.setText("Install");
+                            actionBtn.setBackgroundColor(COLOR_ACCENT);
+                            actionBtn.setEnabled(true);
+                        });
+                    }
+                    @Override public void onSelectExe(List<String> candidates,
+                                                      java.util.function.Consumer<String> onSelected) {
+                        showExePicker(candidates, onSelected);
+                    }
+                });
+            });
+        });
+
+        arrowTV.setOnClickListener(v -> {
+            if (expandSection.getVisibility() == View.VISIBLE) {
+                expandSection.setVisibility(View.GONE);
+                arrowTV.setText("▼");
+                expandedSection = null;
+                expandedArrow   = null;
+            }
+        });
+
+        card.setOnClickListener(v -> {
+            if (expandSection.getVisibility() == View.VISIBLE) {
+                showDetailDialog(game, checkmark, actionBtn);
+            } else {
+                if (expandedSection != null) {
+                    expandedSection.setVisibility(View.GONE);
+                    if (expandedArrow != null) expandedArrow.setText("▼");
+                }
+                expandSection.setVisibility(View.VISIBLE);
+                arrowTV.setText("▲");
+                expandedSection = expandSection;
+                expandedArrow   = arrowTV;
+            }
+        });
+
+        gameListLayout.addView(card, cardLp);
+    }
+
+    // ── GRID / POSTER view ────────────────────────────────────────────────────
+
+    private void addGamesAsGrid(List<AmazonGame> games, int artHeightDp,
+                                 int tileHMargin, int rowBottomMargin) {
+        int cols = 5;
+        int rows = (games.size() + cols - 1) / cols;
+        for (int row = 0; row < rows; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            rowLayout.setWeightSum(cols);
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+            rowLp.bottomMargin = rowBottomMargin;
+            for (int col = 0; col < cols; col++) {
+                int idx = row * cols + col;
+                if (idx < games.size()) {
+                    rowLayout.addView(makeGridTile(games.get(idx), artHeightDp),
+                            makeGridTileLp(tileHMargin));
+                } else {
+                    rowLayout.addView(new View(this), makeGridTileLp(tileHMargin));
+                }
+            }
+            gameListLayout.addView(rowLayout, rowLp);
+        }
+    }
+
+    private View makeGridTile(AmazonGame game, int artHeightDp) {
+        boolean isInstalled = prefs.getString("amazon_exe_" + game.productId, null) != null;
+
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable tileBg = new GradientDrawable();
+        tileBg.setColor(0xFF221A10);
+        tileBg.setCornerRadius(dp(5));
+        tile.setBackground(tileBg);
+        tile.setClipToOutline(true);
+        tile.setFocusable(true);
+
+        FrameLayout artFrame = new FrameLayout(this);
+
+        ImageView coverIV = new ImageView(this);
+        coverIV.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        coverIV.setBackgroundColor(0xFF1A1208);
+        artFrame.addView(coverIV, new FrameLayout.LayoutParams(-1, dp(artHeightDp)));
+        loadImage(game, coverIV);
+
+        // Title + ✓ bar pinned to bottom of art
+        LinearLayout titleBar = new LinearLayout(this);
+        titleBar.setOrientation(LinearLayout.HORIZONTAL);
+        titleBar.setGravity(Gravity.CENTER_VERTICAL);
+        titleBar.setPadding(dp(4), dp(3), dp(4), dp(3));
+        GradientDrawable titleBarBg = new GradientDrawable(
+                GradientDrawable.Orientation.BOTTOM_TOP,
+                new int[]{0xEE000000, 0x44000000});
+        titleBar.setBackground(titleBarBg);
+
+        TextView titleTV = new TextView(this);
+        titleTV.setText(game.title);
+        titleTV.setTextColor(0xFFFFFFFF);
+        titleTV.setTextSize(9f);
+        titleTV.setTypeface(null, Typeface.BOLD);
+        titleTV.setMaxLines(1);
+        titleTV.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        titleBar.addView(titleTV, new LinearLayout.LayoutParams(0, -2, 1f));
+
+        TextView checkTV = new TextView(this);
+        checkTV.setText(" ✓");
+        checkTV.setTextColor(0xFF66BB6A);
+        checkTV.setTextSize(10f);
+        checkTV.setTypeface(null, Typeface.BOLD);
+        checkTV.setVisibility(isInstalled ? View.VISIBLE : View.GONE);
+        titleBar.addView(checkTV, new LinearLayout.LayoutParams(-2, -2));
+
+        FrameLayout.LayoutParams titleBarLp = new FrameLayout.LayoutParams(-1, -2);
+        titleBarLp.gravity = Gravity.BOTTOM;
+        artFrame.addView(titleBar, titleBarLp);
+
+        tile.addView(artFrame, new LinearLayout.LayoutParams(-1, -2));
+
+        // Action row (hidden until tapped)
+        LinearLayout actionRow = new LinearLayout(this);
+        actionRow.setOrientation(LinearLayout.VERTICAL);
+        actionRow.setVisibility(View.GONE);
+        actionRow.setBackgroundColor(0xFF1A1208);
+        actionRow.setPadding(dp(4), dp(3), dp(4), dp(4));
+
+        ProgressBar progressBar = new ProgressBar(this, null,
+                android.R.attr.progressBarStyleHorizontal);
+        progressBar.setMax(100);
+        progressBar.setProgress(0);
+        progressBar.setVisibility(View.GONE);
+        actionRow.addView(progressBar, new LinearLayout.LayoutParams(-1, dp(3)));
+
+        Button actionBtn = new Button(this);
+        actionBtn.setText(isInstalled ? "Add to Launcher" : "Install");
+        actionBtn.setTextColor(0xFFFFFFFF);
+        actionBtn.setBackgroundColor(isInstalled ? COLOR_ADD : COLOR_ACCENT);
+        actionBtn.setTextSize(10f);
+        actionBtn.setPadding(0, 0, 0, 0);
+        LinearLayout.LayoutParams abLp = new LinearLayout.LayoutParams(-1, dp(30));
+        abLp.topMargin = dp(2);
+        actionRow.addView(actionBtn, abLp);
+
+        tile.addView(actionRow, new LinearLayout.LayoutParams(-1, -2));
+
+        final Runnable[] cancelRef = {null};
+        actionBtn.setOnClickListener(v -> {
+            String lbl = actionBtn.getText().toString();
+            if ("Cancel".equals(lbl)) {
+                if (cancelRef[0] != null) cancelRef[0].run();
+                return;
+            }
+            if ("Add to Launcher".equals(lbl) || "Add Game".equals(lbl)) {
+                String exe = prefs.getString("amazon_exe_" + game.productId, null);
+                if (exe != null) pendingLaunchExe(exe);
+                return;
+            }
+            showInstallConfirm(game, () -> {
+                cancelRef[0] = null;
+                actionBtn.setEnabled(true);
+                actionBtn.setText("Cancel");
+                actionBtn.setBackgroundColor(COLOR_CANCEL);
+                progressBar.setVisibility(View.VISIBLE);
+
+                cancelRef[0] = startAmazonDownload(game, new DownloadCallback() {
+                    @Override public void onProgress(String msg, int pct) {
+                        uiHandler.post(() -> progressBar.setProgress(pct));
+                    }
+                    @Override public void onComplete(String exePath) {
+                        uiHandler.post(() -> {
+                            cancelRef[0] = null;
+                            progressBar.setProgress(100);
+                            progressBar.setVisibility(View.GONE);
+                            checkTV.setVisibility(View.VISIBLE);
+                            actionBtn.setText("Add to Launcher");
+                            actionBtn.setBackgroundColor(COLOR_ADD);
+                            actionBtn.setEnabled(true);
+                        });
+                    }
+                    @Override public void onError(String msg) {
+                        uiHandler.post(() -> {
+                            cancelRef[0] = null;
+                            progressBar.setVisibility(View.GONE);
+                            actionBtn.setText("Install");
+                            actionBtn.setBackgroundColor(COLOR_ACCENT);
+                            actionBtn.setEnabled(true);
+                            Toast.makeText(AmazonGamesActivity.this, "Error: " + msg,
+                                    Toast.LENGTH_LONG).show();
+                        });
+                    }
+                    @Override public void onCancelled() {
+                        uiHandler.post(() -> {
+                            cancelRef[0] = null;
+                            progressBar.setProgress(0);
+                            progressBar.setVisibility(View.GONE);
+                            actionBtn.setText("Install");
+                            actionBtn.setBackgroundColor(COLOR_ACCENT);
+                            actionBtn.setEnabled(true);
+                        });
+                    }
+                    @Override public void onSelectExe(List<String> candidates,
+                                                      java.util.function.Consumer<String> onSelected) {
+                        showExePicker(candidates, onSelected);
+                    }
+                });
+            });
+        });
+
+        tile.setOnClickListener(v -> {
+            if (actionRow.getVisibility() == View.VISIBLE) {
+                actionRow.setVisibility(View.GONE);
+                expandedSection = null;
+            } else {
+                if (expandedSection != null) expandedSection.setVisibility(View.GONE);
+                actionRow.setVisibility(View.VISIBLE);
+                expandedSection = actionRow;
+                expandedArrow   = null;
+            }
+        });
+
+        tile.setOnLongClickListener(v -> {
+            showDetailDialog(game, checkTV, actionBtn);
+            return true;
+        });
+
+        return tile;
+    }
+
+    private LinearLayout.LayoutParams makeGridTileLp(int hMargin) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
+        lp.leftMargin  = hMargin;
+        lp.rightMargin = hMargin;
+        return lp;
+    }
+
+    // ── Download wrapper ──────────────────────────────────────────────────────
+
+    private interface DownloadCallback {
+        void onProgress(String msg, int pct);
+        void onComplete(String exePath);
+        void onError(String msg);
+        void onCancelled();
+        void onSelectExe(List<String> candidates,
+                         java.util.function.Consumer<String> onSelected);
+    }
+
+    /**
+     * Starts an Amazon game download on a background thread.
+     * Returns a Runnable cancel token (same pattern as GogDownloadManager.startDownload).
+     */
+    private Runnable startAmazonDownload(AmazonGame game, DownloadCallback cb) {
+        AtomicBoolean cancelled = new AtomicBoolean(false);
+
+        new Thread(() -> {
+            String token = AmazonCredentialStore.getValidAccessToken(this);
+            if (token == null) { cb.onError("Login required"); return; }
+
             String sanitized = game.title.replaceAll("[^a-zA-Z0-9 \\-_]", "").trim();
             if (sanitized.isEmpty()) sanitized = "game_" + game.productId.hashCode();
             File installDir = new File(new File(getFilesDir(), "Amazon"), sanitized);
 
-            AmazonDownloadManager.ProgressCallback cb = (dl, total, file) -> {
-                int pct = (total > 0) ? (int) (dl * 100 / total) : -1;
-                String label = pct >= 0 ? "Installing… " + pct + "%" : "Installing…";
-                uiHandler.post(() -> installBtn.setText(label));
-            };
+            // Store install dir in prefs for uninstall
+            prefs.edit().putString("amazon_dir_" + game.productId,
+                    installDir.getAbsolutePath()).apply();
 
-            boolean ok = AmazonDownloadManager.install(
-                    this, game, token, installDir, cb, null);
+            boolean ok = AmazonDownloadManager.install(this, game, token, installDir,
+                (dl, total, file) -> {
+                    if (cancelled.get()) return;
+                    int pct = (total > 0) ? (int) (dl * 100L / total) : 0;
+                    String name = (file != null)
+                            ? new File(file).getName() : "Downloading…";
+                    cb.onProgress(name, pct);
+                },
+                cancelled::get
+            );
 
-            if (ok) {
-                // Ensure SDK DLLs are cached (non-blocking, best-effort)
-                uiHandler.post(() -> installBtn.setText("Fetching SDK…"));
-                AmazonSdkManager.ensureSdkFiles(this, token);
-                game.isInstalled = true;
-                game.installPath  = installDir.getAbsolutePath();
-                // Update cache with install status
-                List<AmazonGame> cached = loadCachedGames();
-                if (cached != null) {
-                    for (AmazonGame c : cached) {
-                        if (c.productId.equals(game.productId)) {
-                            c.isInstalled = true;
-                            c.installPath = game.installPath;
-                            break;
-                        }
-                    }
-                    saveCachedGames(cached);
-                }
-                uiHandler.post(() -> {
-                    Toast.makeText(this, game.title + " installed!", Toast.LENGTH_SHORT).show();
-                    // Refresh the card list to show Launch button
-                    showGames(allGames);
-                });
-            } else {
-                uiHandler.post(() -> {
-                    installBtn.setEnabled(true);
-                    installBtn.setText("Install");
-                    Toast.makeText(this, "Install failed: " + game.title, Toast.LENGTH_SHORT).show();
-                });
-            }
-        }).start();
-    }
+            if (cancelled.get()) { cb.onCancelled(); return; }
+            if (!ok) { cb.onError("Download failed"); return; }
 
-    private void launchGame(AmazonGame game) {
-        if (!game.isInstalled || game.installPath.isEmpty()) {
-            Toast.makeText(this, "Game not installed", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Scan install dir for executables on a background thread (may be many files)
-        new Thread(() -> {
-            File installDir = new File(game.installPath);
+            // Scan for executables
             List<File> exeFiles = new ArrayList<>();
             AmazonLaunchHelper.collectExe(installDir, exeFiles);
 
             if (exeFiles.isEmpty()) {
-                uiHandler.post(() -> Toast.makeText(this,
-                        "No executable found in install directory", Toast.LENGTH_LONG).show());
+                cb.onError("No executable found after install");
                 return;
             }
 
-            // Sort by score descending so the best candidate is first in the picker
-            final String lowerTitle = game.title.toLowerCase();
+            // Sort: best scored first
+            String lowerTitle = game.title.toLowerCase();
             Collections.sort(exeFiles, (a, b) ->
                     AmazonLaunchHelper.scoreExe(b, lowerTitle)
                     - AmazonLaunchHelper.scoreExe(a, lowerTitle));
 
             if (exeFiles.size() == 1) {
-                uiHandler.post(() -> pendingLaunchExe(exeFiles.get(0).getAbsolutePath()));
+                String path = exeFiles.get(0).getAbsolutePath();
+                prefs.edit().putString("amazon_exe_" + game.productId, path).apply();
+                cb.onComplete(path);
                 return;
             }
 
-            // Multiple exes — show picker on UI thread
-            String base = game.installPath.endsWith("/")
-                    ? game.installPath : game.installPath + "/";
-            String[] labels = new String[exeFiles.size()];
-            for (int i = 0; i < exeFiles.size(); i++) {
-                String abs = exeFiles.get(i).getAbsolutePath();
-                labels[i] = abs.startsWith(base) ? abs.substring(base.length()) : abs;
-            }
+            // Multiple exes → ask user
+            List<String> candidates = new ArrayList<>();
+            for (File f : exeFiles) candidates.add(f.getAbsolutePath());
 
-            final List<File> finalList = exeFiles;
-            uiHandler.post(() ->
-                new android.app.AlertDialog.Builder(this)
-                    .setTitle("Select executable")
-                    .setItems(labels, (d, which) ->
-                        pendingLaunchExe(finalList.get(which).getAbsolutePath()))
-                    .setNegativeButton("Cancel", null)
-                    .show()
-            );
-        }).start();
+            cb.onSelectExe(candidates, selected -> {
+                String chosen = (selected != null && !selected.isEmpty())
+                        ? selected
+                        : exeFiles.get(0).getAbsolutePath(); // default: best scored
+                prefs.edit().putString("amazon_exe_" + game.productId, chosen).apply();
+                cb.onComplete(chosen);
+            });
+
+        }, "amazon-dl-" + game.productId).start();
+
+        return () -> cancelled.set(true);
     }
 
-    /**
-     * Stores the absolute Linux path as pending_amazon_exe then navigates back to
-     * LandscapeLauncherMainActivity using FLAG_ACTIVITY_CLEAR_TOP so onResume() fires
-     * on the existing instance (same as how GOG launch works).
-     */
+    // ── Dialogs ───────────────────────────────────────────────────────────────
+
+    private void showInstallConfirm(AmazonGame game, Runnable onConfirm) {
+        long freeBytes = -1;
+        try {
+            File base = new File(new File(getFilesDir(), "Amazon"), "_check");
+            File parent = base.getParentFile();
+            if (parent != null) parent.mkdirs();
+            android.os.StatFs sf = new android.os.StatFs(
+                    parent != null ? parent.getAbsolutePath()
+                            : getCacheDir().getAbsolutePath());
+            freeBytes = sf.getAvailableBlocksLong() * sf.getBlockSizeLong();
+        } catch (Exception ignored) {}
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(20), dp(8), dp(20), dp(8));
+
+        TextView freeTV = new TextView(this);
+        freeTV.setText("Available storage:  " + formatBytes(freeBytes));
+        freeTV.setTextColor(0xFF88CC88);
+        freeTV.setTextSize(14f);
+        content.addView(freeTV);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Install " + game.title + "?")
+                .setView(content)
+                .setPositiveButton("Install", null)
+                .setNegativeButton("Cancel", null)
+                .create();
+        dialog.show();
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            dialog.dismiss();
+            onConfirm.run();
+        });
+    }
+
+    private void showDetailDialog(AmazonGame game, View checkmark, Button actionBtn) {
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp(20), dp(8), dp(20), dp(4));
+
+        StringBuilder msg = new StringBuilder();
+        if (!game.developer.isEmpty()) msg.append("Developer: ").append(game.developer).append("\n");
+        if (!game.publisher.isEmpty()) msg.append("Publisher: ").append(game.publisher).append("\n");
+        msg.append("ID: ").append(game.shortId());
+
+        TextView msgView = new TextView(this);
+        msgView.setText(msg.toString().trim());
+        msgView.setTextColor(0xFFCCCCCC);
+        container.addView(msgView);
+
+        String installedExe = prefs.getString("amazon_exe_" + game.productId, null);
+        String installedDir = prefs.getString("amazon_dir_" + game.productId, null);
+
+        if (installedExe != null) {
+            TextView exeView = new TextView(this);
+            exeView.setText("\n.exe: " + new File(installedExe).getName());
+            exeView.setTextColor(0xFF888888);
+            exeView.setTextSize(12f);
+            container.addView(exeView);
+
+            // Set .exe button
+            Button setExeBtn = new Button(this);
+            setExeBtn.setText("Set .exe…");
+            setExeBtn.setTextColor(0xFFFFFFFF);
+            setExeBtn.setBackgroundColor(0xFF444444);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+            lp.topMargin = dp(10);
+            setExeBtn.setOnClickListener(v -> {
+                File dir = installedDir != null ? new File(installedDir) : null;
+                if (dir == null || !dir.isDirectory()) {
+                    Toast.makeText(this, "Install directory not found", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                new Thread(() -> {
+                    List<File> exeFiles = new ArrayList<>();
+                    AmazonLaunchHelper.collectExe(dir, exeFiles);
+                    if (exeFiles.isEmpty()) {
+                        uiHandler.post(() -> Toast.makeText(this,
+                                "No .exe files found", Toast.LENGTH_SHORT).show());
+                        return;
+                    }
+                    List<String> candidates = new ArrayList<>();
+                    for (File f : exeFiles) candidates.add(f.getAbsolutePath());
+                    showExePicker(candidates, selected -> {
+                        if (selected != null && !selected.isEmpty()) {
+                            prefs.edit().putString("amazon_exe_" + game.productId, selected).apply();
+                            uiHandler.post(() -> {
+                                exeView.setText("\n.exe: " + new File(selected).getName());
+                                Toast.makeText(this,
+                                        "Exe set: " + new File(selected).getName(),
+                                        Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    });
+                }).start();
+            });
+            container.addView(setExeBtn, lp);
+        }
+
+        AlertDialog.Builder b = new AlertDialog.Builder(this)
+                .setTitle(game.title)
+                .setView(container)
+                .setPositiveButton("Close", null);
+
+        if (installedDir != null) {
+            b.setNegativeButton("Uninstall", (d, w) -> {
+                new Thread(() -> {
+                    deleteDir(new File(installedDir));
+                    prefs.edit()
+                            .remove("amazon_exe_" + game.productId)
+                            .remove("amazon_dir_" + game.productId)
+                            .apply();
+                    uiHandler.post(() -> {
+                        checkmark.setVisibility(View.GONE);
+                        actionBtn.setText("Install");
+                        actionBtn.setBackgroundColor(COLOR_ACCENT);
+                        actionBtn.setEnabled(true);
+                        Toast.makeText(this, game.title + " uninstalled",
+                                Toast.LENGTH_SHORT).show();
+                    });
+                }).start();
+            });
+        }
+
+        b.show();
+    }
+
+    private void showExePicker(List<String> candidates,
+                                java.util.function.Consumer<String> onSelected) {
+        String[] labels = new String[candidates.size()];
+        for (int i = 0; i < candidates.size(); i++) {
+            File f      = new File(candidates.get(i));
+            File parent = f.getParentFile();
+            labels[i] = (parent != null)
+                    ? parent.getName() + "/" + f.getName()
+                    : f.getName();
+        }
+        uiHandler.post(() ->
+            new AlertDialog.Builder(this)
+                .setTitle("Select game executable")
+                .setItems(labels, (d, which) ->
+                    new Thread(() -> onSelected.accept(candidates.get(which))).start())
+                .setCancelable(false)
+                .show()
+        );
+    }
+
+    // ── Launch ────────────────────────────────────────────────────────────────
+
     private void pendingLaunchExe(String absPath) {
-        getSharedPreferences("bh_amazon_prefs", 0).edit()
-                .putString("pending_amazon_exe", absPath)
-                .apply();
-        // Bring LandscapeLauncherMainActivity back to front; clears Amazon activities from stack
+        prefs.edit().putString("pending_amazon_exe", absPath).apply();
         android.content.Intent intent = new android.content.Intent();
         intent.setClassName(getPackageName(),
                 "com.xj.landscape.launcher.ui.main.LandscapeLauncherMainActivity");
         intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
                 | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
-    }
-
-    private void confirmUninstall(AmazonGame game) {
-        new android.app.AlertDialog.Builder(this)
-            .setTitle("Uninstall " + game.title)
-            .setMessage("This will delete all installed game files. Continue?")
-            .setPositiveButton("Uninstall", (d, w) -> uninstallGame(game))
-            .setNegativeButton("Cancel", null)
-            .show();
-    }
-
-    private void uninstallGame(AmazonGame game) {
-        new Thread(() -> {
-            if (!game.installPath.isEmpty()) {
-                deleteDir(new File(game.installPath));
-            }
-            game.isInstalled = true; // will be set false below
-            game.isInstalled = false;
-            game.installPath  = "";
-
-            List<AmazonGame> cached = loadCachedGames();
-            if (cached != null) {
-                for (AmazonGame c : cached) {
-                    if (c.productId.equals(game.productId)) {
-                        c.isInstalled = false;
-                        c.installPath  = "";
-                        break;
-                    }
-                }
-                saveCachedGames(cached);
-            }
-            uiHandler.post(() -> {
-                Toast.makeText(this, game.title + " uninstalled", Toast.LENGTH_SHORT).show();
-                showGames(allGames);
-            });
-        }).start();
-    }
-
-    private static void deleteDir(File dir) {
-        if (dir == null || !dir.exists()) return;
-        if (dir.isDirectory()) {
-            File[] children = dir.listFiles();
-            if (children != null) {
-                for (File child : children) deleteDir(child);
-            }
-        }
-        dir.delete();
-    }
-
-    // ── Cover art async loader ────────────────────────────────────────────────
-
-    private void loadCoverAsync(ImageView view, String url) {
-        new Thread(() -> {
-            try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-                conn.setConnectTimeout(10000);
-                conn.setReadTimeout(15000);
-                conn.setRequestProperty("User-Agent", AmazonAuthClient.USER_AGENT);
-                conn.connect();
-                if (conn.getResponseCode() == 200) {
-                    Bitmap bmp = BitmapFactory.decodeStream(conn.getInputStream());
-                    if (bmp != null) uiHandler.post(() -> view.setImageBitmap(bmp));
-                }
-                conn.disconnect();
-            } catch (Exception ignored) {}
-        }).start();
     }
 
     // ── Cache ─────────────────────────────────────────────────────────────────
@@ -680,19 +994,14 @@ public class AmazonGamesActivity extends Activity {
                 j.put("installSize",   g.installSize);
                 arr.put(j);
             }
-            getSharedPreferences(PREFS_NAME, 0).edit()
-                    .putString(CACHE_KEY, arr.toString()).apply();
-        } catch (Exception e) {
-            Log.e(TAG, "saveCachedGames failed", e);
-        }
+            prefs.edit().putString(CACHE_KEY, arr.toString()).apply();
+        } catch (Exception e) { Log.e(TAG, "saveCachedGames failed", e); }
     }
 
     private List<AmazonGame> loadCachedGames() {
         try {
-            String json = getSharedPreferences(PREFS_NAME, 0)
-                    .getString(CACHE_KEY, null);
+            String json = prefs.getString(CACHE_KEY, null);
             if (json == null) return null;
-
             JSONArray arr = new JSONArray(json);
             List<AmazonGame> games = new ArrayList<>();
             for (int i = 0; i < arr.length(); i++) {
@@ -714,19 +1023,61 @@ public class AmazonGamesActivity extends Activity {
                 games.add(g);
             }
             return games;
-        } catch (Exception e) {
-            Log.e(TAG, "loadCachedGames failed", e);
-            return null;
-        }
+        } catch (Exception e) { Log.e(TAG, "loadCachedGames failed", e); return null; }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Image loading ─────────────────────────────────────────────────────────
 
-    private void setSyncText(String text) {
-        if (syncText != null) syncText.setText(text);
+    private void loadImage(AmazonGame game, ImageView iv) {
+        String url = game.artUrl;
+        if (url == null || url.isEmpty()) url = game.heroUrl;
+        if (url == null || url.isEmpty()) return;
+        final String finalUrl = url;
+        new Thread(() -> {
+            try {
+                java.net.HttpURLConnection conn =
+                        (java.net.HttpURLConnection) new java.net.URL(finalUrl).openConnection();
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+                if (conn.getResponseCode() == 200) {
+                    Bitmap bmp = BitmapFactory.decodeStream(conn.getInputStream());
+                    if (bmp != null) uiHandler.post(() -> iv.setImageBitmap(bmp));
+                }
+                conn.disconnect();
+            } catch (Exception ignored) {}
+        }, "amazon-cover-" + game.productId).start();
+    }
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
+
+    private void setSync(String msg) {
+        uiHandler.post(() -> { if (syncText != null) syncText.setText(msg); });
+    }
+
+    private static String viewModeIcon(String mode) {
+        if ("grid".equals(mode))   return "▦";
+        if ("poster".equals(mode)) return "☰";
+        return "⊞";
+    }
+
+    private static String formatBytes(long bytes) {
+        if (bytes < 0) return "Unknown";
+        if (bytes < 1024L)            return bytes + " B";
+        if (bytes < 1024L * 1024L)    return (bytes / 1024L) + " KB";
+        if (bytes < 1024L * 1024L * 1024L)
+            return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+        return String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+    }
+
+    private static void deleteDir(File dir) {
+        if (dir == null || !dir.exists()) return;
+        File[] children = dir.listFiles();
+        if (children != null) for (File c : children) deleteDir(c);
+        dir.delete();
     }
 
     private int dp(int v) {
-        return (int) (v * getResources().getDisplayMetrics().density);
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v,
+                getResources().getDisplayMetrics());
     }
 }

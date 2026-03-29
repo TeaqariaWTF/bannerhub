@@ -4,6 +4,17 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [fix] — epic-integration — uninstall hides both checkmarks immediately (2026-03-29)
+**Branch:** `epic-integration`  |  **Commit:** `026d9d2ec`
+**CI:** run 23721449352 (in progress)
+**What changed:** When uninstall completes in Amazon, GOG, or Epic, both the collapsed header ✓ (collapsedCheckTV) and expanded section checkmark disappear immediately via `onUninstalled` Runnable callback. Previously only the expanded checkmark was cleared; the header ✓ remained visible until next list refresh.
+#### Files touched
+- `extension/AmazonGamesActivity.java`
+- `extension/GogGamesActivity.java`
+- `extension/EpicGamesActivity.java`
+
+---
+
 ## [ci] — amazon-integration branch — artifact-only workflow added (2026-03-29)
 **Branch:** `amazon-integration`  |  **Commit:** `aa7413f35`
 **CI:** run 23705798906 (in progress)

@@ -7,6 +7,7 @@ on:
       - 'v*'
       - '!v*-pre*'
       - '!v*-beta*'
+      - '!v*-amazon*'
 
 jobs:
 

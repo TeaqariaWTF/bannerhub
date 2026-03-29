@@ -537,7 +537,12 @@ public class EpicGamesActivity extends Activity {
 
         card.setOnClickListener(v -> {
             if (expandSection.getVisibility() == View.VISIBLE) {
-                showDetailDialog(game, checkmark, actionBtn);
+                showDetailDialog(game, checkmark, actionBtn, () -> {
+                    checkmark.setVisibility(View.GONE);
+                    collapsedCheckTV.setVisibility(View.GONE);
+                    actionBtn.setText("Install");
+                    actionBtn.setBackgroundColor(COLOR_ACCENT);
+                });
             } else {
                 if (expandedSection != null) {
                     expandedSection.setVisibility(View.GONE);
@@ -731,7 +736,11 @@ public class EpicGamesActivity extends Activity {
         });
 
         tile.setOnLongClickListener(v -> {
-            showDetailDialog(game, checkTV, actionBtn);
+            showDetailDialog(game, checkTV, actionBtn, () -> {
+                checkTV.setVisibility(View.GONE);
+                actionBtn.setText("Install");
+                actionBtn.setBackgroundColor(COLOR_ACCENT);
+            });
             return true;
         });
 
@@ -904,7 +913,7 @@ public class EpicGamesActivity extends Activity {
         }
     }
 
-    private void showDetailDialog(EpicGame game, View checkmark, Button actionBtn) {
+    private void showDetailDialog(EpicGame game, View checkmark, Button actionBtn, Runnable onUninstalled) {
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
         container.setPadding(dp(20), dp(8), dp(20), dp(4));
@@ -985,9 +994,7 @@ public class EpicGamesActivity extends Activity {
                             .remove("epic_dir_" + game.appName)
                             .apply();
                     uiHandler.post(() -> {
-                        checkmark.setVisibility(View.GONE);
-                        actionBtn.setText("Install");
-                        actionBtn.setBackgroundColor(COLOR_ACCENT);
+                        onUninstalled.run();
                         actionBtn.setEnabled(true);
                         Toast.makeText(this, game.title + " uninstalled",
                                 Toast.LENGTH_SHORT).show();

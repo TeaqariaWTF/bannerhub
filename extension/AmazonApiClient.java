@@ -1,3 +1,12 @@
+/*
+ * Amazon Games integration for BannerHub
+ *
+ * Credits: The Amazon Games API pipeline, PKCE authentication flow,
+ * manifest.proto download architecture, exe scoring heuristic,
+ * FuelPump environment variables, and SDK DLL deployment are based on
+ * the research and implementation of The GameNative Team.
+ * https://github.com/utkarshdalal/GameNative
+ */
 package app.revanced.extension.gamehub;
 
 import android.util.Log;

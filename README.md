@@ -421,6 +421,7 @@ Inside the app's private storage: `Android/data/<package>/files/gog_games/<dirNa
 ## Credits
 
 - **GOG Games integration** — [The GameNative Team](https://github.com/utkarshdalal/GameNative). The GOG API pipeline, authentication flow, download architecture, and library sync in BannerHub are based on their research and implementation.
+- **Amazon Games integration** — [The GameNative Team](https://github.com/utkarshdalal/GameNative). The Amazon Games API pipeline, PKCE authentication flow, manifest.proto download architecture, exe scoring heuristic, FuelPump environment variables, and SDK DLL deployment in BannerHub are based on their research and implementation.
 - **RTS Touch Controls** — [@Nightwalker743](https://github.com/Nightwalker743)
 - **GameHub ReVanced patches** — [@playday3008](https://github.com/playday3008/gamehub-patches)
 - **Component sources** — [Arihany WCPHub](https://github.com/Arihany/WinlatorWCPHub), [The412Banner Nightlies](https://github.com/The412Banner/Nightlies), Kimchi, StevenMXZ, MaxesTechReview, Whitebelyash

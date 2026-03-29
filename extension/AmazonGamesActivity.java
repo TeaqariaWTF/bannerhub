@@ -220,7 +220,6 @@ public class AmazonGamesActivity extends Activity {
             if (token == null) { setSync("Token refresh failed"); enableRefresh(); return; }
 
             if (showProgress) setSync("Fetching game list…");
-            AmazonApiClient.sDebugCtx = this;
             List<AmazonGame> games = AmazonApiClient.getEntitlements(token, creds.deviceSerial);
 
             if (games == null || games.isEmpty()) {
@@ -247,6 +246,9 @@ public class AmazonGamesActivity extends Activity {
                     }
                 }
             }
+
+            // Check for updates on installed games
+            checkForUpdates(token, games);
 
             saveCachedGames(games);
 
@@ -295,6 +297,24 @@ public class AmazonGamesActivity extends Activity {
             }
             scrollView.setVisibility(View.VISIBLE);
         });
+    }
+
+    private void checkForUpdates(String token, List<AmazonGame> games) {
+        for (AmazonGame game : games) {
+            String installedExe = prefs.getString("amazon_exe_" + game.productId, null);
+            if (installedExe == null || game.productId.isEmpty()) continue;
+            try {
+                String liveVersion = AmazonApiClient.getLiveVersionId(token, game.productId);
+                if (liveVersion != null && !liveVersion.isEmpty()
+                        && !liveVersion.equals(game.versionId)) {
+                    Log.d(TAG, "Update available: " + game.title
+                            + " (" + game.versionId + " → " + liveVersion + ")");
+                    game.versionId = liveVersion + "_UPDATE_AVAILABLE";
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Update check failed for: " + game.title, e);
+            }
+        }
     }
 
     private void enableRefresh() {
@@ -384,9 +404,11 @@ public class AmazonGamesActivity extends Activity {
             expandSection.addView(metaTV, metaLp);
         }
 
+        boolean updateAvailable = isInstalled
+                && game.versionId != null && game.versionId.endsWith("_UPDATE_AVAILABLE");
         TextView checkmark = new TextView(this);
-        checkmark.setText("✓ Installed");
-        checkmark.setTextColor(0xFF4CAF50);
+        checkmark.setText(updateAvailable ? "✓ Installed — Update Available" : "✓ Installed");
+        checkmark.setTextColor(updateAvailable ? 0xFFFFAA00 : 0xFF4CAF50);
         checkmark.setTextSize(10f);
         checkmark.setVisibility(isInstalled ? View.VISIBLE : View.GONE);
         LinearLayout.LayoutParams ckLp = new LinearLayout.LayoutParams(-1, -2);

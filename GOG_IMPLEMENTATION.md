@@ -1,4 +1,6 @@
-# GameNative GOG Integration — Full Technical Report
+# GOG Games Integration — Full Technical Report
+
+> **Credit:** This document and the BannerHub GOG Games integration would not exist without the hard work of [The GameNative Team](https://github.com/utkarshdalal/GameNative). All API research, authentication flow design, depot manifest format documentation, and download pipeline architecture documented here is derived from their open-source work. Thank you.
 
 Source repository: https://github.com/utkarshdalal/GameNative
 Report date: 2026-03-21

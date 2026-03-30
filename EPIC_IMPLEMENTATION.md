@@ -1,4 +1,7 @@
 # Epic Games Store Integration — Full Technical Report
+
+> **Credit:** This document and the BannerHub Epic Games Store integration would not exist without the hard work of [The GameNative Team](https://github.com/utkarshdalal/GameNative). All API research, authentication flow design, manifest format documentation, CDN selection logic, and download pipeline architecture documented here is derived from their open-source work. Thank you.
+
 **Source:** https://github.com/utkarshdalal/GameNative
 **Generated:** 2026-03-29
 **Purpose:** Porting reference for BannerHub Android app

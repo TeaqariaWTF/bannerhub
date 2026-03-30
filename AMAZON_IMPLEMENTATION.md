@@ -1,6 +1,9 @@
-# Amazon Games Integration Report — GameNative (utkarshdalal/GameNative)
+# Amazon Games Integration — Full Technical Report
+
+> **Credit:** This document and the BannerHub Amazon Games integration would not exist without the hard work of [The GameNative Team](https://github.com/utkarshdalal/GameNative). All API research, PKCE authentication flow design, manifest.proto format documentation, FuelPump environment variables, SDK DLL deployment, and download pipeline architecture documented here is derived from their open-source work. Thank you.
+
 > Source: https://github.com/utkarshdalal/GameNative
-> Updated: 2026-03-29 (v5 — COMPLETE: AmazonDownloadManager.kt + AmazonService.kt + AmazonOAuthActivity.kt verbatim; exact download loop, cancellation flow, SHA-256 verify, hashHex encoding note, exact OAuth redirect URL, stopLoading detail)
+> Updated: 2026-03-29
 > Purpose: BannerHub smali integration reference
 
 ---

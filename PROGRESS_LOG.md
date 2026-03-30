@@ -2772,3 +2772,22 @@ manifest download, install, launch, SDK cache + update checker.
 - `patches/smali_classes5/.../HomeLeftMenuDialog.smali` (Epic menu item + pswitch_12)
 - `patches/smali_classes11/.../LandscapeLauncherMainActivity.smali` (pending_epic_exe hook)
 - `patches/AndroidManifest.xml` (Epic activities registered)
+
+### v2.8.1-pre — Launch tab in Wine Task Manager (2026-03-30)
+**Commits:** `103fe1938` (feat), `21eff1a67` (fix)  |  **Tag:** v2.8.1-pre  |  **CI:** ✅ run 23757141474
+#### What changed
+- Added "Launch" tab (tabIndex=2) to BhTaskManagerFragment alongside Applications + Processes
+- File browser rooted at WINEPREFIX: shows all drives (drive_c, drive_d, etc.)
+- Directories shown yellow with ▶ prefix; .exe/.msi/.bat/.cmd shown white
+- ↑ .. row for navigating up (hidden at wineRootPath)
+- Tap launchable file → Toast "Launching: name" + Runtime.exec via wine binary
+- Wine binary located by resolving /proc/<pid>/exe of running wineserver process
+- Wine environment inherited from running .exe process /proc/<pid>/environ
+- Fix: const/4 cannot encode 0x2f ('/' = 47); changed to const/16
+#### Files touched
+- `extension/BhWineLaunchHelper.java` (new)
+- `patches/smali_classes16/.../BhTaskManagerFragment.smali` (fields + showTab + onCreateView + browseTo)
+- `patches/smali_classes16/.../BhFolderListener.smali` (new)
+- `patches/smali_classes16/.../BhExeLaunchListener.smali` (new)
+- `patches/smali_classes16/.../BhInitLaunchRunnable.smali` (new)
+- `patches/smali_classes16/.../BhBrowseToRunnable.smali` (new)

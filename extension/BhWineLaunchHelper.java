@@ -16,11 +16,22 @@ import java.util.Arrays;
 public class BhWineLaunchHelper {
 
     /**
-     * Find the wine64/wine binary by locating a running wineserver or
-     * wine64-preloader process in /proc and resolving its /proc/<pid>/exe
-     * symlink, then looking for wine64/wine in the same directory.
+     * Find the wine loader binary.  Strategy:
+     *  1. Read WINELOADER from the running wine process environ — Wine always
+     *     sets this to point to its own binary (most reliable).
+     *  2. Fall back to scanning /proc for wineserver or wine64-preloader,
+     *     resolving /proc/<pid>/exe, and checking several binary names in
+     *     the same directory (wine64, wine, wineloader, wine64-preloader).
      */
     public static String findWineBinary() {
+        // 1. Try WINELOADER env var first
+        String wineLoader = readWineEnvVar("WINELOADER");
+        if (wineLoader != null && !wineLoader.isEmpty()) {
+            File f = new File(wineLoader);
+            if (f.exists()) return wineLoader;
+        }
+
+        // 2. Scan /proc for wine processes and resolve their exe path
         try {
             File proc = new File("/proc");
             File[] entries = proc.listFiles();
@@ -30,16 +41,18 @@ public class BhWineLaunchHelper {
                 String comm = readFirstLine("/proc/" + entry.getName() + "/comm");
                 if (comm == null) continue;
                 String lower = comm.trim().toLowerCase();
-                if (!lower.equals("wineserver") && !lower.startsWith("wine64-preload")) continue;
+                if (!lower.equals("wineserver") && !lower.startsWith("wine64-preload")
+                        && !lower.equals("wineloader")) continue;
                 String exePath = new File("/proc/" + entry.getName() + "/exe").getCanonicalPath();
                 if (exePath == null) continue;
                 int slash = exePath.lastIndexOf('/');
                 if (slash < 0) continue;
                 String dir = exePath.substring(0, slash);
-                File w64 = new File(dir, "wine64");
-                if (w64.exists()) return w64.getAbsolutePath();
-                File w = new File(dir, "wine");
-                if (w.exists()) return w.getAbsolutePath();
+                // Try all common wine launcher names
+                for (String name : new String[]{"wine64", "wine", "wineloader", "wine64-preloader"}) {
+                    File candidate = new File(dir, name);
+                    if (candidate.exists()) return candidate.getAbsolutePath();
+                }
             }
         } catch (Exception ignored) {}
         return null;
@@ -116,18 +129,30 @@ public class BhWineLaunchHelper {
 
     /**
      * Launch a Windows executable using the running Wine binary and
-     * environment.  Runs on a background thread; shows a Toast on the
-     * calling thread before dispatching.
+     * environment.  Runs on a background thread.  Shows an error Toast
+     * (on the main thread) if the wine binary cannot be located.
      */
-    public static void launchExe(final String exePath) {
+    public static void launchExe(final Context ctx, final String exePath) {
         new Thread(() -> {
             try {
                 String wineBin = findWineBinary();
-                if (wineBin == null) return;
+                if (wineBin == null) {
+                    showToast(ctx, "Launch failed: wine binary not found");
+                    return;
+                }
                 String[] env = getWineEnviron();
                 Runtime.getRuntime().exec(new String[]{wineBin, exePath}, env, null);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                showToast(ctx, "Launch error: " + e.getMessage());
+            }
         }).start();
+    }
+
+    /** Post a Toast to the main thread from any thread. */
+    private static void showToast(final Context ctx, final String msg) {
+        if (ctx == null) return;
+        android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        h.post(() -> Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show());
     }
 
     // ── private helpers ───────────────────────────────────────────────

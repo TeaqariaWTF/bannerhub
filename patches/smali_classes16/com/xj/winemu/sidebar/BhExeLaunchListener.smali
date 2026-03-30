@@ -59,7 +59,10 @@
     invoke-virtual {v3}, Landroid/widget/Toast;->show()V
 
     :launch
+    # Re-fetch context (may be null if we skipped Toast above)
+    iget-object v0, p0, Lcom/xj/winemu/sidebar/BhExeLaunchListener;->fragment:Lcom/xj/winemu/sidebar/BhTaskManagerFragment;
+    iget-object v0, v0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->bhContext:Landroid/content/Context;
     iget-object v1, p0, Lcom/xj/winemu/sidebar/BhExeLaunchListener;->exePath:Ljava/lang/String;
-    invoke-static {v1}, Lapp/revanced/extension/gamehub/BhWineLaunchHelper;->launchExe(Ljava/lang/String;)V
+    invoke-static {v0, v1}, Lapp/revanced/extension/gamehub/BhWineLaunchHelper;->launchExe(Landroid/content/Context;Ljava/lang/String;)V
     return-void
 .end method

@@ -23,6 +23,8 @@ Before any stable release is published, all changes are manually debugged and te
 - [Installation](#installation)
 - [Features](#features)
   - [GOG Games](#gog-games)
+  - [Amazon Games](#amazon-games)
+  - [Epic Games Store](#epic-games-store)
   - [Component Manager](#component-manager)
   - [In-App Component Downloader](#in-app-component-downloader)
   - [BCI Launcher Button](#bci-launcher-button)
@@ -137,6 +139,72 @@ Some very old GOG titles pre-date the content-system entirely and return `total_
 - **Set .exe** — the game detail dialog shows the current launch executable filename and a **Set .exe…** button. Tapping it re-scans the install directory and shows the exe picker, letting you correct a wrong selection at any time. The new path is saved immediately to prefs and the label in the dialog updates live.
 - **Copy to Downloads** — the game detail dialog includes a **Copy to Downloads** button. This recursively copies the entire install directory from `filesDir/gog_games/{dirName}/` to `Downloads/{dirName}/` so the files are accessible from any file manager without root.
 - **Uninstall** — the game detail dialog includes an **Uninstall** button. This recursively deletes the install directory, removes all associated prefs keys (`gog_dir_`, `gog_exe_`, `gog_cover_`, `gog_gen_`), and resets the card to its default state. A library re-sync runs automatically after uninstall to rebuild the card list.
+
+---
+
+### Amazon Games
+
+Accessible via the left side menu → **Amazon Games**.
+
+*Pipeline based on research by [The GameNative Team](https://github.com/utkarshdalal/GameNative).*
+
+#### Authentication
+
+- **PKCE OAuth2 login** — a WebView opens Amazon's standard sign-in page. BannerHub intercepts the authorization code from the redirect URL (including after OTP / 2FA steps), exchanges it for bearer tokens via Amazon's device registration API, and stores the credentials in `bh_amazon_prefs`.
+- **Auto token refresh** — tokens are silently refreshed before expiry. You never need to log in again unless you uninstall.
+
+#### Library
+
+- **Library sync** — fetches your full Amazon Games entitlements list. Each entry includes title, product SKU, entitlement ID, and cover art.
+- **Game cards** — displayed as a scrollable list with cover art, title, install state, and Install / progress / Launch button.
+
+#### Download Pipeline
+
+1. Calls `GetGameDownload` to retrieve the CDN download URL and version ID
+2. Downloads `manifest.proto` — a protobuf manifest listing every file with its CDN hash path, size, and SHA-256 checksum
+3. Downloads files in **6 parallel threads** — each file is fetched via its hash path on the CDN, verified against SHA-256, then renamed to its final path
+4. Progress shows current filename and download speed (MB/s)
+5. Resumable — already-complete files are skipped on retry
+
+#### Post-Install
+
+- **Launch** — reads `fuel.json` from the install directory to determine the game executable and required FuelPump environment variables, then launches via GameHub's `EditImportedGameInfoDialog`
+- **SDK DLLs** — `FuelSDK_x64.dll` and `AmazonGamesSDK_*` DLLs are deployed to the install directory at launch time
+- **Set .exe** — the detail dialog lets you override the detected executable at any time
+- **Update checker** — compares the installed version against the current CDN version and marks cards with an update badge when a newer version is available
+- **Uninstall** — removes the install directory and all stored prefs; both card checkmarks disappear immediately
+
+---
+
+### Epic Games Store
+
+Accessible via the left side menu → **Epic Games**.
+
+*Pipeline based on research by [The GameNative Team](https://github.com/utkarshdalal/GameNative).*
+
+#### Authentication
+
+- **OAuth2 login** — a WebView opens Epic's login page. After sign-in, BannerHub reads the `authorizationCode` from Epic's redirect JSON response via JavaScript, exchanges it for tokens using the Legendary client credentials, and stores them in `bh_epic_prefs`.
+- **Auto token refresh** — tokens are silently refreshed before expiry.
+
+#### Library
+
+- **Library sync** — fetches your owned games from Epic's library API, enriches each entry with catalog metadata (title, developer, description, cover art, DLC detection, CanRunOffline flag).
+- **Game cards** — displayed as a scrollable list and grid view with cover art, title, developer, and install state.
+
+#### Download Pipeline
+
+1. Fetches the manifest API JSON to get the list of manifest files hosted on Epic's CDN
+2. Downloads the binary or JSON manifest — parses the full file list, chunk map, and per-chunk SHA-1 hashes
+3. Downloads chunks in **6 parallel threads** from Fastly or Akamai CDN (public, no auth token required on chunks)
+4. Assembles each game file from its chunks in order, verifying SHA-1 per chunk
+5. Progress shows current filename and download speed (MB/s)
+
+#### Post-Install
+
+- **Launch** — sets `pending_epic_exe` in SharedPreferences → picked up by the main launcher activity → opens GameHub's `EditImportedGameInfoDialog`
+- **Set .exe** — override the detected executable at any time
+- **Uninstall** — removes install directory and prefs; both card checkmarks disappear immediately
 
 ---
 
@@ -422,6 +490,7 @@ Inside the app's private storage: `Android/data/<package>/files/gog_games/<dirNa
 
 - **GOG Games integration** — [The GameNative Team](https://github.com/utkarshdalal/GameNative). The GOG API pipeline, authentication flow, download architecture, and library sync in BannerHub are based on their research and implementation.
 - **Amazon Games integration** — [The GameNative Team](https://github.com/utkarshdalal/GameNative). The Amazon Games API pipeline, PKCE authentication flow, manifest.proto download architecture, exe scoring heuristic, FuelPump environment variables, and SDK DLL deployment in BannerHub are based on their research and implementation.
+- **Epic Games Store integration** — [The GameNative Team](https://github.com/utkarshdalal/GameNative). The Epic Games Store API pipeline, OAuth2 authentication flow, chunked manifest download architecture, CDN selection logic, and chunk assembly in BannerHub are based on their research and implementation.
 - **RTS Touch Controls** — [@Nightwalker743](https://github.com/Nightwalker743)
 - **GameHub ReVanced patches** — [@playday3008](https://github.com/playday3008/gamehub-patches)
 - **Component sources** — [Arihany WCPHub](https://github.com/Arihany/WinlatorWCPHub), [The412Banner Nightlies](https://github.com/The412Banner/Nightlies), Kimchi, StevenMXZ, MaxesTechReview, Whitebelyash

@@ -4,6 +4,16 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [perf] — v2.8.2-pre3 — Retry+resume GOG Gen1/Gen2; 128KB buffers; Epic chunk streaming (2026-04-01)
+**Branch:** `main`  |  **Tag:** v2.8.2-pre3
+**Commit:** `e006db1f5`  |  **CI:** queued
+**What changed:**
+- GOG Gen2: 3-attempt retry + resume (skip existing files) + .bhtmp atomic write; fetchBytes 4KB→128KB + Content-Length pre-alloc
+- GOG Gen1: 3-attempt retry + resume (exact size check); downloadRange 32KB→128KB
+- Epic: downloadChunkStreaming pipes HTTP→Inflater→file without dual in-memory buffers; downloadBytes 8KB→128KB + Content-Length pre-alloc
+
+---
+
 ## [perf] — v2.8.2-pre2 — 8 threads all stores; GOG Gen1 parallelized (2026-04-01)
 **Branch:** `main`  |  **Tag:** v2.8.2-pre2
 **Commit:** `ad3d617f2`  |  **CI:** queued

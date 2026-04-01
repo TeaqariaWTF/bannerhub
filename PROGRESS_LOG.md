@@ -4,6 +4,16 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [feat] — v2.8.2-pre5 — Debug files for Epic + Amazon; GOG parallel logging (2026-04-01)
+**Branch:** `main`  |  **Tag:** v2.8.2-pre5
+**Commit:** `353a97e98`  |  **CI:** queued
+**What changed:**
+- Epic: `bh_epic_debug.txt` — CDN URLs, manifest bytes, chunk failures, assembly errors, result
+- Amazon: `bh_amazon_debug.txt` — entitlementId, downloadUrl, manifest size, per-file failures, result
+- GOG Gen1/Gen2: parallel retry/fail logged via ConcurrentLinkedQueue → drained into `bh_gog_debug.txt`
+
+---
+
 ## [perf] — v2.8.2-pre3 — Retry+resume GOG Gen1/Gen2; 128KB buffers; Epic chunk streaming (2026-04-01)
 **Branch:** `main`  |  **Tag:** v2.8.2-pre3
 **Commit:** `e006db1f5`  |  **CI:** queued

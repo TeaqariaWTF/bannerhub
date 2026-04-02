@@ -275,7 +275,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tmpLp.gravity = Gravity.CENTER_HORIZONTAL;
         fpsCol.addView(tvFpsCpuTmp, tmpLp);
 
-        addView(fpsCol, new LinearLayout.LayoutParams(-2, -1));
+        addView(fpsCol, new LinearLayout.LayoutParams(-2, -2)); // WRAP_CONTENT height — drives HUD height (tallest col)
         addView(makeSepCol());
 
         // ── Col 1: CPU block ──
@@ -483,6 +483,18 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
 
     private int dp(int v) {
         return Math.round(v * getResources().getDisplayMetrics().density);
+    }
+
+    // ── Measure override ─────────────────────────────────────────────────────
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        // Cap vertical mode width at 200dp so MATCH_PARENT rows don't snap to full screen width.
+        // Horizontal mode uses natural width (the strip spans content columns).
+        if (isVertical) {
+            widthMeasureSpec = MeasureSpec.makeMeasureSpec(dp(200), MeasureSpec.AT_MOST);
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
     // ── Orientation toggle ────────────────────────────────────────────────────

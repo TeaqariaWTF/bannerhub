@@ -1,8 +1,8 @@
 package com.xj.winemu.sidebar;
 
-import android.app.ActivityThread;
 import android.content.Context;
 import java.io.File;
+import java.lang.reflect.Method;
 
 /**
  * BhContainerCleanup — deletes the orphaned virtual container directory
@@ -18,7 +18,10 @@ public class BhContainerCleanup {
     public static void cleanup(String gameId) {
         if (gameId == null || gameId.isEmpty()) return;
         try {
-            Context ctx = ActivityThread.currentApplication();
+            // ActivityThread is an internal class; use reflection to avoid SDK compile error
+            Class<?> atClass = Class.forName("android.app.ActivityThread");
+            Method m = atClass.getMethod("currentApplication");
+            Context ctx = (Context) m.invoke(null);
             if (ctx == null) return;
             File dir = new File(ctx.getFilesDir(), "usr/home/virtual_containers/" + gameId);
             deleteRecursive(dir);

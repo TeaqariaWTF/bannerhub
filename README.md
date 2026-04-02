@@ -40,6 +40,7 @@ Before any stable release is published, all changes are manually debugged and te
   - [Wine Task Manager](#wine-task-manager)
   - [Component Descriptions in Game Settings](#component-descriptions-in-game-settings)
   - [Japanese Locale](#japanese-locale)
+  - [Virtual Container Cleanup on Uninstall](#virtual-container-cleanup-on-uninstall)
   - [UI Tweaks](#ui-tweaks)
 - [How It Works](#how-it-works)
 - [FAQ](#faq)
@@ -474,6 +475,10 @@ BannerHub includes a complete **3,468-string Japanese translation** covering eve
 *Translation contributed by [reindex-ot](https://github.com/reindex-ot) via Crowdin (GameHub's official translation source).*
 
 ---
+
+### Virtual Container Cleanup on Uninstall
+
+When a game is installed and launched, GameHub creates a Wine virtual container at `virtual_containers/{gameId}/` to hold the game's Windows environment. BannerHub ensures this container directory is fully cleaned up when the game is uninstalled, preventing orphaned containers from accumulating on disk over time.
 
 ### UI Tweaks
 

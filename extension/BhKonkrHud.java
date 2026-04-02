@@ -861,7 +861,11 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
     }
 
     private int readFanSpeed() {
-        for (int i = 0; i < 10; i++) {
+        // Try hwmon fan1_input first (actual RPM)
+        String v = readSysfsLine("/sys/devices/platform/soc/soc:pwm-fan/hwmon/hwmon0/fan1_input");
+        if (v != null) { try { return Integer.parseInt(v.trim()); } catch (NumberFormatException ignored) {} }
+        // Fallback: scan cooling devices for pwm-fan / fan type
+        for (int i = 0; i < 50; i++) {
             String type = readSysfsLine("/sys/class/thermal/cooling_device" + i + "/type");
             if (type != null && type.trim().toLowerCase().contains("fan")) {
                 String val = readSysfsLine("/sys/class/thermal/cooling_device" + i + "/cur_state");

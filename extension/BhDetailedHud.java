@@ -66,6 +66,7 @@ public class BhDetailedHud extends LinearLayout implements Runnable {
 
     // CPU stat tracking across 1-second samples
     private long prevTotal = 0, prevIdle = 0;
+    private long prevProcCpuTime = -1, prevProcWallTime = -1;
 
     // Drag state
     private float dragLastX, dragLastY, dragStartX, dragStartY;
@@ -594,18 +595,34 @@ public class BhDetailedHud extends LinearLayout implements Runnable {
 
     private int readCpu() {
         String line = readSysfsLine("/proc/stat");
-        if (line == null || !line.startsWith("cpu ")) return 0;
-        String[] parts = line.trim().split("\\s+");
-        if (parts.length < 5) return 0;
-        try {
-            long user = Long.parseLong(parts[1]), nice = Long.parseLong(parts[2]);
-            long sys  = Long.parseLong(parts[3]), idle = Long.parseLong(parts[4]);
-            long iowait = parts.length > 5 ? Long.parseLong(parts[5]) : 0;
-            long total = user + nice + sys + idle + iowait;
-            long diffTotal = total - prevTotal, diffIdle = (idle + iowait) - prevIdle;
-            prevTotal = total; prevIdle = idle + iowait;
-            return diffTotal <= 0 ? 0 : (int)(100L * (diffTotal - diffIdle) / diffTotal);
-        } catch (NumberFormatException e) { return 0; }
+        if (line != null && line.startsWith("cpu ")) {
+            String[] parts = line.trim().split("\\s+");
+            if (parts.length >= 5) {
+                try {
+                    long user = Long.parseLong(parts[1]), nice = Long.parseLong(parts[2]);
+                    long sys  = Long.parseLong(parts[3]), idle = Long.parseLong(parts[4]);
+                    long iowait = parts.length > 5 ? Long.parseLong(parts[5]) : 0;
+                    long total = user + nice + sys + idle + iowait;
+                    long diffTotal = total - prevTotal, diffIdle = (idle + iowait) - prevIdle;
+                    prevTotal = total; prevIdle = idle + iowait;
+                    if (diffTotal > 0) return (int)(100L * (diffTotal - diffIdle) / diffTotal);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        // Fallback: process CPU time via Android API (same method as GameHub DeviceMetrics)
+        long cpuTime  = android.os.Process.getElapsedCpuTime();
+        long wallTime = android.os.SystemClock.elapsedRealtime();
+        if (prevProcCpuTime >= 0) {
+            long dCpu  = cpuTime  - prevProcCpuTime;
+            long dWall = wallTime - prevProcWallTime;
+            int cores  = Runtime.getRuntime().availableProcessors();
+            prevProcCpuTime  = cpuTime;
+            prevProcWallTime = wallTime;
+            if (dWall > 0) return Math.min(100, (int)(dCpu * 100L / (dWall * cores)));
+        }
+        prevProcCpuTime  = cpuTime;
+        prevProcWallTime = wallTime;
+        return 0;
     }
 
     private int readRam() {

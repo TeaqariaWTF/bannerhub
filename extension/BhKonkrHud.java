@@ -57,6 +57,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
 
     // CPU delta tracking
     private long prevTotal = 0, prevIdle = 0;
+    private long prevProcCpuTime = -1, prevProcWallTime = -1;
 
     // FPS min tracking (reset every 60 samples)
     private float fpsMin = 9999f;
@@ -759,18 +760,34 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
 
     private int readCpu() {
         String line = readSysfsLine("/proc/stat");
-        if (line == null || !line.startsWith("cpu ")) return 0;
-        String[] parts = line.trim().split("\\s+");
-        if (parts.length < 5) return 0;
-        try {
-            long user = Long.parseLong(parts[1]), nice = Long.parseLong(parts[2]);
-            long sys  = Long.parseLong(parts[3]), idle = Long.parseLong(parts[4]);
-            long iow  = parts.length > 5 ? Long.parseLong(parts[5]) : 0;
-            long total = user + nice + sys + idle + iow;
-            long dTotal = total - prevTotal, dIdle = (idle + iow) - prevIdle;
-            prevTotal = total; prevIdle = idle + iow;
-            return dTotal <= 0 ? 0 : (int)(100L * (dTotal - dIdle) / dTotal);
-        } catch (NumberFormatException e) { return 0; }
+        if (line != null && line.startsWith("cpu ")) {
+            String[] parts = line.trim().split("\\s+");
+            if (parts.length >= 5) {
+                try {
+                    long user = Long.parseLong(parts[1]), nice = Long.parseLong(parts[2]);
+                    long sys  = Long.parseLong(parts[3]), idle = Long.parseLong(parts[4]);
+                    long iow  = parts.length > 5 ? Long.parseLong(parts[5]) : 0;
+                    long total = user + nice + sys + idle + iow;
+                    long dTotal = total - prevTotal, dIdle = (idle + iow) - prevIdle;
+                    prevTotal = total; prevIdle = idle + iow;
+                    if (dTotal > 0) return (int)(100L * (dTotal - dIdle) / dTotal);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        // Fallback: process CPU time via Android API (same method as GameHub DeviceMetrics)
+        long cpuTime  = android.os.Process.getElapsedCpuTime();
+        long wallTime = android.os.SystemClock.elapsedRealtime();
+        if (prevProcCpuTime >= 0) {
+            long dCpu  = cpuTime  - prevProcCpuTime;
+            long dWall = wallTime - prevProcWallTime;
+            int cores  = Runtime.getRuntime().availableProcessors();
+            prevProcCpuTime  = cpuTime;
+            prevProcWallTime = wallTime;
+            if (dWall > 0) return Math.min(100, (int)(dCpu * 100L / (dWall * cores)));
+        }
+        prevProcCpuTime  = cpuTime;
+        prevProcWallTime = wallTime;
+        return 0;
     }
 
     private int readCpuTemp() {

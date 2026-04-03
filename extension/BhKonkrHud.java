@@ -858,6 +858,23 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
 
     private String readGpuRes() {
         try {
+            // Read Wine container resolution from pc_g_setting{gameId} SP
+            java.lang.reflect.Field uField = activity.getClass().getField("u");
+            Object wineActivityData = uField.get(activity);
+            if (wineActivityData != null) {
+                java.lang.reflect.Method eMethod = wineActivityData.getClass().getMethod("e");
+                String gameId = (String) eMethod.invoke(wineActivityData);
+                if (gameId != null && !gameId.isEmpty()) {
+                    android.content.SharedPreferences sp =
+                            activity.getSharedPreferences("pc_g_setting" + gameId, 0);
+                    int w = sp.getInt("pc_c_resolution_w", 0);
+                    int h = sp.getInt("pc_c_resolution_h", 0);
+                    if (w > 0 && h > 0) return w + "x" + h;
+                }
+            }
+        } catch (Exception ignored) {}
+        // Fallback: Android display metrics
+        try {
             DisplayMetrics dm = getContext().getResources().getDisplayMetrics();
             return dm.widthPixels + "x" + dm.heightPixels;
         } catch (Exception e) { return ""; }

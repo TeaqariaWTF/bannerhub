@@ -70,6 +70,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
     private TextView tvGpuPct, tvGpuTemp, tvGpuName, tvGpuFreq, tvGpuRes;
     private TextView tvModeVal, tvSknVal, tvPwrVal;
     private TextView tvRamVal, tvSwapVal, tvBatPct, tvTimeVal;
+    private View vRamFill, vSwapFill, vBatFill;
 
     // (no weighted BAT fill — BAT row uses solid blue background like RAM/SWAP)
 
@@ -108,6 +109,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tvGpuPct = tvGpuTemp = tvGpuName = tvGpuFreq = tvGpuRes = null;
         tvModeVal = tvSknVal = tvPwrVal = null;
         tvRamVal = tvSwapVal = tvBatPct = tvTimeVal = null;
+        vRamFill = vSwapFill = vBatFill = null;
     }
 
     // ── VERTICAL layout ───────────────────────────────────────────────────────
@@ -163,21 +165,23 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         addView(makeDivider());
 
         // ── Memory section ────────────────────────────────────────────────────
-        // RAM — entire row has brown background
+        // RAM — proportional brown fill
         tvRamVal = makeVal("--G/--G", COL_WHITE);
-        LinearLayout ramRow = makeTwoColRow("RAM", COL_WHITE, 0, false, tvRamVal);
-        ramRow.setBackgroundColor(BG_RAM);
-        addView(ramRow, rowLp());
+        View[] rf = new View[1];
+        addView(makeBarRow("RAM", BG_RAM, tvRamVal, rf), rowLp());
+        vRamFill = rf[0];
 
-        // SWAP — entire row has gray background
+        // SWAP — proportional gray fill
         tvSwapVal = makeVal("--G/--G", COL_WHITE);
-        LinearLayout swapRow = makeTwoColRow("SWAP", COL_WHITE, 0, false, tvSwapVal);
-        swapRow.setBackgroundColor(BG_SWAP);
-        addView(swapRow, rowLp());
+        View[] sf = new View[1];
+        addView(makeBarRow("SWAP", BG_SWAP, tvSwapVal, sf), rowLp());
+        vSwapFill = sf[0];
 
-        // BAT — blue proportional fill spanning full row width
+        // BAT — proportional blue fill
         tvBatPct = makeVal("--%", COL_WHITE);
-        addView(makeBatRowView(), rowLp());
+        View[] bf = new View[1];
+        addView(makeBarRow("BAT", BG_BAT, tvBatPct, bf), rowLp());
+        vBatFill = bf[0];
 
         addView(makeDivider());
 
@@ -245,12 +249,33 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         return v;
     }
 
-    /** BAT row: solid blue full-row (same pattern as RAM/SWAP) */
-    private LinearLayout makeBatRowView() {
-        tvBatPct = makeVal("--%", COL_WHITE);
-        LinearLayout row = makeTwoColRow("BAT", COL_WHITE, 0, false, tvBatPct);
-        row.setBackgroundColor(BG_BAT);
-        return row;
+    /** Proportional fill bar row: dark bg + colored fill view behind text row. */
+    private FrameLayout makeBarRow(String label, int fillColor, TextView valueTV, View[] fillRef) {
+        FrameLayout frame = new FrameLayout(getContext());
+        frame.setBackgroundColor(0xFF1C1C1C);
+        View fill = new View(getContext());
+        fill.setBackgroundColor(fillColor);
+        frame.addView(fill, new FrameLayout.LayoutParams(0, FrameLayout.LayoutParams.MATCH_PARENT));
+        fillRef[0] = fill;
+        LinearLayout row = makeTwoColRow(label, COL_WHITE, 0, false, valueTV);
+        frame.addView(row, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        return frame;
+    }
+
+    private void updateFill(View fill, float used, float total) {
+        if (fill == null || total <= 0) return;
+        ViewGroup parent = (ViewGroup) fill.getParent();
+        if (parent == null) return;
+        int w = parent.getWidth();
+        if (w <= 0) return;
+        ViewGroup.LayoutParams lp = fill.getLayoutParams();
+        lp.width = Math.round(Math.min(1f, used / total) * w);
+        fill.setLayoutParams(lp);
+    }
+
+    private void updateFillPct(View fill, int pct) {
+        updateFill(fill, pct, 100);
     }
 
     // ── HORIZONTAL layout ─────────────────────────────────────────────────────
@@ -733,9 +758,12 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
                             tvRamVal.setText(String.format("%.0fG/%.0fG", ram[0], ram[1]));
                         if (tvSwapVal != null)
                             tvSwapVal.setText(String.format("%.1fG/%.0fG", swap[0], swap[1]));
+                        updateFill(vRamFill, ram[0], ram[1]);
+                        updateFill(vSwapFill, swap[0], swap[1]);
 
                         // BAT
                         if (tvBatPct != null) tvBatPct.setText(batPct + "%");
+                        updateFillPct(vBatFill, batPct);
 
                         // TIME
                         if (tvTimeVal != null) tvTimeVal.setText(timeStr);

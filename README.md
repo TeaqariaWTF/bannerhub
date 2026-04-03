@@ -32,6 +32,7 @@ Before any stable release is published, all changes are manually debugged and te
   - [Performance Sidebar Toggles](#performance-sidebar-toggles)
   - [RTS Touch Controls](#rts-touch-controls)
   - [VRAM Limit Unlock](#vram-limit-unlock)
+  - [Per-Game Config Export / Import](#per-game-config-export--import)
   - [Per-Game CPU Core Affinity](#per-game-cpu-core-affinity)
   - [PC Game Settings: Offline Mode](#pc-game-settings-offline-mode)
   - [Offline Steam Launch](#offline-steam-launch)
@@ -403,6 +404,26 @@ Tap the **gear icon** in the Controls tab to configure pan direction and pinch-t
 ### VRAM Limit Unlock
 
 PC game settings → **VRAM Limit** now includes **6 GB, 8 GB, 12 GB, and 16 GB** options in addition to the original GameHub range of 512 MB through 4 GB.
+
+---
+
+### Per-Game Config Export / Import
+
+PC game settings now include **Export Config** and **Import Config** options.
+
+**Export Config** saves the game's current settings plus all your installed custom components (DXVK, VKD3D, Box64, FEXCore, GPU driver) to a JSON file. A dialog lets you choose:
+- **Save Locally** — saves to `/sdcard/BannerHub/configs/` on your device
+- **Save Locally + Share Online** — saves locally and uploads to the [BannerHub community config database](https://github.com/The412Banner/bannerhub-game-configs)
+
+**Import Config** loads a saved config and applies it. A dialog lets you choose:
+- **My Device** — pick from configs saved on your device
+- **Browse Community** — fetches all shared configs for the current game from the community database, sorted by date, showing device model and upload date
+
+If the config references components not currently installed, a dialog lists the missing ones and offers to download and install them automatically via the Component Manager before applying the settings.
+
+**Community config database:** All online-shared configs are stored publicly at **[The412Banner/bannerhub-game-configs](https://github.com/The412Banner/bannerhub-game-configs)**. You can browse, view, or download configs from that repo directly at any time.
+
+> The community database starts empty. It only grows through contributions — if you find settings that work well for a game on your device, sharing them helps other users, especially those new to PC game emulation, get a working config without trial and error.
 
 ---
 

@@ -203,7 +203,7 @@ jobs:
               '    const/4 v13, 0x0\n'
               '    const/4 v14, 0x0\n'
               '    new-instance v15, Lcom/xj/landscape/launcher/ui/gamedetail/BhExportLambda;\n'
-              '    invoke-direct {v15, v3}, Lcom/xj/landscape/launcher/ui/gamedetail/BhExportLambda;-><init>(Lcom/xj/common/service/bean/GameDetailEntity;)V\n'
+              '    invoke-direct {v15, v4, v3}, Lcom/xj/landscape/launcher/ui/gamedetail/BhExportLambda;-><init>(Lcom/xj/landscape/launcher/ui/gamedetail/GameDetailSettingMenu;Lcom/xj/common/service/bean/GameDetailEntity;)V\n'
               '    const/16 v16, 0x1e\n'
               '    const/16 v17, 0x0\n'
               '    invoke-direct/range {v9 .. v17}, Lcom/xj/common/view/popup/Option;-><init>(Ljava/lang/String;ZIIILkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V\n'

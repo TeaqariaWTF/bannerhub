@@ -68,7 +68,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
     private TextView tvCpuPct, tvCpuTemp;
     private TextView[] tvCores = new TextView[8];
     private TextView tvGpuPct, tvGpuTemp, tvGpuName, tvGpuFreq, tvGpuRes;
-    private TextView tvModeVal, tvFanVal, tvSknVal, tvPwrVal;
+    private TextView tvModeVal, tvSknVal, tvPwrVal;
     private TextView tvRamVal, tvSwapVal, tvBatPct, tvTimeVal;
 
     // (no weighted BAT fill — BAT row uses solid blue background like RAM/SWAP)
@@ -106,7 +106,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tvCpuPct = tvCpuTemp = null;
         tvCores = new TextView[8];
         tvGpuPct = tvGpuTemp = tvGpuName = tvGpuFreq = tvGpuRes = null;
-        tvModeVal = tvFanVal = tvSknVal = tvPwrVal = null;
+        tvModeVal = tvSknVal = tvPwrVal = null;
         tvRamVal = tvSwapVal = tvBatPct = tvTimeVal = null;
     }
 
@@ -154,8 +154,6 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tvModeVal = makeVal("NORM", COL_WHITE);
         addView(makeTwoColRow("MODE", COL_WHITE, 0, false, tvModeVal), rowLp());
 
-        tvFanVal = makeVal("---", COL_WHITE);
-        addView(makeTwoColRow("FAN", COL_WHITE, 0, false, tvFanVal), rowLp());
 
         tvSknVal = makeVal("--\u00b0C", COL_ORANGE);
         addView(makeTwoColRow("SKN", COL_WHITE, 0, false, tvSknVal), rowLp());
@@ -338,7 +336,6 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         // ── Col 3: Thermal labels ──
         LinearLayout thermLabelCol = makeVCol();
         thermLabelCol.addView(makeLabel("MODE", COL_WHITE), wrapLp());
-        thermLabelCol.addView(makeLabel("FAN",  COL_WHITE), wrapLp());
         thermLabelCol.addView(makeLabel("SKN",  COL_WHITE), wrapLp());
         thermLabelCol.addView(makeLabel("PWR",  COL_WHITE), wrapLp());
         addView(thermLabelCol, new LinearLayout.LayoutParams(-2, -1));
@@ -346,11 +343,9 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         // ── Col 4: Thermal values ──
         LinearLayout thermValCol = makeVCol();
         tvModeVal = makeVal("NORM", COL_WHITE);
-        tvFanVal  = makeVal("---",  COL_WHITE);
         tvSknVal  = makeVal("--\u00b0C", COL_ORANGE);
         tvPwrVal  = makeVal("--W", COL_WHITE);
         thermValCol.addView(tvModeVal, wrapLp());
-        thermValCol.addView(tvFanVal,  wrapLp());
         thermValCol.addView(tvSknVal,  wrapLp());
         thermValCol.addView(tvPwrVal,  wrapLp());
         addView(thermValCol, new LinearLayout.LayoutParams(-2, -1));
@@ -644,7 +639,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         java.util.ArrayList<TextView> list = new java.util.ArrayList<>();
         TextView[] fixed = { tvFpsVal, tvFpsMin, tvFpsCpuTmp, tvCpuPct, tvCpuTemp,
                 tvGpuPct, tvGpuTemp, tvGpuName, tvGpuFreq, tvGpuRes,
-                tvModeVal, tvFanVal, tvSknVal, tvPwrVal,
+                tvModeVal, tvSknVal, tvPwrVal,
                 tvRamVal, tvSwapVal, tvBatPct, tvTimeVal };
         for (TextView tv : fixed) if (tv != null) list.add(tv);
         for (TextView tv : tvCores) if (tv != null) list.add(tv);
@@ -667,7 +662,6 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
                 final int gpu     = readGpu();
                 final int gpuTmp  = readGpuTemp();
                 final int gpuMhz  = readGpuMhz();
-                final int fan     = readFanSpeed();
                 final int skn     = readSkinTemp();
                 final float pwr   = readPwr();
                 final float[] ram  = readRamGb();
@@ -730,7 +724,6 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
                                     "MAX".equals(mode)  ? COL_RED :
                                     "SUST".equals(mode) ? COL_ORANGE : COL_WHITE);
                         }
-                        if (tvFanVal != null) tvFanVal.setText(fan > 0 ? String.valueOf(fan) : "---");
                         if (tvSknVal != null) tvSknVal.setText(skn > 0 ? skn + "\u00b0C" : "--\u00b0C");
                         if (tvPwrVal != null) tvPwrVal.setText(
                                 pwr > 0 ? String.format("%.1fW", pwr) : "--W");
@@ -881,20 +874,6 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         return result;
     }
 
-    private int readFanSpeed() {
-        // Try hwmon fan1_input first (actual RPM)
-        String v = readSysfsLine("/sys/devices/platform/soc/soc:pwm-fan/hwmon/hwmon0/fan1_input");
-        if (v != null) { try { return Integer.parseInt(v.trim()); } catch (NumberFormatException ignored) {} }
-        // Fallback: scan cooling devices for pwm-fan / fan type
-        for (int i = 0; i < 50; i++) {
-            String type = readSysfsLine("/sys/class/thermal/cooling_device" + i + "/type");
-            if (type != null && type.trim().toLowerCase().contains("fan")) {
-                String val = readSysfsLine("/sys/class/thermal/cooling_device" + i + "/cur_state");
-                if (val != null) { try { return Integer.parseInt(val.trim()); } catch (NumberFormatException ignored) {} }
-            }
-        }
-        return 0;
-    }
 
     private int readSkinTemp() {
         String[] types = {"skin", "tskin", "surface", "xo-therm", "xo_therm"};

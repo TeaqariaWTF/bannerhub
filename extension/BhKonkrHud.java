@@ -269,7 +269,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         bigLp.gravity = Gravity.CENTER_HORIZONTAL;
         fpsCol.addView(tvFpsVal, bigLp);
 
-        addView(fpsCol, new LinearLayout.LayoutParams(-2, -2)); // WRAP_CONTENT height — drives HUD height
+        addView(fpsCol, new LinearLayout.LayoutParams(-2, -1)); // MATCH_PARENT height — stretches to tallest col
         addView(makeSepCol());
 
         // ── Col 1: CPU block ── (label / % / temp stacked, matching original)
@@ -328,7 +328,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tvGpuTemp = makeVal("--\u00b0C", COL_ORANGE);
         gpuCol.addView(tvGpuTemp, wrapLp());
 
-        addView(gpuCol, new LinearLayout.LayoutParams(-2, -1));
+        addView(gpuCol, new LinearLayout.LayoutParams(-2, -2)); // height driver — 4 rows tallest col
         addView(makeSepCol());
 
         // ── Col 3: Thermal labels ──

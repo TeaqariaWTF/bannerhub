@@ -180,7 +180,7 @@ jobs:
               print(f"OK: {label}")
 
           patch(
-              'apktool_out/smali_classes10/com/xj/landscape/launcher/ui/gamedetail/GameDetailSettingMenu.smali',
+              'apktool_out_base/smali_classes10/com/xj/landscape/launcher/ui/gamedetail/GameDetailSettingMenu.smali',
               '    invoke-static {v8, v0}, Lcom/xj/common/utils/XjLog;->c(Ljava/lang/String;Ljava/lang/String;)V\n'
               '\n'
               '    .line 255\n'

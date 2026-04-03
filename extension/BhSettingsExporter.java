@@ -59,9 +59,10 @@ public class BhSettingsExporter {
             json.put("settings", settings);
             json.put("components", components);
 
-            String safeName   = gameName.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-            String deviceName = Build.MODEL.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-            String fileName   = safeName + "-" + deviceName + ".json";
+            String safeName      = gameName.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+            String manufacturer  = Build.MANUFACTURER.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+            String deviceName    = Build.MODEL.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+            String fileName      = safeName + "-" + manufacturer + "-" + deviceName + ".json";
 
             File dir = new File(Environment.getExternalStorageDirectory(), EXPORT_DIR);
             dir.mkdirs();

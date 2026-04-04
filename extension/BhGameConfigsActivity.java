@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.view.ViewGroup;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -113,6 +115,11 @@ public class BhGameConfigsActivity extends Activity {
 
         wrapper.addView(buildHeader());
 
+        // Header / content divider
+        View headerDivider = new View(this);
+        headerDivider.setBackgroundColor(0xFF3A3A5C); // purple-tinted accent line
+        wrapper.addView(headerDivider, new LinearLayout.LayoutParams(-1, dp(2)));
+
         FrameLayout body = new FrameLayout(this);
         screenGames   = buildGamesScreen();
         screenConfigs = buildConfigsScreen();
@@ -146,12 +153,20 @@ public class BhGameConfigsActivity extends Activity {
         h.setGravity(Gravity.CENTER_VERTICAL);
         h.setPadding(dp(12), dp(10), dp(12), dp(10));
 
+        GradientDrawable backBg = new GradientDrawable();
+        backBg.setColor(0x00000000);
+        backBg.setCornerRadius(dp(6));
         Button back = new Button(this);
         back.setText("←");
         back.setTextColor(WHITE);
-        back.setBackgroundColor(0x00000000);
+        back.setBackground(backBg);
         back.setTextSize(18f);
-        back.setPadding(0, 0, dp(8), 0);
+        back.setPadding(dp(6), dp(4), dp(10), dp(4));
+        back.setFocusable(true);
+        back.setOnFocusChangeListener((v, f) -> {
+            backBg.setColor(f ? 0xFF2A2A4E : 0x00000000);
+            backBg.setStroke(f ? dp(2) : 0, f ? 0xFFFFD700 : 0x00000000);
+        });
         back.setOnClickListener(v -> onBackPressed());
 
         headerTitle = new TextView(this);
@@ -160,14 +175,23 @@ public class BhGameConfigsActivity extends Activity {
         headerTitle.setTextSize(18f);
         headerTitle.setTypeface(null, Typeface.BOLD);
         LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, -2, 1f);
+        titleLp.leftMargin = dp(4);
         headerTitle.setLayoutParams(titleLp);
 
+        GradientDrawable refreshBg = new GradientDrawable();
+        refreshBg.setColor(0xFF2A2A3A);
+        refreshBg.setCornerRadius(dp(6));
         refreshBtn = new Button(this);
         refreshBtn.setText("↻");
         refreshBtn.setTextColor(WHITE);
-        refreshBtn.setBackgroundColor(0x00000000);
+        refreshBtn.setBackground(refreshBg);
         refreshBtn.setTextSize(20f);
-        refreshBtn.setPadding(dp(8), 0, 0, 0);
+        refreshBtn.setPadding(dp(10), dp(4), dp(10), dp(4));
+        refreshBtn.setFocusable(true);
+        refreshBtn.setOnFocusChangeListener((v, f) -> {
+            refreshBg.setColor(f ? 0xFF3A3A6E : 0xFF2A2A3A);
+            refreshBg.setStroke(f ? dp(2) : 0, f ? 0xFFFFD700 : 0x00000000);
+        });
         refreshBtn.setOnClickListener(v -> {
             if (currentScreen == 1) fetchGames(true);
             else if (currentScreen == 2) fetchConfigs(selectedGame, true);
@@ -200,11 +224,18 @@ public class BhGameConfigsActivity extends Activity {
             public void afterTextChanged(Editable s) {}
         });
 
+        // Thin divider below search box
+        View searchDivider = new View(this);
+        searchDivider.setBackgroundColor(DIVIDER);
+
         gamesListView = new ListView(this);
         gamesListView.setBackgroundColor(BG);
         gamesListView.setDivider(null);
+        gamesListView.setDividerHeight(0);
+        gamesListView.setPadding(0, dp(4), 0, dp(4));
 
         s.addView(searchBox, new LinearLayout.LayoutParams(-1, -2));
+        s.addView(searchDivider, new LinearLayout.LayoutParams(-1, dp(1)));
         s.addView(gamesListView, new LinearLayout.LayoutParams(-1, 0, 1f));
         return s;
     }
@@ -224,17 +255,34 @@ public class BhGameConfigsActivity extends Activity {
                 android.R.layout.simple_list_item_1, snapshot) {
             @Override
             public View getView(int pos, View conv, android.view.ViewGroup parent) {
-                // Row: [cover ImageView 160×90dp] [game name text]
+                // Card with GradientDrawable for focus outline (D-pad gold stroke)
+                GradientDrawable cardBg = new GradientDrawable();
+                cardBg.setColor(SURFACE);
+                cardBg.setCornerRadius(dp(8));
+
                 LinearLayout row = new LinearLayout(getContext());
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setGravity(Gravity.CENTER_VERTICAL);
-                row.setBackgroundColor(BG);
+                row.setBackground(cardBg);
                 row.setPadding(0, dp(4), dp(16), dp(4));
+                row.setFocusable(true);
+                row.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+                row.setOnFocusChangeListener((v, hasFocus) -> {
+                    cardBg.setColor(hasFocus ? 0xFF22223A : SURFACE);
+                    cardBg.setStroke(hasFocus ? dp(2) : 0, hasFocus ? 0xFFFFD700 : 0x00000000);
+                });
+
+                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+                rowLp.setMargins(dp(8), dp(4), dp(8), dp(4));
+                row.setLayoutParams(rowLp);
 
                 // Cover art thumbnail
                 ImageView cover = new ImageView(getContext());
                 cover.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                cover.setBackgroundColor(SURFACE);
+                GradientDrawable coverBg = new GradientDrawable();
+                coverBg.setColor(0xFF111111);
+                coverBg.setCornerRadius(dp(8));
+                cover.setBackground(coverBg);
                 LinearLayout.LayoutParams imgLp = new LinearLayout.LayoutParams(dp(160), dp(90));
                 imgLp.rightMargin = dp(16);
                 row.addView(cover, imgLp);
@@ -353,10 +401,24 @@ public class BhGameConfigsActivity extends Activity {
                 android.R.layout.simple_list_item_1, labels) {
             @Override
             public View getView(int pos, View conv, android.view.ViewGroup parent) {
+                GradientDrawable cardBg = new GradientDrawable();
+                cardBg.setColor(SURFACE);
+                cardBg.setCornerRadius(dp(8));
+
                 LinearLayout row = new LinearLayout(getContext());
                 row.setOrientation(LinearLayout.VERTICAL);
-                row.setPadding(dp(20), dp(14), dp(20), dp(14));
-                row.setBackgroundColor(BG);
+                row.setPadding(dp(16), dp(12), dp(16), dp(12));
+                row.setBackground(cardBg);
+                row.setFocusable(true);
+                row.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+                row.setOnFocusChangeListener((v, hasFocus) -> {
+                    cardBg.setColor(hasFocus ? 0xFF22223A : SURFACE);
+                    cardBg.setStroke(hasFocus ? dp(2) : 0, hasFocus ? 0xFFFFD700 : 0x00000000);
+                });
+
+                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+                rowLp.setMargins(dp(8), dp(4), dp(8), dp(4));
+                row.setLayoutParams(rowLp);
 
                 String[] parts = finalLabels.get(pos).split("\n", 2);
                 TextView title = new TextView(getContext());
@@ -369,13 +431,11 @@ public class BhGameConfigsActivity extends Activity {
                 sub.setText(parts.length > 1 ? parts[1] : "");
                 sub.setTextColor(GREY);
                 sub.setTextSize(12f);
-
-                View div = new View(getContext());
-                div.setBackgroundColor(DIVIDER);
+                LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(-1, -2);
+                subLp.topMargin = dp(3);
 
                 row.addView(title);
-                row.addView(sub);
-                row.addView(div, new LinearLayout.LayoutParams(-1, 1));
+                row.addView(sub, subLp);
                 return row;
             }
         };

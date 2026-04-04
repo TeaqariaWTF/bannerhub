@@ -1179,14 +1179,28 @@ public class BhGameConfigsActivity extends Activity {
                                     getDatabasePath("ux_db").getAbsolutePath(), null,
                                     SQLiteDatabase.OPEN_READONLY);
                             Cursor cur = db.query("StarterGame",
-                                    new String[]{"gameId", "gameName"},
+                                    new String[]{"gameId", "gameName", "filePath"},
                                     "gameId IN (" + placeholders + ")", args,
                                     null, null, "gameName ASC");
                             java.util.Set<Integer> namedIds = new java.util.HashSet<>();
                             while (cur.moveToNext()) {
-                                gameIds.add(cur.getInt(0));
-                                gameNames.add(cur.getString(1));
-                                namedIds.add(cur.getInt(0));
+                                int gid = cur.getInt(0);
+                                String gname = cur.getString(1);
+                                if (gname == null || gname.trim().isEmpty()) {
+                                    String fp = cur.getString(2);
+                                    if (fp != null && !fp.isEmpty()) {
+                                        String seg = fp;
+                                        int slash = fp.lastIndexOf('/');
+                                        if (slash >= 0 && slash < fp.length() - 1)
+                                            seg = fp.substring(slash + 1);
+                                        gname = seg;
+                                    } else {
+                                        gname = "Game #" + gid;
+                                    }
+                                }
+                                gameIds.add(gid);
+                                gameNames.add(gname);
+                                namedIds.add(gid);
                             }
                             cur.close();
                             db.close();

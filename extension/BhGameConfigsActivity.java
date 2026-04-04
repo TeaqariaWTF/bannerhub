@@ -1170,7 +1170,9 @@ public class BhGameConfigsActivity extends Activity {
                             }
                         }
                         if (!foundIds.isEmpty()) {
-                            // Look up names from ux_db for only those IDs
+                            // Look up names from ux_db.
+                            // SP key = server gameId for server games, Room id (PK) for locally-added games.
+                            // Strategy: first pass queries by gameId; second pass queries by id for unmatched.
                             String placeholders = android.text.TextUtils.join(",", java.util.Collections.nCopies(foundIds.size(), "?"));
                             String[] args = new String[foundIds.size()];
                             int i = 0;
@@ -1178,33 +1180,45 @@ public class BhGameConfigsActivity extends Activity {
                             SQLiteDatabase db = SQLiteDatabase.openDatabase(
                                     getDatabasePath("ux_db").getAbsolutePath(), null,
                                     SQLiteDatabase.OPEN_READONLY);
+                            // Map: SP-key integer → display name (filled by both passes)
+                            java.util.Map<Integer,String> nameMap = new java.util.LinkedHashMap<>();
+                            // Pass 1: match by gameId (server games)
                             Cursor cur = db.query("StarterGame",
                                     new String[]{"gameId", "gameName", "filePath"},
                                     "gameId IN (" + placeholders + ")", args,
-                                    null, null, "gameName ASC");
-                            java.util.Set<Integer> namedIds = new java.util.HashSet<>();
+                                    null, null, null);
                             while (cur.moveToNext()) {
                                 int gid = cur.getInt(0);
-                                String gname = cur.getString(1);
-                                if (gname == null || gname.trim().isEmpty()) {
-                                    String fp = cur.getString(2);
-                                    if (fp != null && !fp.isEmpty()) {
-                                        String seg = fp;
-                                        int slash = fp.lastIndexOf('/');
-                                        if (slash >= 0 && slash < fp.length() - 1)
-                                            seg = fp.substring(slash + 1);
-                                        gname = seg;
-                                    } else {
-                                        gname = "Game #" + gid;
-                                    }
-                                }
-                                gameIds.add(gid);
-                                gameNames.add(gname);
-                                namedIds.add(gid);
+                                String gname = resolveGameName(gid, cur.getString(1), cur.getString(2));
+                                nameMap.put(gid, gname);
                             }
                             cur.close();
+                            // Pass 2: for IDs not yet found, try matching by Room PK id (locally-added games)
+                            java.util.Set<Integer> unmatched = new java.util.TreeSet<>();
+                            for (int id : foundIds) if (!nameMap.containsKey(id)) unmatched.add(id);
+                            if (!unmatched.isEmpty()) {
+                                String ph2 = android.text.TextUtils.join(",", java.util.Collections.nCopies(unmatched.size(), "?"));
+                                String[] args2 = new String[unmatched.size()];
+                                int j2 = 0;
+                                for (int id : unmatched) args2[j2++] = String.valueOf(id);
+                                Cursor cur2 = db.query("StarterGame",
+                                        new String[]{"id", "gameName", "filePath"},
+                                        "id IN (" + ph2 + ")", args2,
+                                        null, null, null);
+                                while (cur2.moveToNext()) {
+                                    int rid = cur2.getInt(0);
+                                    String gname = resolveGameName(rid, cur2.getString(1), cur2.getString(2));
+                                    nameMap.put(rid, gname);
+                                }
+                                cur2.close();
+                            }
                             db.close();
-                            // Fall back to "Game #id" for any SP file with no ux_db entry
+                            java.util.Set<Integer> namedIds = nameMap.keySet();
+                            for (java.util.Map.Entry<Integer,String> e : nameMap.entrySet()) {
+                                gameIds.add(e.getKey());
+                                gameNames.add(e.getValue());
+                            }
+                            // Fall back to "Game #id" for any SP file still unresolved
                             for (int id : foundIds) {
                                 if (!namedIds.contains(id)) {
                                     gameIds.add(id);
@@ -1638,6 +1652,16 @@ public class BhGameConfigsActivity extends Activity {
         OutputStream os = c.getOutputStream();
         os.write(jsonBody.getBytes("UTF-8")); os.close();
         return c;
+    }
+
+    private static String resolveGameName(int id, String gameName, String filePath) {
+        if (gameName != null && !gameName.trim().isEmpty()) return gameName;
+        if (filePath != null && !filePath.isEmpty()) {
+            int slash = filePath.lastIndexOf('/');
+            return (slash >= 0 && slash < filePath.length() - 1)
+                    ? filePath.substring(slash + 1) : filePath;
+        }
+        return "Game #" + id;
     }
 
     private String readResponse(HttpURLConnection conn) throws Exception {

@@ -1153,10 +1153,10 @@ public class BhGameConfigsActivity extends Activity {
                         // Collect gameIds from pc_g_setting*.xml filenames
                         java.util.Set<Integer> foundIds = new java.util.TreeSet<>();
                         for (File f : spFiles) {
-                            String n = f.getName();
-                            if (n.startsWith("pc_g_setting") && n.endsWith(".xml")) {
+                            String fn = f.getName();
+                            if (fn.startsWith("pc_g_setting") && fn.endsWith(".xml")) {
                                 try {
-                                    int id = Integer.parseInt(n.substring("pc_g_setting".length(), n.length() - 4));
+                                    int id = Integer.parseInt(fn.substring("pc_g_setting".length(), fn.length() - 4));
                                     foundIds.add(id);
                                 } catch (NumberFormatException ignored2) {}
                             }

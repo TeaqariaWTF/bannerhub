@@ -6,7 +6,9 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.view.ViewGroup;
 import android.os.Bundle;
 import android.os.Handler;
@@ -237,6 +239,7 @@ public class BhGameConfigsActivity extends Activity {
         gamesListView.setDivider(null);
         gamesListView.setDividerHeight(0);
         gamesListView.setPadding(0, dp(4), 0, dp(4));
+        gamesListView.setSelector(new ColorDrawable(0)); // transparent — we draw our own focus
 
         s.addView(searchBox, new LinearLayout.LayoutParams(-1, -2));
         s.addView(searchDivider, new LinearLayout.LayoutParams(-1, dp(1)));
@@ -259,22 +262,27 @@ public class BhGameConfigsActivity extends Activity {
                 android.R.layout.simple_list_item_1, snapshot) {
             @Override
             public View getView(int pos, View conv, android.view.ViewGroup parent) {
-                // Card with GradientDrawable for focus outline (D-pad gold stroke)
-                GradientDrawable cardBg = new GradientDrawable();
-                cardBg.setColor(SURFACE);
-                cardBg.setCornerRadius(dp(8));
+                // StateListDrawable — responds to state_selected (D-pad) + state_pressed (touch)
+                GradientDrawable normalBg = new GradientDrawable();
+                normalBg.setColor(SURFACE);
+                normalBg.setCornerRadius(dp(8));
+
+                GradientDrawable activeBg = new GradientDrawable();
+                activeBg.setColor(0xFF22223A);
+                activeBg.setCornerRadius(dp(8));
+                activeBg.setStroke(dp(2), 0xFFFFD700);
+
+                StateListDrawable sld = new StateListDrawable();
+                sld.addState(new int[]{android.R.attr.state_selected}, activeBg);
+                sld.addState(new int[]{android.R.attr.state_pressed},  activeBg);
+                sld.addState(new int[]{}, normalBg);
 
                 LinearLayout row = new LinearLayout(getContext());
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setGravity(Gravity.CENTER_VERTICAL);
-                row.setBackground(cardBg);
+                row.setBackground(sld);
                 row.setPadding(0, dp(4), dp(16), dp(4));
-                row.setFocusable(true);
                 row.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-                row.setOnFocusChangeListener((v, hasFocus) -> {
-                    cardBg.setColor(hasFocus ? 0xFF22223A : SURFACE);
-                    cardBg.setStroke(hasFocus ? dp(2) : 0, hasFocus ? 0xFFFFD700 : 0x00000000);
-                });
 
                 LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
                 rowLp.setMargins(dp(8), dp(4), dp(8), dp(4));
@@ -383,6 +391,7 @@ public class BhGameConfigsActivity extends Activity {
         configsListView = new ListView(this);
         configsListView.setBackgroundColor(BG);
         configsListView.setDivider(null);
+        configsListView.setSelector(new ColorDrawable(0));
 
         s.addView(configsListView, matchLinearParams());
         return s;
@@ -405,20 +414,25 @@ public class BhGameConfigsActivity extends Activity {
                 android.R.layout.simple_list_item_1, labels) {
             @Override
             public View getView(int pos, View conv, android.view.ViewGroup parent) {
-                GradientDrawable cardBg = new GradientDrawable();
-                cardBg.setColor(SURFACE);
-                cardBg.setCornerRadius(dp(8));
+                GradientDrawable normalBg2 = new GradientDrawable();
+                normalBg2.setColor(SURFACE);
+                normalBg2.setCornerRadius(dp(8));
+
+                GradientDrawable activeBg2 = new GradientDrawable();
+                activeBg2.setColor(0xFF22223A);
+                activeBg2.setCornerRadius(dp(8));
+                activeBg2.setStroke(dp(2), 0xFFFFD700);
+
+                StateListDrawable sld2 = new StateListDrawable();
+                sld2.addState(new int[]{android.R.attr.state_selected}, activeBg2);
+                sld2.addState(new int[]{android.R.attr.state_pressed},  activeBg2);
+                sld2.addState(new int[]{}, normalBg2);
 
                 LinearLayout row = new LinearLayout(getContext());
                 row.setOrientation(LinearLayout.VERTICAL);
                 row.setPadding(dp(16), dp(12), dp(16), dp(12));
-                row.setBackground(cardBg);
-                row.setFocusable(true);
+                row.setBackground(sld2);
                 row.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-                row.setOnFocusChangeListener((v, hasFocus) -> {
-                    cardBg.setColor(hasFocus ? 0xFF22223A : SURFACE);
-                    cardBg.setStroke(hasFocus ? dp(2) : 0, hasFocus ? 0xFFFFD700 : 0x00000000);
-                });
 
                 LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
                 rowLp.setMargins(dp(8), dp(4), dp(8), dp(4));

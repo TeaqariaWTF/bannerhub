@@ -825,7 +825,11 @@ public class BhGameConfigsActivity extends Activity {
                 String url = WORKER + "/games" + (refresh ? "?refresh=1" : "");
                 HttpURLConnection conn = openGet(url);
                 String body = readResponse(conn);
-                JSONArray arr = new JSONArray(body);
+                org.json.JSONTokener tok = new org.json.JSONTokener(body);
+                Object root = tok.nextValue();
+                if (!(root instanceof JSONArray))
+                    throw new Exception(root instanceof JSONObject ? ((JSONObject) root).optString("error", "Unexpected response") : "Unexpected response");
+                JSONArray arr = (JSONArray) root;
                 List<String> games = new ArrayList<>();
                 Map<String,Integer> counts = new HashMap<>();
                 for (int i = 0; i < arr.length(); i++) {
@@ -873,7 +877,11 @@ public class BhGameConfigsActivity extends Activity {
                 String url = WORKER + "/list?game=" + urlEncode(game) + (refresh ? "&refresh=1" : "");
                 HttpURLConnection conn = openGet(url);
                 String body = readResponse(conn);
-                JSONArray arr = new JSONArray(body);
+                org.json.JSONTokener tok2 = new org.json.JSONTokener(body);
+                Object root2 = tok2.nextValue();
+                if (!(root2 instanceof JSONArray))
+                    throw new Exception(root2 instanceof JSONObject ? ((JSONObject) root2).optString("error", "Unexpected response") : "Unexpected response");
+                JSONArray arr = (JSONArray) root2;
                 List<JSONObject> configs = new ArrayList<>();
                 for (int i = 0; i < arr.length(); i++) configs.add(arr.getJSONObject(i));
                 ui.post(() -> {

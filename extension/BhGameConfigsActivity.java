@@ -1143,27 +1143,68 @@ public class BhGameConfigsActivity extends Activity {
                 while ((n = in.read(buf)) != -1) fos.write(buf, 0, n);
                 in.close(); fos.close();
 
-                // Query installed games from ux_db
+                // Find games that have a pc_g_setting SP file (i.e. actually configured in GameHub)
                 final List<Integer> gameIds   = new ArrayList<>();
                 final List<String>  gameNames = new ArrayList<>();
                 try {
-                    SQLiteDatabase db = SQLiteDatabase.openDatabase(
-                            getDatabasePath("ux_db").getAbsolutePath(), null,
-                            SQLiteDatabase.OPEN_READONLY);
-                    Cursor cur = db.query("StarterGame",
-                            new String[]{"gameId", "gameName"},
-                            null, null, null, null, "gameName ASC");
-                    while (cur.moveToNext()) {
-                        gameIds.add(cur.getInt(0));
-                        gameNames.add(cur.getString(1));
+                    File spDir = new File(getApplicationInfo().dataDir, "shared_prefs");
+                    File[] spFiles = spDir.listFiles();
+                    if (spFiles != null) {
+                        // Collect gameIds from pc_g_setting*.xml filenames
+                        java.util.Set<Integer> foundIds = new java.util.TreeSet<>();
+                        for (File f : spFiles) {
+                            String n = f.getName();
+                            if (n.startsWith("pc_g_setting") && n.endsWith(".xml")) {
+                                try {
+                                    int id = Integer.parseInt(n.substring("pc_g_setting".length(), n.length() - 4));
+                                    foundIds.add(id);
+                                } catch (NumberFormatException ignored2) {}
+                            }
+                        }
+                        if (!foundIds.isEmpty()) {
+                            // Look up names from ux_db for only those IDs
+                            String placeholders = android.text.TextUtils.join(",", java.util.Collections.nCopies(foundIds.size(), "?"));
+                            String[] args = new String[foundIds.size()];
+                            int i = 0;
+                            for (int id : foundIds) args[i++] = String.valueOf(id);
+                            SQLiteDatabase db = SQLiteDatabase.openDatabase(
+                                    getDatabasePath("ux_db").getAbsolutePath(), null,
+                                    SQLiteDatabase.OPEN_READONLY);
+                            Cursor cur = db.query("StarterGame",
+                                    new String[]{"gameId", "gameName"},
+                                    "gameId IN (" + placeholders + ")", args,
+                                    null, null, "gameName ASC");
+                            java.util.Set<Integer> namedIds = new java.util.HashSet<>();
+                            while (cur.moveToNext()) {
+                                gameIds.add(cur.getInt(0));
+                                gameNames.add(cur.getString(1));
+                                namedIds.add(cur.getInt(0));
+                            }
+                            cur.close();
+                            db.close();
+                            // Fall back to "Game #id" for any SP file with no ux_db entry
+                            for (int id : foundIds) {
+                                if (!namedIds.contains(id)) {
+                                    gameIds.add(id);
+                                    gameNames.add("Game #" + id);
+                                }
+                            }
+                            // Re-sort by name
+                            java.util.List<int[]> pairs = new java.util.ArrayList<>();
+                            for (int j = 0; j < gameIds.size(); j++) pairs.add(new int[]{gameIds.get(j), j});
+                            pairs.sort((a2, b2) -> gameNames.get(a2[1]).compareToIgnoreCase(gameNames.get(b2[1])));
+                            List<Integer> sortedIds   = new ArrayList<>();
+                            List<String>  sortedNames = new ArrayList<>();
+                            for (int[] p : pairs) { sortedIds.add(gameIds.get(p[1])); sortedNames.add(gameNames.get(p[1])); }
+                            gameIds.clear();   gameIds.addAll(sortedIds);
+                            gameNames.clear(); gameNames.addAll(sortedNames);
+                        }
                     }
-                    cur.close();
-                    db.close();
                 } catch (Exception ignored) {}
 
                 if (gameNames.isEmpty()) {
                     ui.post(() -> Toast.makeText(this,
-                            "No installed games found in GameHub", Toast.LENGTH_SHORT).show());
+                            "No configured games found in GameHub", Toast.LENGTH_SHORT).show());
                     return;
                 }
 

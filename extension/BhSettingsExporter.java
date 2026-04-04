@@ -51,13 +51,27 @@ public class BhSettingsExporter {
     // ─── Export entry point ──────────────────────────────────────────────────
 
     public static void showExportDialog(Context ctx, int gameId, String gameName) {
+        // Build preview counts synchronously (just reading, not saving)
+        int settingsCount = 0;
+        int componentsCount = 0;
+        try {
+            settingsCount = ctx.getSharedPreferences(SP_PREFIX + gameId, Context.MODE_PRIVATE)
+                    .getAll().size();
+        } catch (Exception ignored) {}
+        try { componentsCount = buildComponentsArray(ctx).length(); } catch (Exception ignored) {}
+        String soc    = detectSoc(ctx);
+        String device = Build.MANUFACTURER + " " + Build.MODEL;
+
+        String preview = "Device:      " + device
+                + "\nSOC:         " + soc
+                + "\nSettings:    " + settingsCount
+                + "\nComponents:  " + componentsCount;
+
         new AlertDialog.Builder(ctx)
                 .setTitle("Export Config — " + gameName)
-                .setItems(new String[]{"Save Locally", "Save Locally + Share Online"},
-                        (dialog, which) -> {
-                            boolean share = (which == 1);
-                            doExport(ctx, gameId, gameName, share);
-                        })
+                .setMessage(preview)
+                .setPositiveButton("Save Locally",         (d, w) -> doExport(ctx, gameId, gameName, false))
+                .setNeutralButton("Save + Share Online",   (d, w) -> doExport(ctx, gameId, gameName, true))
                 .setNegativeButton("Cancel", null)
                 .show();
     }
@@ -236,11 +250,52 @@ public class BhSettingsExporter {
             new AlertDialog.Builder(ctx)
                     .setTitle("Device Configs for " + gameName)
                     .setItems(names, (dialog, which) ->
-                            applyConfig(ctx, gameId, gameName, finalFiles[which]))
+                            showLocalImportPreview(ctx, gameId, gameName, finalFiles[which]))
                     .setNegativeButton("Cancel", null)
                     .show();
         } catch (Exception e) {
             Toast.makeText(ctx, "Import error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private static void showLocalImportPreview(Context ctx, int gameId, String gameName, File configFile) {
+        try {
+            char[] buf = new char[(int) configFile.length()];
+            FileReader fr = new FileReader(configFile);
+            int n = fr.read(buf);
+            fr.close();
+            JSONObject json = new JSONObject(new String(buf, 0, n));
+
+            JSONObject meta        = json.optJSONObject("meta");
+            String previewDevice   = meta != null ? meta.optString("device", "Unknown") : "Unknown";
+            String previewSoc      = meta != null ? meta.optString("soc", "") : "";
+            int previewSettings    = meta != null ? meta.optInt("settings_count", 0)
+                    : (json.has("settings") ? json.getJSONObject("settings").length() : json.length());
+            int previewComponents  = meta != null ? meta.optInt("components_count", 0) : 0;
+
+            StringBuilder msg = new StringBuilder();
+            msg.append("Device:      ").append(previewDevice.replace("_", " ")).append("\n");
+            if (!previewSoc.isEmpty())
+                msg.append("SOC:         ").append(previewSoc.replace("_", " ")).append("\n");
+            msg.append("Settings:    ").append(previewSettings).append("\n");
+            msg.append("Components:  ").append(previewComponents);
+
+            String deviceSoc = detectSoc(ctx);
+            if (!previewSoc.isEmpty() && !previewSoc.replace("_", " ").equalsIgnoreCase(deviceSoc)) {
+                msg.append("\n\n⚠ SOC mismatch\nConfig: ").append(previewSoc.replace("_", " "))
+                   .append("\nYours:  ").append(deviceSoc)
+                   .append("\nResults may vary.");
+            }
+
+            new AlertDialog.Builder(ctx)
+                    .setTitle(configFile.getName())
+                    .setMessage(msg.toString())
+                    .setPositiveButton("Apply", (d, w) -> applyConfig(ctx, gameId, gameName, configFile))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } catch (Exception e) {
+            // Can't parse preview — fall through to direct apply
+            applyConfig(ctx, gameId, gameName, configFile);
         }
     }
 

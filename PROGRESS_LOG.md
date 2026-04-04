@@ -4,6 +4,16 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [fix] — v2.8.8-pre1 — Game Configs: remove My Device filter (2026-04-04)
+**Branch:** `main`  |  **Tag:** v2.8.8-pre1
+**Commit:** `bea4b3727`  |  **CI:** ⏳ run 23969070601
+**What changed:**
+- Removed "My Device" filter toggle bar from configs screen (Screen 2)
+- Removed `filterToggleBtn`, `filterByDevice`, `allConfigs`, `updateFilterToggle()`, `applyDeviceFilter()` fields/methods
+**Files touched:** extension/BhGameConfigsActivity.java
+
+---
+
 ## [feat] — v2.8.8-pre1 — Game Configs: D-pad nav, count badge, filter, age indicator, verified badge, share, report (2026-04-04)
 **Branch:** `main`  |  **Tag:** v2.8.8-pre1
 **Commit:** `d9fe43f35`  |  **CI:** ⏳ run 23968920755

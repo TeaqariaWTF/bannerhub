@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * BhSettingsExporter — per-game settings import/export with component bundling.
@@ -113,6 +114,11 @@ public class BhSettingsExporter {
             if (share) {
                 // Upload in background
                 String jsonStr = json.toString();
+                // Generate a random token so the uploader can later edit the description
+                String uploadToken = Long.toHexString(new Random().nextLong() & Long.MAX_VALUE);
+                String uploadDate  = new java.text.SimpleDateFormat("yyyy-MM-dd",
+                        java.util.Locale.US).format(new java.util.Date());
+
                 new Thread(() -> {
                     Handler ui = new Handler(Looper.getMainLooper());
                     try {
@@ -121,9 +127,10 @@ public class BhSettingsExporter {
                         String b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP);
 
                         JSONObject body = new JSONObject();
-                        body.put("game", safeName);
-                        body.put("filename", fileName);
-                        body.put("content", b64);
+                        body.put("game",         safeName);
+                        body.put("filename",     fileName);
+                        body.put("content",      b64);
+                        body.put("upload_token", uploadToken);
 
                         HttpURLConnection conn = (HttpURLConnection)
                                 new URL(WORKER_BASE + "/upload").openConnection();
@@ -147,6 +154,22 @@ public class BhSettingsExporter {
 
                         JSONObject resp = new JSONObject(sb2.toString());
                         boolean ok = resp.optBoolean("success", false);
+
+                        if (ok) {
+                            // Save upload record so user can find it in My Uploads
+                            String sha = resp.optString("sha", "");
+                            if (!sha.isEmpty()) {
+                                JSONObject record = new JSONObject();
+                                record.put("sha",      sha);
+                                record.put("game",     safeName);
+                                record.put("filename", fileName);
+                                record.put("date",     uploadDate);
+                                record.put("token",    uploadToken);
+                                ctx.getSharedPreferences("bh_config_uploads", Context.MODE_PRIVATE)
+                                   .edit().putString(sha, record.toString()).apply();
+                            }
+                        }
+
                         ui.post(() -> Toast.makeText(ctx,
                                 ok ? "Shared online: " + fileName : "Upload failed: " + resp.optString("error"),
                                 Toast.LENGTH_LONG).show());

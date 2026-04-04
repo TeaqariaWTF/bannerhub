@@ -71,8 +71,9 @@ public class BhGameConfigsActivity extends Activity {
     private static final String WORKER     = "https://bannerhub-configs-worker.the412banner.workers.dev";
     private static final String VOTES_SP   = "bh_config_votes";
     private static final String COVERS_SP  = "bh_steam_covers";
-    private static final String REPORTS_SP = "bh_config_reports";
-    private static final String EXPORT_DIR = "BannerHub/configs";
+    private static final String REPORTS_SP  = "bh_config_reports";
+    private static final String UPLOADS_SP  = "bh_config_uploads";
+    private static final String EXPORT_DIR  = "BannerHub/configs";
     private static final String STEAM_SEARCH = "https://store.steampowered.com/api/storesearch/?l=english&cc=us&term=";
     private static final String STEAM_HEADER = "https://cdn.akamai.steamstatic.com/steam/apps/%s/header.jpg";
 
@@ -88,10 +89,11 @@ public class BhGameConfigsActivity extends Activity {
     private static final int GOLD    = 0xFFFFD700;
 
     // ── Views ────────────────────────────────────────────────────────────────
-    private LinearLayout screenGames, screenConfigs, screenDetail;
+    private LinearLayout screenGames, screenConfigs, screenDetail, screenUploads;
     private TextView     headerTitle;
     private EditText     searchBox;
-    private ListView     gamesListView, configsListView;
+    private ListView     gamesListView, configsListView, uploadsListView;
+    private Button       myUploadsBtn;
 
     // Screen 3 dynamic views
     private LinearLayout commentsContainer;
@@ -106,8 +108,9 @@ public class BhGameConfigsActivity extends Activity {
     private Map<String,Integer> gameCounts  = new HashMap<>();
     private String     selectedGame;
     private JSONObject selectedConfig;
-    private int        currentScreen = 1; // 1=games, 2=configs, 3=detail
-    private String     currentSoc    = "";
+    private int        currentScreen  = 1; // 1=games, 2=configs, 3=detail, 4=uploads
+    private int        detailReturnTo = 2; // screen to return to from detail
+    private String     currentSoc     = "";
 
     private final Map<String, Bitmap>     coverCache      = new HashMap<>();
     private final Map<String, JSONObject> configJsonCache = new HashMap<>();
@@ -145,10 +148,12 @@ public class BhGameConfigsActivity extends Activity {
         screenGames   = buildGamesScreen();
         screenConfigs = buildConfigsScreen();
         screenDetail  = buildDetailScreen();
+        screenUploads = buildUploadsScreen();
 
         body.addView(screenGames,   matchParams());
         body.addView(screenConfigs, matchParams());
         body.addView(screenDetail,  matchParams());
+        body.addView(screenUploads, matchParams());
 
         wrapper.addView(body, new LinearLayout.LayoutParams(-1, 0, 1f));
         root.addView(wrapper, matchParams());
@@ -160,8 +165,9 @@ public class BhGameConfigsActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (currentScreen == 3) showScreen(2);
+        if (currentScreen == 3) showScreen(detailReturnTo);
         else if (currentScreen == 2) showScreen(1);
+        else if (currentScreen == 4) showScreen(1);
         else finish();
     }
 
@@ -218,8 +224,27 @@ public class BhGameConfigsActivity extends Activity {
             else if (currentScreen == 2) fetchConfigs(selectedGame, true);
         });
 
+        GradientDrawable uploadsBg = new GradientDrawable();
+        uploadsBg.setColor(0xFF2A2A3A);
+        uploadsBg.setCornerRadius(dp(6));
+        myUploadsBtn = new Button(this);
+        myUploadsBtn.setText("My Uploads");
+        myUploadsBtn.setTextColor(WHITE);
+        myUploadsBtn.setBackground(uploadsBg);
+        myUploadsBtn.setTextSize(11f);
+        myUploadsBtn.setPadding(dp(8), dp(4), dp(8), dp(4));
+        myUploadsBtn.setFocusable(true);
+        myUploadsBtn.setOnFocusChangeListener((v, f) -> {
+            uploadsBg.setColor(f ? 0xFF3A3A6E : 0xFF2A2A3A);
+            uploadsBg.setStroke(f ? dp(2) : 0, f ? GOLD : 0x00000000);
+        });
+        myUploadsBtn.setOnClickListener(v -> { showScreen(4); refreshUploadsList(); });
+        LinearLayout.LayoutParams ubLp = new LinearLayout.LayoutParams(-2, -2);
+        ubLp.rightMargin = dp(6);
+
         h.addView(back);
         h.addView(headerTitle);
+        h.addView(myUploadsBtn, ubLp);
         h.addView(refreshBtn);
         return h;
     }
@@ -483,8 +508,9 @@ public class BhGameConfigsActivity extends Activity {
                 LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(-1, -2);
                 subLp.topMargin = dp(3);
 
+                int downloads = c.optInt("downloads", 0);
                 TextView sub = new TextView(getContext());
-                sub.setText(date + "  ★ " + votes);
+                sub.setText(date + "  ★ " + votes + "  ↓ " + downloads);
                 sub.setTextColor(GREY);
                 sub.setTextSize(12f);
                 subRow.addView(sub);
@@ -503,6 +529,7 @@ public class BhGameConfigsActivity extends Activity {
         configsListView.setAdapter(adapter);
         configsListView.setOnItemClickListener((parent, view, pos, id) -> {
             selectedConfig = currentConfigs.get(pos);
+            detailReturnTo = 2;
             populateDetailScreen(selectedConfig);
             showScreen(3);
         });
@@ -576,6 +603,24 @@ public class BhGameConfigsActivity extends Activity {
         }
         content.addView(card, marginParams(0, 0, 0, dp(12)));
 
+        // Description card — shown to everyone; editable by uploader
+        LinearLayout descCard = surface();
+        descCard.setPadding(dp(16), dp(14), dp(16), dp(14));
+        descCard.setTag("desc_card");
+        content.addView(descCard, marginParams(0, 0, 0, dp(12)));
+
+        // Check if this is my upload (sha in bh_config_uploads SP)
+        String myToken = null;
+        try {
+            String stored = getSharedPreferences(UPLOADS_SP, 0).getString(sha, null);
+            if (stored != null) {
+                JSONObject rec = new JSONObject(stored);
+                myToken = rec.optString("token", null);
+            }
+        } catch (Exception ignored) {}
+        final String uploadToken = myToken;
+        fetchAndShowDesc(sha, descCard, uploadToken);
+
         // Meta card
         LinearLayout metaCard = surface();
         metaCard.setPadding(dp(16), dp(14), dp(16), dp(14));
@@ -588,8 +633,9 @@ public class BhGameConfigsActivity extends Activity {
         voteRow.setOrientation(LinearLayout.HORIZONTAL);
         voteRow.setGravity(Gravity.CENTER_VERTICAL);
 
+        int downloads = config.optInt("downloads", 0);
         votesLabel = new TextView(this);
-        votesLabel.setText("★ " + votes + " votes");
+        votesLabel.setText("★ " + votes + "  ↓ " + downloads);
         votesLabel.setTextColor(GOLD);
         votesLabel.setTextSize(16f);
         votesLabel.setTypeface(null, Typeface.BOLD);
@@ -1066,11 +1112,14 @@ public class BhGameConfigsActivity extends Activity {
     private void downloadConfig(JSONObject config) {
         String game     = config.optString("game_folder", selectedGame);
         String filename = config.optString("filename", "config.json");
+        String sha      = config.optString("sha", "");
         Toast.makeText(this, "Downloading...", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                HttpURLConnection conn = openGet(WORKER + "/download?game="
-                        + urlEncode(game) + "&file=" + urlEncode(filename));
+                String dlUrl = WORKER + "/download?game=" + urlEncode(game)
+                        + "&file=" + urlEncode(filename)
+                        + (sha.isEmpty() ? "" : "&sha=" + urlEncode(sha));
+                HttpURLConnection conn = openGet(dlUrl);
                 InputStream in = conn.getInputStream();
                 File dir = new File(android.os.Environment.getExternalStorageDirectory(), EXPORT_DIR);
                 dir.mkdirs();
@@ -1168,6 +1217,257 @@ public class BhGameConfigsActivity extends Activity {
         }).start();
     }
 
+    // ── Screen 4: My Uploads ──────────────────────────────────────────────────
+
+    private LinearLayout buildUploadsScreen() {
+        LinearLayout s = new LinearLayout(this);
+        s.setOrientation(LinearLayout.VERTICAL);
+        s.setBackgroundColor(BG);
+
+        TextView empty = new TextView(this);
+        empty.setText("No uploaded configs yet.\nShare a config from a game's settings to see it here.");
+        empty.setTextColor(GREY);
+        empty.setTextSize(13f);
+        empty.setPadding(dp(20), dp(20), dp(20), dp(20));
+        empty.setTag("uploads_empty");
+        s.addView(empty);
+
+        uploadsListView = new ListView(this);
+        uploadsListView.setBackgroundColor(BG);
+        uploadsListView.setDivider(null);
+        uploadsListView.setSelector(new ColorDrawable(0));
+        uploadsListView.setVisibility(View.GONE);
+        s.addView(uploadsListView, matchLinearParams());
+        return s;
+    }
+
+    private void refreshUploadsList() {
+        SharedPreferences sp = getSharedPreferences(UPLOADS_SP, 0);
+        List<JSONObject> uploads = new ArrayList<>();
+        for (Map.Entry<String, ?> e : sp.getAll().entrySet()) {
+            try { uploads.add(new JSONObject(String.valueOf(e.getValue()))); }
+            catch (Exception ignored) {}
+        }
+        // Sort newest first by filename timestamp
+        uploads.sort((a, b) -> b.optString("date", "").compareTo(a.optString("date", "")));
+
+        View emptyTv = screenUploads.findViewWithTag("uploads_empty");
+        if (uploads.isEmpty()) {
+            emptyTv.setVisibility(View.VISIBLE);
+            uploadsListView.setVisibility(View.GONE);
+            uploadsListView.setAdapter(null);
+            return;
+        }
+        emptyTv.setVisibility(View.GONE);
+        uploadsListView.setVisibility(View.VISIBLE);
+
+        ArrayAdapter<JSONObject> adapter = new ArrayAdapter<JSONObject>(this,
+                android.R.layout.simple_list_item_1, uploads) {
+            @Override
+            public View getView(int pos, View conv, android.view.ViewGroup parent) {
+                GradientDrawable normalBg = new GradientDrawable();
+                normalBg.setColor(SURFACE); normalBg.setCornerRadius(dp(8));
+                GradientDrawable activeBg = new GradientDrawable();
+                activeBg.setColor(0xFF22223A); activeBg.setCornerRadius(dp(8));
+                activeBg.setStroke(dp(2), GOLD);
+                StateListDrawable sld = new StateListDrawable();
+                sld.addState(new int[]{android.R.attr.state_selected}, activeBg);
+                sld.addState(new int[]{android.R.attr.state_pressed},  activeBg);
+                sld.addState(new int[]{}, normalBg);
+
+                LinearLayout row = new LinearLayout(getContext());
+                row.setOrientation(LinearLayout.VERTICAL);
+                row.setPadding(dp(16), dp(12), dp(16), dp(12));
+                row.setBackground(sld);
+                row.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+                rowLp.setMargins(dp(8), dp(4), dp(8), dp(4));
+                row.setLayoutParams(rowLp);
+
+                JSONObject rec = getItem(pos);
+                String game     = rec.optString("game", "").replace("_", " ");
+                String filename = rec.optString("filename", "");
+                String date     = rec.optString("date", "");
+
+                TextView title = new TextView(getContext());
+                title.setText(game);
+                title.setTextColor(WHITE); title.setTextSize(14f);
+                title.setTypeface(null, Typeface.BOLD);
+
+                TextView sub = new TextView(getContext());
+                sub.setText(filename + (date.isEmpty() ? "" : "  " + date));
+                sub.setTextColor(GREY); sub.setTextSize(11f);
+                LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
+                slp.topMargin = dp(2);
+
+                row.addView(title); row.addView(sub, slp);
+                return row;
+            }
+        };
+        uploadsListView.setAdapter(adapter);
+        uploadsListView.setOnItemClickListener((parent, view, pos, id) ->
+                openUploadDetail(uploads.get(pos)));
+    }
+
+    /** Fetch live config entry from /list and open its detail screen. */
+    private void openUploadDetail(JSONObject record) {
+        String game     = record.optString("game", "");
+        String filename = record.optString("filename", "");
+        String sha      = record.optString("sha", "");
+        headerTitle.setText("Loading...");
+        new Thread(() -> {
+            try {
+                HttpURLConnection conn = openGet(WORKER + "/list?game=" + urlEncode(game));
+                JSONArray arr = new JSONArray(readResponse(conn));
+                JSONObject found = null;
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject entry = arr.getJSONObject(i);
+                    if (sha.equals(entry.optString("sha", ""))
+                            || filename.equals(entry.optString("filename", ""))) {
+                        found = entry;
+                        break;
+                    }
+                }
+                // Fall back to minimal object from SP if not found in list
+                if (found == null) {
+                    found = new JSONObject();
+                    found.put("filename",    filename);
+                    found.put("sha",         sha);
+                    found.put("game_folder", game);
+                    found.put("date",        record.optString("date", ""));
+                }
+                final JSONObject config = found;
+                ui.post(() -> {
+                    detailReturnTo = 4;
+                    selectedGame = game;
+                    populateDetailScreen(config);
+                    showScreen(3);
+                });
+            } catch (Exception e) {
+                ui.post(() -> {
+                    headerTitle.setText("My Uploads");
+                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+    }
+
+    // ── Description: fetch + display + edit ───────────────────────────────────
+
+    /**
+     * Fetches the uploader's description for a config and populates descCard.
+     * If uploadToken is non-null, shows an edit section so the uploader can update it.
+     */
+    private void fetchAndShowDesc(String sha, LinearLayout descCard, String uploadToken) {
+        if (sha.isEmpty()) {
+            populateDescCard(descCard, "", uploadToken, sha);
+            return;
+        }
+        new Thread(() -> {
+            try {
+                HttpURLConnection conn = openGet(WORKER + "/desc?sha=" + urlEncode(sha));
+                JSONObject r = new JSONObject(readResponse(conn));
+                String text = r.optString("text", "");
+                ui.post(() -> populateDescCard(descCard, text, uploadToken, sha));
+            } catch (Exception e) {
+                ui.post(() -> populateDescCard(descCard, "", uploadToken, sha));
+            }
+        }).start();
+    }
+
+    private void populateDescCard(LinearLayout descCard, String text, String uploadToken, String sha) {
+        descCard.removeAllViews();
+        descCard.setPadding(dp(16), dp(14), dp(16), dp(14));
+
+        boolean isMyUpload = uploadToken != null && !uploadToken.isEmpty();
+
+        // Show existing description (visible to everyone)
+        if (!text.isEmpty()) {
+            TextView label = new TextView(this);
+            label.setText("Description");
+            label.setTextColor(ACCENT); label.setTextSize(11f);
+            label.setTypeface(null, Typeface.BOLD);
+            LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, -2);
+            llp.bottomMargin = dp(4);
+            descCard.addView(label, llp);
+
+            TextView descTv = new TextView(this);
+            descTv.setText(text);
+            descTv.setTextColor(WHITE); descTv.setTextSize(13f);
+            descCard.addView(descTv);
+        } else if (!isMyUpload) {
+            // No description and not my upload — hide the card entirely
+            descCard.setVisibility(View.GONE);
+            return;
+        }
+        descCard.setVisibility(View.VISIBLE);
+
+        // Edit section for uploader
+        if (isMyUpload) {
+            View divider = new View(this);
+            divider.setBackgroundColor(DIVIDER);
+            LinearLayout.LayoutParams dvp = new LinearLayout.LayoutParams(-1, dp(1));
+            dvp.topMargin = text.isEmpty() ? 0 : dp(10);
+            dvp.bottomMargin = dp(10);
+            if (!text.isEmpty()) descCard.addView(divider, dvp);
+
+            TextView editLabel = new TextView(this);
+            editLabel.setText(text.isEmpty() ? "Add a description for this config:" : "Edit description:");
+            editLabel.setTextColor(GREY); editLabel.setTextSize(11f);
+            LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(-1, -2);
+            elp.bottomMargin = dp(6);
+            descCard.addView(editLabel, elp);
+
+            EditText editBox = new EditText(this);
+            editBox.setText(text);
+            editBox.setHint("What does this config do? Which settings are tuned?");
+            editBox.setHintTextColor(0xFF666666);
+            editBox.setTextColor(WHITE);
+            editBox.setBackgroundColor(0xFF111111);
+            editBox.setPadding(dp(10), dp(8), dp(10), dp(8));
+            editBox.setMinLines(2);
+            editBox.setMaxLines(6);
+            descCard.addView(editBox, new LinearLayout.LayoutParams(-1, -2));
+
+            Button saveBtn = actionBtn("Save Description", ACCENT, null);
+            LinearLayout.LayoutParams sbp = new LinearLayout.LayoutParams(-1, -2);
+            sbp.topMargin = dp(8);
+            saveBtn.setOnClickListener(v -> {
+                String newText = editBox.getText().toString().trim();
+                saveBtn.setEnabled(false);
+                saveBtn.setText("Saving...");
+                new Thread(() -> {
+                    try {
+                        JSONObject body = new JSONObject();
+                        body.put("sha",   sha);
+                        body.put("token", uploadToken);
+                        body.put("text",  newText);
+                        HttpURLConnection conn = openPost(WORKER + "/describe", body.toString());
+                        JSONObject r = new JSONObject(readResponse(conn));
+                        if (r.optBoolean("success", false)) {
+                            ui.post(() -> {
+                                saveBtn.setEnabled(true);
+                                saveBtn.setText("Save Description");
+                                Toast.makeText(this, "Description saved", Toast.LENGTH_SHORT).show();
+                                // Refresh the card with new text
+                                populateDescCard(descCard, newText, uploadToken, sha);
+                            });
+                        } else {
+                            throw new Exception(r.optString("error", "Failed"));
+                        }
+                    } catch (Exception e) {
+                        ui.post(() -> {
+                            saveBtn.setEnabled(true);
+                            saveBtn.setText("Save Description");
+                            Toast.makeText(this, "Save failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                }).start();
+            });
+            descCard.addView(saveBtn, sbp);
+        }
+    }
+
     // ── Screen management ─────────────────────────────────────────────────────
 
     private void showScreen(int n) {
@@ -1175,8 +1475,12 @@ public class BhGameConfigsActivity extends Activity {
         screenGames.setVisibility(n == 1 ? View.VISIBLE : View.GONE);
         screenConfigs.setVisibility(n == 2 ? View.VISIBLE : View.GONE);
         screenDetail.setVisibility(n == 3 ? View.VISIBLE : View.GONE);
-        if (refreshBtn != null) refreshBtn.setVisibility(n == 3 ? View.GONE : View.VISIBLE);
+        screenUploads.setVisibility(n == 4 ? View.VISIBLE : View.GONE);
+        // Refresh only on games/configs; My Uploads only on games screen
+        if (refreshBtn   != null) refreshBtn.setVisibility((n == 1 || n == 2) ? View.VISIBLE : View.GONE);
+        if (myUploadsBtn != null) myUploadsBtn.setVisibility(n == 1 ? View.VISIBLE : View.GONE);
         if (n == 1) headerTitle.setText("Game Configs");
+        if (n == 4) headerTitle.setText("My Uploads");
     }
 
     // ── HTTP helpers ──────────────────────────────────────────────────────────

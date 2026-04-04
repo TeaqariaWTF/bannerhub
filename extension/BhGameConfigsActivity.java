@@ -708,9 +708,10 @@ public class BhGameConfigsActivity extends Activity {
         if (!alreadyReported) reportBtn.setOnClickListener(v -> doReport(config, reportBtn));
         content.addView(reportBtn, marginParams(0, 0, 0, dp(8)));
 
-        content.addView(
-            actionBtn("Apply to Game...", 0xFF4A148C, v -> applyConfigToGame(config)),
-            marginParams(0, 0, 0, dp(16)));
+        Button applyBtn = actionBtn("Apply to Game...", 0xFF4A148C, null);
+        applyBtn.setEnabled(false);
+        applyBtn.setAlpha(0.4f);
+        content.addView(applyBtn, marginParams(0, 0, 0, dp(16)));
 
         // Divider
         View div = new View(this);

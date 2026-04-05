@@ -4,6 +4,21 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [stable] — v2.9.1 — Delete own uploads + games count in header (2026-04-05)
+**Commit:** `168896755`  |  **Tag:** v2.9.1
+**CI:** ✅ run 23994335658 — 9 APKs
+#### What changed (since v2.9.0)
+- My Uploads (list): long-press any config → "Delete Upload" confirmation → removes from community list and local SP
+- My Uploads (detail): "Delete My Upload" button shown when viewing your own config; navigates back to My Uploads on success
+- Screen 1 header: games count appended to device/SOC subtitle; updates to "X of Y" while filtering; resets on other screens
+- Worker: `POST /delete` endpoint — verifies upload_token, deletes GitHub file, cleans all KV keys
+#### Files touched
+- extension/BhGameConfigsActivity.java
+- README.md
+- /tmp/bannerhub-configs-worker.js (deployed)
+
+---
+
 ### [pre] — v2.9.1-pre — Delete own uploads + total games count (2026-04-05)
 **Commit:** `aad272173`  |  **Tag:** v2.9.1-pre
 **CI:** ✅ run 23994237655

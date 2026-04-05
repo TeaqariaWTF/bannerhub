@@ -416,6 +416,7 @@ Accessible via the left side menu → **Game Configs**. A four-screen community 
 
 - Searchable list of all games that have community configs — each game shows a config count badge
 - Populated from a pre-built `games.json` file refreshed every 30 minutes and on every new upload
+- Total game count is shown in the header subtitle next to your device/SOC info (e.g. `Samsung SM-G998B  •  Adreno 750  •  89 games`); updates to `X of Y games` while the search box is active
 
 #### Configs list (Screen 2)
 
@@ -438,6 +439,7 @@ Accessible via the left side menu → **Game Configs**. A four-screen community 
 
 - Lists all configs you have uploaded in this session
 - **Edit Description** — add or update a description visible to other users (token-authenticated, only the original uploader can edit)
+- **Delete** — long-press any entry in the list, or tap the **Delete My Upload** button on the config detail screen, to permanently remove your config from the community database. A confirmation dialog is shown before anything is deleted. Token-authenticated — only the original uploader can delete their own config.
 
 #### Backed by
 

@@ -32,7 +32,7 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ## Entry 136 — feat: My Uploads delete own configs (v2.9.1-pre, main)
 **Date:** 2026-04-04
-**Branch:** main  |  **Tag:** v2.9.1-pre  |  **Commit:** 9e23056ec
+**Branch:** main  |  **Tag:** v2.9.1-pre  |  **Commit:** 8721a6a6e
 
 ### Root cause analysis
 No way for users to remove their own shared configs — only admin delete existed. Upload token
@@ -52,7 +52,7 @@ auth is trivially available without any new login flow.
 - KV cleanup: deletes `token:`, `votes:`, `downloads:`, `reports:`, `desc:`, `comments:{game}/{filename}`, `cache:list:{game}`, `cache:games`; decrements `counts:{game}` (deletes key if would go to 0)
 
 ### CI
-- **[CI⏳]** v2.9.1-pre queued
+- **[CI✅]** v2.9.1-pre run 23993907762 (Normal APK only)
 
 ---
 

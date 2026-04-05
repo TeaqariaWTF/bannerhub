@@ -5,8 +5,8 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 ---
 
 ### [pre] — v2.9.1-pre — My Uploads: delete own uploaded configs (2026-04-04)
-**Commit:** `9e23056ec`  |  **Tag:** v2.9.1-pre
-**CI:** queued run 23993832064
+**Commit:** `8721a6a6e`  |  **Tag:** v2.9.1-pre
+**CI:** ✅ run 23993907762
 #### What changed
 - My Uploads tab: long-press a config → "Delete Upload" confirmation dialog → POST /delete to worker → removes from community list + clears local SP record
 - Worker: new `POST /delete` endpoint — verifies upload_token, deletes GitHub file, cleans all KV keys (token/votes/downloads/reports/desc/comments/cache)

@@ -486,7 +486,7 @@ public class BhSettingsExporter {
                     .setTitle("Missing Components")
                     .setMessage(sb.toString())
                     .setPositiveButton("Download All", (d, w) ->
-                            downloadMissingComponents(ctx, missing, applySettings))
+                            downloadMissingComponents(ctx, missing, applySettings, gameId))
                     .setNegativeButton("Skip", (d, w) -> applySettings.run())
                     .show();
 
@@ -513,8 +513,11 @@ public class BhSettingsExporter {
     // ─── Download + Inject ───────────────────────────────────────────────────
 
     private static void downloadMissingComponents(Context ctx, List<String[]> components,
-                                                   Runnable onComplete) {
+                                                   Runnable onComplete, int gameId) {
         Toast.makeText(ctx, "Downloading " + components.size() + " component(s)...", Toast.LENGTH_LONG).show();
+        // Captures the actual EmuComponents-registered name for the GPU driver if it
+        // differs from the (potentially display-label-polluted) name in the config file.
+        final String[] gpuActualName = {null};
         new Thread(() -> {
             Handler ui = new Handler(Looper.getMainLooper());
             int success = 0;
@@ -544,7 +547,12 @@ public class BhSettingsExporter {
                     final String fu = url;
                     final String ft = type;
                     final File   fd = dest;
-                    ui.post(() -> injectAndRegister(ctx, fn, fu, ft, fd, uri, contentType));
+                    ui.post(() -> {
+                        String actual = injectAndRegister(ctx, fn, fu, ft, fd, uri, contentType);
+                        if ("GPU".equals(ft) && actual != null && !actual.equals(fn)) {
+                            gpuActualName[0] = actual;
+                        }
+                    });
                     success++;
 
                     Thread.sleep(600);
@@ -560,29 +568,79 @@ public class BhSettingsExporter {
                 Toast.makeText(ctx,
                         done + "/" + components.size() + " component(s) installed",
                         Toast.LENGTH_SHORT).show();
+                // Apply settings first (may write broken GPU driver name from config file)
                 onComplete.run();
+                // Then overwrite pc_ls_GPU_DRIVER_ with the actual registered name
+                if (gpuActualName[0] != null && gameId > 0) {
+                    fixGpuDriverName(ctx, gameId, gpuActualName[0]);
+                }
             });
         }).start();
     }
 
-    private static void injectAndRegister(Context ctx, String name, String url,
-                                          String type, File dest, Uri uri, int contentType) {
+    /**
+     * Injects a component and registers it in banners_sources.
+     *
+     * For GPU components, detects the actual name registered in EmuComponents
+     * (the versionName from profile.json inside the .tzst) by comparing the
+     * components directory before and after injection. Returns the actual name.
+     */
+    private static String injectAndRegister(Context ctx, String name, String url,
+                                            String type, File dest, Uri uri, int contentType) {
         try {
+            // Snapshot component dirs before injection to detect the newly registered name
+            File componentsDir = new File(ctx.getFilesDir(), "usr/home/components");
+            java.util.Set<String> before = new java.util.HashSet<>();
+            if ("GPU".equals(type) && componentsDir.exists()) {
+                String[] listing = componentsDir.list();
+                if (listing != null) java.util.Collections.addAll(before, listing);
+            }
+
             Class<?> cls = Class.forName(INJECTOR_CLS);
             Method m = cls.getMethod("injectComponent", Context.class, Uri.class, int.class);
             m.invoke(null, ctx, uri, contentType);
 
+            // For GPU: find what name was actually registered (versionName from profile.json)
+            String actualName = name;
+            if ("GPU".equals(type) && componentsDir.exists()) {
+                String[] after = componentsDir.list();
+                if (after != null) {
+                    for (String n2 : after) {
+                        if (!before.contains(n2)) { actualName = n2; break; }
+                    }
+                }
+            }
+
             SharedPreferences.Editor ed = ctx.getSharedPreferences(SOURCES_SP, Context.MODE_PRIVATE).edit();
-            ed.putString(name, "BannerHub");
+            ed.putString(actualName, "BannerHub");
             ed.putString("dl:" + url, "1");
-            if (!type.isEmpty()) ed.putString(name + ":type", type);
-            ed.putString("url_for:" + name, url);
+            if (!type.isEmpty()) ed.putString(actualName + ":type", type);
+            ed.putString("url_for:" + actualName, url);
             ed.apply();
 
             dest.delete();
+            return actualName;
         } catch (Exception e) {
             Toast.makeText(ctx, "Inject failed: " + name + " — " + e.getMessage(), Toast.LENGTH_LONG).show();
+            return name;
         }
+    }
+
+    /**
+     * Overwrites the name/displayName fields in pc_ls_GPU_DRIVER_ with the actual
+     * EmuComponents registry key. Called after applySettings to fix any display-label
+     * pollution copied verbatim from the imported config file.
+     */
+    private static void fixGpuDriverName(Context ctx, int gameId, String actualName) {
+        SharedPreferences gameSp = ctx.getSharedPreferences(SP_PREFIX + gameId, Context.MODE_PRIVATE);
+        String current = gameSp.getString("pc_ls_GPU_DRIVER_", "");
+        if (current.isEmpty()) return;
+        try {
+            JSONObject obj = new JSONObject(current);
+            obj.put("name", actualName);
+            obj.put("displayName", actualName);
+            gameSp.edit().putString("pc_ls_GPU_DRIVER_", obj.toString()).commit();
+        } catch (Exception ignored) {}
     }
 
     /**

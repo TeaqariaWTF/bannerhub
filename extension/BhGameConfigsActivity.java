@@ -130,12 +130,31 @@ public class BhGameConfigsActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Detect device SOC — Build.SOC_MODEL is API 31+
+        // Detect device SOC — same method as BhSettingsExporter.detectSoc()
+        // Primary: EGL-queried gpu_renderer cached in device_info SP (e.g. "Adreno (TM) 750")
         try {
-            if (android.os.Build.VERSION.SDK_INT >= 31) {
-                currentSoc = (String) android.os.Build.class.getField("SOC_MODEL").get(null);
-            }
+            android.content.SharedPreferences sp =
+                    getSharedPreferences("device_info", android.content.Context.MODE_PRIVATE);
+            currentSoc = sp.getString("gpu_renderer", "");
         } catch (Exception ignored) {}
+        // Fallback: kernel sysfs kgsl node
+        if (currentSoc == null || currentSoc.isEmpty()) {
+            try {
+                java.io.BufferedReader br = new java.io.BufferedReader(
+                        new java.io.FileReader("/sys/class/kgsl/kgsl-3d0/gpu_model"));
+                String line = br.readLine();
+                br.close();
+                if (line != null && !line.trim().isEmpty()) currentSoc = line.trim();
+            } catch (Exception ignored) {}
+        }
+        // Final fallback: Build.SOC_MODEL / HARDWARE
+        if (currentSoc == null || currentSoc.isEmpty()) {
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= 31) {
+                    currentSoc = (String) android.os.Build.class.getField("SOC_MODEL").get(null);
+                }
+            } catch (Exception ignored) {}
+        }
         if (currentSoc == null || currentSoc.isEmpty() || "unknown".equalsIgnoreCase(currentSoc)) {
             currentSoc = android.os.Build.HARDWARE;
         }

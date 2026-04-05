@@ -455,12 +455,7 @@ public class BhSettingsExporter {
             final String fileName = configFile.getName();
             Runnable applySettings = () -> {
                 editor.apply();
-                Toast.makeText(ctx, "Config applied — restarting to activate settings...", Toast.LENGTH_LONG).show();
-                // Restart LandscapeLauncherMainActivity so GameHub reloads game data
-                // from SP into its in-memory objects — without this, launched games
-                // fail because GameHub uses stale in-memory component state from before import.
-                new Handler(Looper.getMainLooper()).postDelayed(
-                        () -> restartMainActivity(ctx), 1200);
+                Toast.makeText(ctx, "Config applied from " + fileName, Toast.LENGTH_LONG).show();
             };
 
             // No components section — apply immediately
@@ -587,28 +582,6 @@ public class BhSettingsExporter {
             dest.delete();
         } catch (Exception e) {
             Toast.makeText(ctx, "Inject failed: " + name + " — " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
-    }
-
-    /**
-     * Restarts LandscapeLauncherMainActivity so GameHub reloads all game data objects
-     * from SharedPreferences. Required after import — GameHub caches game settings in
-     * memory at startup; writing SP alone does not update the in-memory state.
-     */
-    private static void restartMainActivity(Context ctx) {
-        try {
-            Class<?> cls = Class.forName(
-                    "com.xj.landscape.launcher.ui.main.LandscapeLauncherMainActivity");
-            android.content.Intent intent = new android.content.Intent(ctx, cls);
-            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                          | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-            ctx.startActivity(intent);
-        } catch (Exception e) {
-            // Fallback if class not found — just tell user to restart manually
-            new Handler(Looper.getMainLooper()).post(() ->
-                Toast.makeText(ctx,
-                        "Config applied. Please restart BannerHub to activate settings.",
-                        Toast.LENGTH_LONG).show());
         }
     }
 

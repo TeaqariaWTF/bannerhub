@@ -1657,8 +1657,7 @@ public class BhGameConfigsActivity extends Activity {
                 body.put("filename",     filename);
                 body.put("upload_token", uploadToken);
                 HttpURLConnection conn = openPost(WORKER + "/delete", body.toString());
-                int code = conn.getResponseCode();
-                String resp = readResponse(code >= 200 && code < 300 ? conn.getInputStream() : conn.getErrorStream());
+                String resp = readResponse(conn);
                 JSONObject r = new JSONObject(resp);
                 if (r.optBoolean("success", false)) {
                     getSharedPreferences(UPLOADS_SP, 0).edit().remove(sha).apply();

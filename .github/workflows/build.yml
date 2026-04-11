@@ -267,7 +267,7 @@ jobs:
             package: com.ludashi.aibench
             label: "BannerHub Ludashi"
           - variant: Genshin
-            package: com.mihoyo.genshinimpact
+            package: com.miHoYo.GenshinImpact
             label: "BannerHub Genshin"
           - variant: Original
             package: com.xiaoji.egggame

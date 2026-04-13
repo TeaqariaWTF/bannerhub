@@ -4,6 +4,23 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — v2.9.3-pre — Export/import config showed 0 settings and 0 components (2026-04-13)
+**Commit:** `cf42c7619`  |  **Tag:** v2.9.3-pre (retagged)
+**CI:** triggered
+#### What changed
+- Root cause: `BhExportLambda`/`BhImportLambda` called `GameDetailEntity.getId()` (int) instead of `getLocalGameId()` (String). For locally-added games, GameHub stores per-game settings in SP named `"pc_g_setting" + localGameId` where localGameId is a UUID string like `"local_5f129d63-..."`. Passing the int produced SP names like `"pc_g_setting0"` which are always empty.
+- `BhSettingsExporter`: all `int gameId` parameters changed to `String gameId`; `if (gameId > 0)` guard → `if (gameId != null && !gameId.isEmpty())`
+- `BhExportLambda.smali`: `getId()I` → `getLocalGameId()Ljava/lang/String;`; descriptor updated
+- `BhImportLambda.smali`: same change for `showImportDialog`
+- `BhGameConfigsActivity`: `List<Integer> gameIds` → `List<String> gameIds`; SP scanning now also collects `local_*` UUID suffixes (previously all skipped via `NumberFormatException`); local games shown as "Local Game (...XXXXXXXX)" in Apply to Game picker
+#### Files touched
+- `extension/BhSettingsExporter.java`
+- `extension/BhGameConfigsActivity.java`
+- `patches/smali/.../BhExportLambda.smali`
+- `patches/smali/.../BhImportLambda.smali`
+
+---
+
 ### [fix] — v2.9.3-pre — Genshin variant package name case fix (2026-04-11)
 **Commit:** `25c0b50e4`  |  **Tag:** v2.9.3-pre (retagged)
 **CI:** triggered

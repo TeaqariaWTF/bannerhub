@@ -34,9 +34,22 @@
     # v2 = GameDetailEntity
     iget-object v2, p0, Lcom/xj/landscape/launcher/ui/gamedetail/BhExportLambda;->b:Lcom/xj/common/service/bean/GameDetailEntity;
 
-    # v3 = localGameId (String) — e.g. "local_5f129d63-..." for locally-added games
+    # v3 = localGameId — "local_UUID" for locally-added games, "" for catalog games
     invoke-virtual {v2}, Lcom/xj/common/service/bean/GameDetailEntity;->getLocalGameId()Ljava/lang/String;
     move-result-object v3
+
+    # if localGameId is empty fall back to String.valueOf(getId()) — catalog/server games
+    # store in "local" SP as "pc_g_setting<integer>" e.g. "pc_g_setting271590"
+    invoke-virtual {v3}, Ljava/lang/String;->isEmpty()Z
+    move-result v0
+    if-eqz v0, :has_local_id
+
+    invoke-virtual {v2}, Lcom/xj/common/service/bean/GameDetailEntity;->getId()I
+    move-result v0
+    invoke-static {v0}, Ljava/lang/String;->valueOf(I)Ljava/lang/String;
+    move-result-object v3
+
+    :has_local_id
 
     # v4 = gameName (String)
     invoke-virtual {v2}, Lcom/xj/common/service/bean/GameDetailEntity;->getName()Ljava/lang/String;

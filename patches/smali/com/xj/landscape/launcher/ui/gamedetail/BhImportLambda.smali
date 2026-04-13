@@ -34,21 +34,25 @@
     # v2 = GameDetailEntity
     iget-object v2, p0, Lcom/xj/landscape/launcher/ui/gamedetail/BhImportLambda;->b:Lcom/xj/common/service/bean/GameDetailEntity;
 
-    # v3 = localGameId — "local_UUID" for locally-added games, "" for catalog games
+    # Replicate GameHub's own gameId resolution (GameDetailActivity lines 6363-6406):
+    #   if getId() > 0  → gameId = String.valueOf(getId())   (catalog/server game)
+    #   else            → gameId = getLocalGameId()           (locally-added game)
+    invoke-virtual {v2}, Lcom/xj/common/service/bean/GameDetailEntity;->getId()I
+    move-result v3
+
+    if-gtz v3, :has_server_id
+
+    # locally-added game — use UUID string e.g. "local_5f129d63-..."
     invoke-virtual {v2}, Lcom/xj/common/service/bean/GameDetailEntity;->getLocalGameId()Ljava/lang/String;
     move-result-object v3
+    goto :resolve_done
 
-    # if localGameId is empty fall back to String.valueOf(getId()) — catalog/server games
-    invoke-virtual {v3}, Ljava/lang/String;->isEmpty()Z
-    move-result v0
-    if-eqz v0, :has_local_id
-
-    invoke-virtual {v2}, Lcom/xj/common/service/bean/GameDetailEntity;->getId()I
-    move-result v0
-    invoke-static {v0}, Ljava/lang/String;->valueOf(I)Ljava/lang/String;
+    :has_server_id
+    # catalog/server game — use integer ID as string e.g. "271590"
+    invoke-static {v3}, Ljava/lang/String;->valueOf(I)Ljava/lang/String;
     move-result-object v3
 
-    :has_local_id
+    :resolve_done
 
     # v4 = gameName (String)
     invoke-virtual {v2}, Lcom/xj/common/service/bean/GameDetailEntity;->getName()Ljava/lang/String;

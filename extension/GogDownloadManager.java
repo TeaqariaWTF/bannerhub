@@ -1379,9 +1379,12 @@ public final class GogDownloadManager {
     public static String getOrFetchClientId(Context ctx, String gameId, String token) {
         SharedPreferences prefs = ctx.getSharedPreferences("bh_gog_prefs", 0);
         String cached = prefs.getString("gog_client_id_" + gameId, null);
-        if (cached != null && !cached.isEmpty()) return cached;
+        String cachedSecret = prefs.getString("gog_client_secret_" + gameId, null);
+        // Only skip the fetch if BOTH clientId and clientSecret are cached
+        if (cached != null && !cached.isEmpty()
+                && cachedSecret != null && !cachedSecret.isEmpty()) return cached;
 
-        Log.d(TAG, "clientId not cached for " + gameId + ", fetching from builds API");
+        Log.d(TAG, "clientId or clientSecret not cached for " + gameId + ", fetching from builds API");
         try {
             String buildsUrl = "https://content-system.gog.com/products/" + gameId
                     + "/os/windows/builds?generation=2";

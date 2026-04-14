@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — v3.0.4-pre — Cloud save 403 fixes (GOG clientId + Epic token refresh) (2026-04-14)
+**Commit:** `4c7b8777c`  |  **Tag:** v3.0.4-pre (retagged)
+**CI:** triggered
+#### What changed
+- **GOG**: `GogDownloadManager.runGen2()` now extracts `clientId` from manifest JSON header and caches as `gog_client_id_{gameId}` in bh_gog_prefs. `GogCloudSaveManager` reads this cached clientId (falls back to gameId). Root cause: product ID ≠ Galaxy client ID — GOG cloudstorage URL requires the client ID.
+- **Epic**: Removed broken `getValidToken()` from `EpicCloudSaveManager` which read `"expires_at"` but wrote back `"epic_expires_at"` (wrong key), causing stale tokens. Now uses `EpicCredentialStore.getValidAccessToken(ctx)` which handles refresh correctly.
+#### Files touched
+- extension/GogDownloadManager.java (extract + cache manifestClientId in runGen2)
+- extension/GogCloudSaveManager.java (use gog_client_id_{gameId} from prefs)
+- extension/EpicCloudSaveManager.java (replace getValidToken with EpicCredentialStore.getValidAccessToken)
+
+---
+
 ### [feat] — v3.0.1-pre — D-5 release dates + GOG-2/EPIC-3/AMAZON-1 update checkers (2026-04-14)
 **Commit:** `d9d595f37`  |  **Tag:** v3.0.1-pre (retagged)
 **CI:** ✅ run 24401674991

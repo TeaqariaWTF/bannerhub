@@ -6,7 +6,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ### [feat] — v3.0.1-pre — D-5 release dates + GOG-2/EPIC-3/AMAZON-1 update checkers (2026-04-14)
 **Commit:** `d9d595f37`  |  **Tag:** v3.0.1-pre (retagged)
-**CI:** triggered
+**CI:** ✅ run 24401674991
 #### What changed
 - D-5 (Release date in GAME INFO): GOG syncs `release_date` from product JSON as `gog_release_{id}`; Epic syncs `viewableDate`/`effectiveDate` from catalog enrichment as `epic_release_{appName}`; Both GOG+Epic detail pages show "Released: MMM D, YYYY" row in GAME INFO card. Amazon skipped (no API source).
 - GOG-2 (Update Checker): `GogDownloadManager.runGen2()` now stores `gog_build_{gameId}` in bh_gog_prefs at install time. `GogGameDetailActivity` UPDATES section replaced with real card: shows installed build ID, "Check for Updates" button hits content-system.gog.com builds endpoint, compares build_id, shows "Up to date ✓" or "Update available!" + "Update Now" button.

@@ -23,7 +23,7 @@
 **Current stable:** v3.0.0 (commit `19c6092d8`)
 **Active pre:** v3.0.1-pre (commit `d9d595f37`) — CI triggered
 
-**Last completed:** D-5 release dates + GOG-2/EPIC-3/AMAZON-1 update checkers (all confirmed working)
+**Last completed:** D-6 GOG ratings + EPIC-1 free games section
 **Next job:** GOG-3 DLC Management → EPIC-4 DLC → AMAZON-2 DLC → then cloud saves
 
 ---
@@ -37,7 +37,7 @@
 | D-2 | Strip HTML from descriptions | ✅ v3.0.1-pre | `Html.fromHtml()` in GOG + Epic detail |
 | D-3 | Install size in GAME INFO | ✅ v3.0.1-pre | GOG: sync-time; Epic/Amazon: lazy+cached |
 | D-5 | Release date in GAME INFO | ✅ v3.0.1-pre | GOG+Epic synced to SP; Amazon skipped (no API source) |
-| D-6 | Ratings / score in GAME INFO | ⬜ | GOG critic score; Epic/Amazon limited |
+| D-6 | Ratings / score in GAME INFO | ✅ v3.0.1-pre | GOG only (0–5★ from rating field); Epic/Amazon no reliable source |
 
 ### GOG
 | # | Job | Status | Notes |
@@ -50,7 +50,7 @@
 ### Epic Games
 | # | Job | Status | Notes |
 |---|-----|--------|-------|
-| EPIC-1 | Free Games section (library page) | ⬜ | No auth needed for list; lives in EpicGamesActivity |
+| EPIC-1 | Free Games section (library page) | ✅ v3.0.1-pre | freeGamesPromotions endpoint; FREE THIS WEEK cards above library |
 | EPIC-2 | Cloud Saves | ⬜ | After EPIC-4; `cloudsave-public-service-prod06.ol.epicgames.com` |
 | EPIC-3 | Update Checker | ✅ v3.0.1-pre | Re-fetch manifest, compare `buildVersion`; store `epic_manifest_version_{appName}` |
 | EPIC-4 | DLC / Add-on Management | ⬜ | After EPIC-3; catalog API, mainGameItem filter |
@@ -85,6 +85,8 @@
 | EPIC-2 Cloud Saves | ⬜ | — |
 | EPIC-1 Free Games | ⬜ | — |
 | AMAZON-1 Update Checker | ✅ | ⬜ |
+| D-6 GOG Rating | ✅ | ⬜ |
+| EPIC-1 Free Games | ✅ | ⬜ |
 | AMAZON-2 DLC | ⬜ | — |
 | GEN-1–5 | ⬜ | — |
 
@@ -343,5 +345,7 @@ Once a feature is confirmed working in BannerHub (✅), it becomes a candidate f
 | GOG-2 Update Checker | v3.0.1-pre | 2026-04-14 | content-system builds endpoint; confirmed working |
 | EPIC-3 Update Checker | v3.0.1-pre | 2026-04-14 | manifest buildVersion field; confirmed working |
 | AMAZON-1 Update Checker | v3.0.1-pre | 2026-04-14 | getGameDownload versionId; confirmed working |
+| D-6 Ratings in GAME INFO | v3.0.1-pre | 2026-04-14 | GOG only; 0–500 field → 0.0–5.0★ display |
+| EPIC-1 Free Games section | v3.0.1-pre | 2026-04-14 | FREE THIS WEEK cards above Epic library; no auth needed |
 
 ---

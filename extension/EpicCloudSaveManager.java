@@ -14,9 +14,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Epic Cloud Save upload/download manager.
@@ -51,9 +54,10 @@ public final class EpicCloudSaveManager {
                 EpicCredentialStore.Credentials creds = EpicCredentialStore.load(ctx);
                 String accountId = creds != null ? creds.accountId : null;
                 if (accountId == null || accountId.isEmpty()) { cb.onError("Epic account ID not found — please sign in again"); return; }
+                debug(ctx, "Epic upload — appName=" + appName + " accountId=" + accountId);
 
                 cb.onStatus("Fetching cloud file list…");
-                List<CloudFile> cloudFiles = listCloudFiles(accountId, appName, token);
+                List<CloudFile> cloudFiles = listCloudFiles(ctx, accountId, appName, token);
 
                 File[] localFiles = localFolder.listFiles();
                 if (localFiles == null || localFiles.length == 0) {
@@ -108,9 +112,10 @@ public final class EpicCloudSaveManager {
                 EpicCredentialStore.Credentials creds = EpicCredentialStore.load(ctx);
                 String accountId = creds != null ? creds.accountId : null;
                 if (accountId == null || accountId.isEmpty()) { cb.onError("Epic account ID not found — please sign in again"); return; }
+                debug(ctx, "Epic download — appName=" + appName + " accountId=" + accountId);
 
                 cb.onStatus("Fetching cloud file list…");
-                List<CloudFile> cloudFiles = listCloudFiles(accountId, appName, token);
+                List<CloudFile> cloudFiles = listCloudFiles(ctx, accountId, appName, token);
 
                 if (cloudFiles.isEmpty()) {
                     cb.onDone("No cloud saves found");
@@ -151,18 +156,28 @@ public final class EpicCloudSaveManager {
         String url;
     }
 
-    private static List<CloudFile> listCloudFiles(String accountId, String appName, String token)
+    private static List<CloudFile> listCloudFiles(Context ctx, String accountId, String appName, String token)
             throws Exception {
         String urlStr = BASE + accountId + "/" + appName + "/";
+        debug(ctx, "listCloudFiles URL=" + urlStr);
         HttpURLConnection conn = openConn(urlStr, "GET", token);
         int code = conn.getResponseCode();
-        if (code == 404) { conn.disconnect(); return new ArrayList<>(); }
-        if (code < 200 || code >= 300) {
+        debug(ctx, "listCloudFiles HTTP=" + code);
+        if (code == 404) {
+            debug(ctx, "listCloudFiles 404 — no saves on cloud yet");
             conn.disconnect();
+            return new ArrayList<>();
+        }
+        if (code < 200 || code >= 300) {
+            String errBody = "";
+            try { errBody = readStream(conn.getErrorStream()); } catch (Exception ignored) {}
+            conn.disconnect();
+            debug(ctx, "listCloudFiles error body=" + errBody.substring(0, Math.min(300, errBody.length())));
             throw new Exception("HTTP " + code + " listing saves");
         }
         String body = readStream(conn.getInputStream());
         conn.disconnect();
+        debug(ctx, "listCloudFiles body snippet=" + body.substring(0, Math.min(300, body.length())));
 
         List<CloudFile> result = new ArrayList<>();
         if (body == null || body.isEmpty()) return result;
@@ -339,6 +354,20 @@ public final class EpicCloudSaveManager {
         try (FileOutputStream fos = new FileOutputStream(dest)) {
             fos.write(data);
         }
+    }
+
+    // ── Debug file helper ─────────────────────────────────────────────────────
+
+    static void debug(Context ctx, String msg) {
+        try {
+            String ts = new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date());
+            String line = ts + " [EPIC] " + msg + "\n";
+            File f = new File(ctx.getExternalFilesDir(null), "bh_cloud_debug.txt");
+            try (FileOutputStream fos = new FileOutputStream(f, true)) {
+                fos.write(line.getBytes("UTF-8"));
+            }
+        } catch (Exception ignored) {}
+        Log.d(TAG, msg);
     }
 
     private EpicCloudSaveManager() {}

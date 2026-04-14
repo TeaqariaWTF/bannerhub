@@ -14,8 +14,11 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * GOG Cloud Save upload/download manager.
@@ -50,10 +53,11 @@ public final class GogCloudSaveManager {
                 if (token == null) { cb.onError("Not logged in to GOG"); return; }
                 String userId = prefs.getString("user_id", null);
                 if (userId == null) { cb.onError("GOG user ID not found — please sign in again"); return; }
-                String clientId = prefs.getString("gog_client_id_" + gameId, gameId);
+                String clientId = GogDownloadManager.getOrFetchClientId(ctx, gameId, token);
+                debug(ctx, "GOG upload — gameId=" + gameId + " userId=" + userId + " clientId=" + clientId);
 
                 cb.onStatus("Fetching cloud file list…");
-                List<CloudFile> cloudFiles = listCloudFiles(userId, clientId, token);
+                List<CloudFile> cloudFiles = listCloudFiles(ctx, userId, clientId, token);
 
                 File[] localFiles = localFolder.listFiles();
                 if (localFiles == null || localFiles.length == 0) {
@@ -107,10 +111,11 @@ public final class GogCloudSaveManager {
                 if (token == null) { cb.onError("Not logged in to GOG"); return; }
                 String userId = prefs.getString("user_id", null);
                 if (userId == null) { cb.onError("GOG user ID not found — please sign in again"); return; }
-                String clientId = prefs.getString("gog_client_id_" + gameId, gameId);
+                String clientId = GogDownloadManager.getOrFetchClientId(ctx, gameId, token);
+                debug(ctx, "GOG download — gameId=" + gameId + " userId=" + userId + " clientId=" + clientId);
 
                 cb.onStatus("Fetching cloud file list…");
-                List<CloudFile> cloudFiles = listCloudFiles(userId, clientId, token);
+                List<CloudFile> cloudFiles = listCloudFiles(ctx, userId, clientId, token);
 
                 if (cloudFiles.isEmpty()) {
                     cb.onDone("No cloud saves found");
@@ -158,10 +163,12 @@ public final class GogCloudSaveManager {
         long lastModifiedMs; // epoch milliseconds
     }
 
-    private static List<CloudFile> listCloudFiles(String userId, String clientId, String token)
+    private static List<CloudFile> listCloudFiles(Context ctx, String userId, String clientId, String token)
             throws Exception {
         String url = BASE + userId + "/" + clientId;
+        debug(ctx, "listCloudFiles URL=" + url);
         String body = getRequest(url, token);
+        debug(ctx, "listCloudFiles response len=" + (body == null ? "null" : body.length()) + " snippet=" + (body != null ? body.substring(0, Math.min(120, body.length())) : ""));
         List<CloudFile> result = new ArrayList<>();
         if (body == null || body.isEmpty()) return result;
         JSONArray arr = new JSONArray(body);
@@ -188,10 +195,13 @@ public final class GogCloudSaveManager {
     private static String getRequest(String urlStr, String token) throws Exception {
         HttpURLConnection conn = openConn(urlStr, "GET", token);
         int code = conn.getResponseCode();
+        Log.d(TAG, "GET " + urlStr + " → " + code);
         if (code == 404) { conn.disconnect(); return "[]"; }
         if (code < 200 || code >= 300) {
+            String errBody = "";
+            try { errBody = readStream(conn.getErrorStream()); } catch (Exception ignored) {}
             conn.disconnect();
-            throw new Exception("HTTP " + code);
+            throw new Exception("HTTP " + code + " body=" + errBody.substring(0, Math.min(200, errBody.length())));
         }
         String body = readStream(conn.getInputStream());
         conn.disconnect();
@@ -274,6 +284,20 @@ public final class GogCloudSaveManager {
         try (FileOutputStream fos = new FileOutputStream(dest)) {
             fos.write(data);
         }
+    }
+
+    // ── Debug file helper ─────────────────────────────────────────────────────
+
+    static void debug(Context ctx, String msg) {
+        try {
+            String ts = new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date());
+            String line = ts + " [GOG] " + msg + "\n";
+            File f = new File(ctx.getExternalFilesDir(null), "bh_cloud_debug.txt");
+            try (FileOutputStream fos = new FileOutputStream(f, true)) {
+                fos.write(line.getBytes("UTF-8"));
+            }
+        } catch (Exception ignored) {}
+        Log.d(TAG, msg);
     }
 
     private GogCloudSaveManager() {}

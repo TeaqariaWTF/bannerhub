@@ -46,6 +46,7 @@ Before any stable release is published, all changes are manually debugged and te
   - [UI Tweaks](#ui-tweaks)
 - [How It Works](#how-it-works)
 - [FAQ](#faq)
+- [BannerHub Lite](#bannerhub-lite)
 - [Credits](#credits)
 - [Signing](#signing)
 
@@ -64,7 +65,7 @@ Download the APK that matches your existing GameHub package name from the [lates
 | `BannerHub-vX.Y.Z-alt-AnTuTu.apk` | `com.antutu.benchmark.full` | BannerHub AnTuTu |
 | `BannerHub-vX.Y.Z-PuBG-CrossFire.apk` | `com.tencent.tmgp.cf` | BannerHub PuBG CrossFire |
 | `BannerHub-vX.Y.Z-Ludashi.apk` | `com.ludashi.aibench` | BannerHub Ludashi |
-| `BannerHub-vX.Y.Z-Genshin.apk` | `com.mihoyo.genshinimpact` | BannerHub Genshin |
+| `BannerHub-vX.Y.Z-Genshin.apk` | `com.miHoYo.GenshinImpact` | BannerHub Genshin |
 | `BannerHub-vX.Y.Z-Original.apk` | `com.xiaoji.egggame` | BannerHub Original |
 
 **Which APK do I need?**
@@ -474,6 +475,12 @@ A dialog lets you choose:
 
 If a config references components not currently installed, a dialog lists the missing ones and offers to download and install them via the Component Manager before applying.
 
+#### Cross-Compatibility with BannerHub Lite
+
+Configs exported from BannerHub are fully compatible with **[BannerHub Lite](https://github.com/The412Banner/Bannerhub-Lite)**, and vice versa.
+
+Both apps store per-game Wine settings under the same SharedPreferences keys (`pc_g_setting<gameId>`) and export to the same folder (`/sdcard/BannerHub/configs/`). The export format is identical — the app that created the config has no effect on whether it can be imported. The `app_source` field in the JSON (`"bannerhub"` or `"bannerhub_lite"`) is only used by the community config site for filtering and is ignored during import.
+
 ---
 
 ### Per-Game CPU Core Affinity
@@ -618,6 +625,29 @@ Inside the app's private storage: `Android/data/<package>/files/gog_games/<name>
 **Q: Does Amazon login work with two-factor authentication (OTP)?**
 
 Yes. BannerHub detects the authorization code directly in the redirect URL regardless of which intermediate pages Amazon routes through during OTP/2FA, so login completes correctly with or without 2FA enabled on your account.
+
+---
+
+## BannerHub Lite
+
+**[BannerHub Lite](https://github.com/The412Banner/Bannerhub-Lite)** is a companion project that ports the same BannerHub features into **GameHub Lite 5.1.4** (vanilla, non-ReVanced base). If you are running GameHub Lite rather than GameHub 5.3.5 ReVanced, BannerHub Lite is the correct build to use.
+
+| | BannerHub (this) | BannerHub Lite |
+|---|---|---|
+| **Base app** | GameHub 5.3.5 — ReVanced | GameHub Lite 5.1.4 — vanilla |
+| **APK size** | ~138 MB | ~47 MB |
+| **GOG / Amazon / Epic tabs** | Yes | Yes |
+| **Component Manager + Downloader** | Yes | Yes |
+| **Winlator HUD (Normal + Extra Detailed)** | Yes | Yes |
+| **Export / Import Config** | Yes | Yes |
+| **Community Game Configs browser** | Yes | No |
+| **Component descriptions in picker** | Yes | No |
+| **Konkr Style HUD** | Yes | No |
+| **RTS Touch Controls** | Patched in | Built into base |
+| **GPU System Driver default** | No | Yes |
+| **Launch fix (hardware whitelist bypass)** | No | Yes |
+
+Game configs exported from either app are cross-compatible — see [Per-Game Config Export / Import](#per-game-config-export--import).
 
 ---
 

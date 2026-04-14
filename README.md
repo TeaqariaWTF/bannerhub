@@ -572,6 +572,8 @@ BannerHub includes a complete **3,468-string Japanese translation** covering eve
 
 ---
 
+---
+
 ### Virtual Container Cleanup on Uninstall
 
 When a game is installed and launched, GameHub creates a Wine virtual container at `virtual_containers/{gameId}/` to hold the game's Windows environment. BannerHub ensures this container directory is fully cleaned up when the game is uninstalled, preventing orphaned containers from accumulating on disk over time.
@@ -640,6 +642,7 @@ Yes. BannerHub detects the authorization code directly in the redirect URL regar
 | **Component Manager + Downloader** | Yes | Yes |
 | **Winlator HUD (Normal + Extra Detailed)** | Yes | Yes |
 | **Export / Import Config** | Yes | Yes |
+| **Controller D-pad navigation** | Yes | Yes |
 | **Community Game Configs browser** | Yes | No |
 | **Component descriptions in picker** | Yes | No |
 | **Konkr Style HUD** | Yes | No |

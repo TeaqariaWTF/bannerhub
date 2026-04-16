@@ -850,6 +850,7 @@ public class EpicDownloadManager {
                 conn.setRequestProperty("User-Agent", UA);
                 if (conn.getResponseCode() != 200) { conn.disconnect(); continue; }
 
+                long[] writtenRef = {0};
                 try (InputStream in = conn.getInputStream();
                      FileOutputStream fos = new FileOutputStream(outFile)) {
 
@@ -879,6 +880,7 @@ public class EpicDownloadManager {
                         Inflater inflater = new Inflater();
                         byte[] obuf = new byte[131072];
                         int remaining = compressedSize;
+                        long writtenBytes = 0;
                         try {
                             while (remaining > 0 && !inflater.finished()) {
                                 if (inflater.needsInput()) {
@@ -889,25 +891,37 @@ public class EpicDownloadManager {
                                     inflater.setInput(iobuf, 0, n);
                                 }
                                 int out = inflater.inflate(obuf);
-                                if (out > 0) fos.write(obuf, 0, out);
+                                if (out > 0) { fos.write(obuf, 0, out); writtenBytes += out; }
                             }
                             // drain any remaining output
                             int out;
-                            while ((out = inflater.inflate(obuf)) > 0) fos.write(obuf, 0, out);
+                            while ((out = inflater.inflate(obuf)) > 0) { fos.write(obuf, 0, out); writtenBytes += out; }
                         } finally {
                             inflater.end();
                         }
+                        writtenRef[0] = writtenBytes;
                     } else {
                         // stored as-is
                         int remaining = compressedSize;
+                        long writtenBytes = 0;
                         while (remaining > 0) {
                             int toRead = Math.min(iobuf.length, remaining);
                             int n = in.read(iobuf, 0, toRead);
                             if (n <= 0) break;
                             fos.write(iobuf, 0, n);
                             remaining -= n;
+                            writtenBytes += n;
                         }
+                        writtenRef[0] = writtenBytes;
                     }
+                }
+                // Validate decompressed size — catches silent truncation from dropped connections
+                if (chunk.windowSize > 0 && writtenRef[0] != chunk.windowSize) {
+                    Log.w(TAG, "Chunk truncated " + chunk.guidStr()
+                            + ": expected=" + chunk.windowSize + " got=" + writtenRef[0]
+                            + " CDN=" + cdn.baseUrl);
+                    outFile.delete();
+                    continue;
                 }
                 conn.disconnect();
                 return true;

@@ -4748,8 +4748,6 @@ Promotes all v3.0.x pre-releases to stable. Bundles:
 BannerHub-v3.1.0-Normal.apk, Normal.GHL.apk, PuBG.apk, PuBG-CrossFire.apk, Genshin.apk, Ludashi.apk, AnTuTu.apk, alt-AnTuTu.apk, Original.apk
 
 
-
-
 ### [docs+triage] — README badges expansion + issue triage sweep (2026-05-14)
 **Commits:** `aba0fbb` (feature branch), `67d10f2` (badges → main), `378c0e3` (latest-release link → main), `4467ce9` (for-the-badge upsize → main)
 
@@ -5001,3 +4999,19 @@ Per [[BannerHub-pre-release-policy]], all builds from this point are pre-release
 
 #### Credits surface
 Release body credits the four upstream `utkarshdalal/GameNative` contributors (Utkarsh Dalal #1220 + #1219, Bart Zaalberg #1215, Joshua Tam #1277, co-author Jeremy Bernstein #1219) and [teldommm](https://github.com/teldommm) for the FrameGen onResume fix (Bannerhub-Lite PR #5). The `gamehub_reports/GAMENATIVE_GOG_PORT_CREDITS.md` doc in the repo is the canonical attribution record.
+
+## 2026-05-15 — fix(vibration): preload-free winebus patch — removes libevshim, fixes x86-64/box64 launch death
+
+Branch `fix/vibration-preload-free` off `main`. Supersedes the interim `fix/evshim-box64-guard` (kept as a fallback).
+
+**Why:** v3.7.0's `libevshim.so` was LD_PRELOAD'd into every Wine subprocess; its in-memory winebus GOT/.bss patcher `mprotect`'d + rewrote the *guest* x86_64 `winebus.so` while box64's dynarec was JIT-translating it → translation-cache corruption → every x86-64/box64 game launch CPU-spun ~60 s then the wine process died. Root-caused 2026-05-15 from device logs (`com.tencent.ig`, Dead Cells, Proton 10 x64, Box64-0.4.1-2). arm64x/FEX unaffected.
+
+**Fix (ported from GameNative PR #1214 / TideGear `GameHub-Vibration-Fix`, with the author's explicit permission — same lineage BannerHub's evshim already credited):** drop the LD_PRELOAD/libevshim approach entirely; instead statically patch `winebus.so`'s SDL duration loads on disk (aarch64 + x86_64) so SDL2's ~1 s rumble auto-expiry never fires. No extra `.so` mapped into Wine → the crash class is eliminated AND rumble works on box64.
+
+Changes:
+- `extension/BhVibrationController.java` → replaced with the preload-free version (adds `ensureWinebusDurationPatchOnce(Context)`; same package `com.xj.winemu.vibration` + identical prefs constants → drop-in). `BhVibrationSettingsActivity.java` byte-identical, untouched.
+- `scripts/patch_winebus_rumble_duration.py` added (offline winebus patch util).
+- `build-quick.yml` + `build.yml`: removed the "Build libevshim.so" step; **Patch 3 rewritten** from "prepend libevshim.so to LD_PRELOAD" → call `BhVibrationController.ensureWinebusDurationPatchOnce(ctx)` at the same env-builder anchor (Context at `p0->a`, fires once pre-launch, self-gates repeat scans, no LD_PRELOAD changes). onRumble/dispatchToController/onStop hooks unchanged.
+- `native/evshim/evshim.c` now unused (no build step); left in tree (reversible).
+
+Pre-release per policy ([[feedback_bannerhub_prerelease]]). Quick CI dispatched on the branch; full `build.yml` needed for the PuBG-variant device test (`com.tencent.ig`, Dead Cells on the x86-64/Box64 container — the failing config). Validate winebus byte patterns against BannerHub's proton10/11+box64 winebus.so; `winebus_dump_x86_64.so` fallback covers a pattern miss. See memory `project_bannerhub_evshim_box64_regression` + `reference_gamehub_vibration_fix_preloadfree`.

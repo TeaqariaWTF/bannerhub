@@ -5051,3 +5051,17 @@ Changes:
 - `native/evshim/evshim.c` now unused (no build step); left in tree (reversible).
 
 Pre-release per policy ([[feedback_bannerhub_prerelease]]). Quick CI dispatched on the branch; full `build.yml` needed for the PuBG-variant device test (`com.tencent.ig`, Dead Cells on the x86-64/Box64 container — the failing config). Validate winebus byte patterns against BannerHub's proton10/11+box64 winebus.so; `winebus_dump_x86_64.so` fallback covers a pattern miss. See memory `project_bannerhub_evshim_box64_regression` + `reference_gamehub_vibration_fix_preloadfree`.
+
+
+## 2026-05-16 — rebase fix/vibration-preload-free onto v3.7.3 (clean 3.7.4 base) + quick build
+
+**Why:** `fix/vibration-preload-free` was branched off v3.7.2 (`8b987743b`), so it did NOT contain v3.7.3's GOG-overhaul + FrameGen-onResume fix + CI release-push gate. A 3.7.4 cut from it as-is would have regressed those. Also discovered the local `main` ref in `~/bannerhub` was stale at v3.7.2 (the v3.7.3 work was pushed from another session); `origin/main` was correctly at v3.7.3 + ship-outcome doc (`c3e95867`).
+
+**Done:**
+- Fast-forwarded local `main` → `origin/main` (`c3e95867`); clears the stale-checkout confusion.
+- Rebased `fix/vibration-preload-free` onto `origin/main`. v3.7.3 (`58f270a`) now confirmed ancestor. **Branch history rewritten** — HEAD `7199d1cb3`; the 5 commits are now `385f9445f` (preload-free + remove libevshim) → `b210089dc` (build.yml `| sed` BH_VERSION fix) → `3434821a0` (adopt TideGear PR #91 controller) → `adf0b1b1b` (docs) → `7199d1cb3` (docs: DEVICE-VERIFIED). Old SHAs (`7f7dcf2e9`/`82d9887`/`2e7009403`/`c17e6a975` …) are dead.
+- **Only one rebase conflict:** `PROGRESS_LOG.md` doc-history collision (commit 1/5). Resolved by keeping BOTH v3.7.3's 2026-05-14 entries and the 2026-05-15 vibration entry in chronological order — no content dropped. The predicted `build.yml` conflict did NOT occur: the `| sed` fix (`build.yml:704` / `build-quick.yml:69`) and v3.7.3's release-push gate (`build.yml:758` `if: github.event_name == 'push'`) auto-merged; both verified present.
+- Force-pushed (`--force-with-lease`) `fix/vibration-preload-free` to origin at `7199d1cb3`.
+- Triggered `build-quick.yml` (workflow_dispatch) on the branch → **[run 25967333774](https://github.com/The412Banner/BannerHub/actions/runs/25967333774) ✅ success**, sha `7199d1cb3`. `Apply BhVibration smali patches` + all steps green. Artifact `BannerHub-pre-fix-vibration-preload-free` (Normal variant, pkg patched for pre/beta isolation) → `/storage/emulated/0/Download/bh-vib-pf/BannerHub-fix-vibration-preload-free-Normal.apk` (~138 MB).
+
+**Net:** `fix/vibration-preload-free` = full v3.7.3 + preload-free vibration fix (incl. TideGear PR #91 controller). Clean 3.7.4 base. Pre-release artifact-only per [[feedback_bannerhub_prerelease]] — no GH Release. Awaiting device test on an x86-64 Proton + Box64 ("Extreme") container (Dead Cells / ULTRAKILL): expect normal launch (no ~60s spin → wine death) AND working box64 rumble; arm64x/FEX unaffected. On pass → cut 3.7.4 stable per [[feedback_stable_release_checklist]]. See memory `project_bannerhub_evshim_box64_regression`.

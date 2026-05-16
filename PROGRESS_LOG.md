@@ -4,6 +4,20 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [v3.7.4-pre1] — Vibration preload-free fix MERGED to main (2026-05-16)
+**Tag:** `v3.7.4-pre1` (clean pre-release → build-quick.yml, artifact-only per pre-release policy — NO GitHub Release)  |  **Merge commit:** `9d9a62821` (`--no-ff` merge of `fix/vibration-preload-free` HEAD `945d4bea2`; feature history `7199d1cb3`→`945d4bea2` preserved)  |  **Diff:** 6 files, +588 / −850 (incl. full deletion of `native/evshim/` — `evshim.c` + `CMakeLists.txt`)
+
+#### What landed
+The preload-free winebus duration patch (full detail in the entry below) is now on `main`. Tagged `v3.7.4-pre1` and pushed to trigger `build-quick.yml` for a pre-release artifact build ahead of the eventual 3.7.4 stable. No code changes vs the tested branch — the merge is content-identical to `7199d1cb3` (the device-verified commit; `945d4bea2` is docs-only on top).
+
+#### Why pre1 (not straight to stable)
+Per pre-release policy: build the merged-to-main result via the quick workflow and re-confirm green before cutting the clean `v3.7.4` stable tag. The fix itself is already fully device-verified (see below + the rumble-feel confirmation).
+
+#### Full validation status (last gap closed 2026-05-16)
+**Dirt 3** (gameId 131962, steamAppId 321040, `dirt3_game.exe` on SD `/storage/6B68-39AB/...`) device-tested on the preload-free APK — user confirmed **vibration worked well** (sustained continuous rumble, not the old ~1s SDL cutoff). Wine log (`util_2026_05_16_com.tencent.ig_wine.txt`, 835 lines): Dirt 3 ran repeatedly incl. a clean **1582 s (~26 min)** session (11:39–12:06) plus relaunches (49/322/84/30 s) — all clean `onExit existCalled=false → onStopGame`, **no** wine-died/SIGSEGV/page-fault, **zero** `evshim` tags (libevshim fully removed = expected), and **no** `winebus_dump_x86_64.so` in externalFilesDir → x86_64 byte-pattern **matched** this Proton build (memory-flagged QA risk — PASSED). Closes the only previously-open gap (sustained-rumble feel) on top of the Dead Cells / ULTRAKILL (Box64) + DOOMBLADE (FEX) launch verifications below.
+
+---
+
 ### [branch / pre-release] — Vibration preload-free + x86-64/Box64 launch-death fix (2026-05-16)
 **Branch:** `fix/vibration-preload-free` (off `main`, NOT merged)  |  **Commits:** `c17e6a975` (original preload-free port), `b4e725570` (CI sed fix), `2e7009403` (adopt TideGear PR #91 controller)  |  **Build:** build-quick.yml CI run [25964048570](https://github.com/The412Banner/BannerHub/actions/runs/25964048570) ✅ — artifact-only (no GH release per pre-release policy)
 

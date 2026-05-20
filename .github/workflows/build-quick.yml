@@ -620,6 +620,60 @@ jobs:
           print("\nBhVibration smali patches applied successfully.")
           PYEOF
 
+      - name: Apply Offline Launch smali patch
+        run: |
+          python3 << 'PYEOF'
+          import sys
+
+          def patch(path, old, new, label):
+              try:
+                  content = open(path, encoding='utf-8').read()
+              except UnicodeDecodeError:
+                  content = open(path, encoding='latin-1').read()
+              if old not in content:
+                  print(f"ERROR: anchor not found in {path} for: {label}")
+                  sys.exit(1)
+              open(path, 'w', encoding='utf-8').write(content.replace(old, new, 1))
+              print(f"OK: {label}")
+
+          # Early-return GameConfigDownloadTask.executeInternal as Unit when network is unreachable,
+          # so launches of imported PC games (and any other source) succeed offline using
+          # whatever container/components were set up the last time the game launched online.
+          # Steam already has its own offline login bypass in SteamGameByPcEmuLaunchStrategy;
+          # this covers PcGameHubMgrImport / LocalImport / GameHubSvrDownload too.
+          # Register v2 is the label int loaded at method entry and is unconditionally
+          # overwritten by the next instruction (iget-object v2 ...->d:WineActivityData),
+          # so reusing it here is safe.
+          patch(
+              'apktool_out/smali_classes8/com/xj/winemu/setup/tasks/GameConfigDownloadTask.smali',
+              '    :cond_3\n'
+              '    invoke-static {p2}, Lkotlin/ResultKt;->b(Ljava/lang/Object;)V\n'
+              '\n'
+              '    .line 66\n'
+              '    .line 67\n'
+              '    .line 68\n'
+              '    sget-object p2, Lcom/xj/winemu/setup/core/SetupLogger;->a:Lcom/xj/winemu/setup/core/SetupLogger;\n',
+              '    :cond_3\n'
+              '    invoke-static {p2}, Lkotlin/ResultKt;->b(Ljava/lang/Object;)V\n'
+              '\n'
+              '    # BannerHub: skip game-config download when offline so imported PC games launch with last-known setup\n'
+              '    invoke-static {}, Lcom/blankj/utilcode/util/NetworkUtils;->r()Z\n'
+              '    move-result v2\n'
+              '    if-nez v2, :bh_offline_continue\n'
+              '    sget-object v2, Lkotlin/Unit;->a:Lkotlin/Unit;\n'
+              '    return-object v2\n'
+              '    :bh_offline_continue\n'
+              '\n'
+              '    .line 66\n'
+              '    .line 67\n'
+              '    .line 68\n'
+              '    sget-object p2, Lcom/xj/winemu/setup/core/SetupLogger;->a:Lcom/xj/winemu/setup/core/SetupLogger;\n',
+              'GameConfigDownloadTask.executeInternal: early-return Unit when NetworkUtils.r() is false'
+          )
+
+          print("Offline Launch patch applied.")
+          PYEOF
+
       - name: Patch GameDetailActivity — finish after Beacon auto-launch
         run: |
           python3 << 'PYEOF'

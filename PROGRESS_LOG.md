@@ -4,6 +4,37 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## 2026-05-20 — Offline launch for imported PC games (v3.7.5 target)
+
+User report against stable v3.7.4: with the device in airplane mode / no internet, launching any imported PC game fails with the toast `Game configuration file download failed: ...` (Compose Resources key `setup_exception_game_config_download_failed`). Steam library games launch fine offline because `SteamGameByPcEmuLaunchStrategy$execute$3.smali` already carries a no-network short-circuit around the login step (line ~692), but the other four `InstalledGameSource` variants (`PcGameHubMgrImport`, `LocalImport`, `GameHubSvrDownload`, `UnKnow`) have no equivalent.
+
+### Root cause
+
+`SetupTaskFactory.f()` (the per-launch task-list builder) unconditionally inserts `GameConfigDownloadTask` first, regardless of source. That task's `executeInternal` (smali method `g()`) calls `PcGamePresetConfigRepository.z(gameId, gameType, InstalledGameSource)` → `EnvLayerRepository.j/k()` → `Post simulator/executeScript`. Offline → POST throws → repository returns null `GameEnvConfigEntity` → task throws `PcEmuSetupException.GameConfigDownloadException` → launch aborts before any Wine setup runs. All four non-Steam sources hit this exact failure.
+
+### Fix (Option 2 from user) — universal offline skip in `GameConfigDownloadTask.executeInternal`
+
+Surgical smali insert at the label-0 entry of the coroutine state machine. After `:cond_3` / `ResultKt.b(p2)` and before the first `iget-object v2, p0, ...->d:WineActivityData`, call `NetworkUtils.r()` (blankj utility, returns true when network is available — verified against the existing Steam-side use at `SteamGameByPcEmuLaunchStrategy$execute$3.smali:692`). If false, `return-object Lkotlin/Unit;->a` immediately. `SetupTaskManager` treats the task as completed and the launch proceeds to the next task in the pipeline (DependencyInstallTask, ContainerInstallTask, etc.), each of which already short-circuits when its target is already on disk. Net effect: any game that was successfully set up at least once with internet now launches with that exact set of components and container offline.
+
+Register reuse: the patch uses `v2` for the boolean result. v2 holds the coroutine label int at this point (we just finished `if-eqz v2, :cond_3` so v2 is known to be 0 on this branch) and is unconditionally clobbered by the very next instruction in the original method (`iget-object v2, p0, ...->d:WineActivityData`), so reusing it for the bool result is safe and requires no `.locals` bump.
+
+Patch is anchor-based python (matches the established BannerHub style — Stub Upgrade Check, Grant Root Access, BhVibration, etc.). Added as a new `Apply Offline Launch smali patch` step in both `.github/workflows/build.yml` (targets `apktool_out_base/`, prepare-job rule per [[feedback_bannerhub_buildyml_paths]]) and `.github/workflows/build-quick.yml` (targets `apktool_out/`). 8 inserted smali lines per file, anchor uniqueness verified (only the `SetupLogger;->a` reference distinguishes the first `:cond_3` from the second one further down in the same file). Local dry-run on `apktool_out/` confirms the anchor matches and the diff is exactly 8 inserted lines in the correct place.
+
+### Trade-offs to note before promoting to stable
+
+- **Stale config risk**: if you change a per-game setting (e.g. switch Box64 variant, change container) and then go offline before relaunching once online, the offline launch will use the previous on-disk setup, not the new config. Workaround: re-launch once with network after changing settings.
+- **First-ever launch still fails offline**: a game that has never been set up at all has no on-disk components, so DependencyInstallTask / ContainerInstallTask will still fail downstream. This patch only covers the "second-and-later" offline launch case.
+- **Steam path unchanged**: Steam games already had partial offline support via the login-bypass patch; this new patch adds a redundant short-circuit on the same Steam path (the GameConfigDownloadTask is also in the Steam task list per `SetupTaskFactory.f()` order: ConfigDownload → SteamworksDownload → SteamInputCheck). No regression expected for Steam.
+
+### Status
+
+- Branch: `fix/offline-launch-imported-games` off `main` (= v3.7.4 stable HEAD `30eb014d8`).
+- Build pending; will trigger `build-quick.yml` workflow_dispatch on the branch.
+- Pre-release per [[feedback_bannerhub_prerelease]] — v3.7.5-pre1 artifact-only, no GH Release.
+- Device test plan: airplane-mode an imported PC game that previously launched online; expect Wine to boot and the game to start without the `Game configuration file download failed` toast. Sanity-check on a Steam game offline too (should remain working).
+
+---
+
 ### [v3.7.4] — STABLE: preload-free vibration / x86_64 + Box64 launch-death fix (2026-05-16)
 **Tag:** `v3.7.4` (clean stable tag → `build.yml` push trigger → all 9 variants + auto-published GitHub Release)  |  **Tag commit:** `9c3bc0d98` (== device-confirmed `v3.7.4-pre1`; main HEAD, identical 0-ahead/0-behind)
 

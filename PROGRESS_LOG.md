@@ -55,10 +55,34 @@ After pre4, `SetupTaskFactory.g()` offline emits a list with just `ImageFsInstal
 
 Caveat: if any dependency was newly added by a server-pushed recommendation (which would have required an online launch to apply), it'll be missing offline. But for the steady-state case (game launched online at least once, no settings changed since), all deps are on disk and skipping is a no-op.
 
-### Status (post-iter)
+### Pre4 device test — PASS (2026-05-20)
 
-- Branch HEAD will be updated post-commit.
-- Device test target: same as before. Will iterate if more tasks need the offline skip.
+User installed `/storage/emulated/0/Download/BannerHub-pre4-offline/BannerHub-fix-offline-launch-imported-games-Normal.apk` (CI [run 26197458106](https://github.com/The412Banner/BannerHub/actions/runs/26197458106) off branch HEAD `6b730e165`), enabled airplane mode, launched a previously-online-launched imported PC game (GTA V).
+
+- No `Game configuration file download failed` toast (pre1 patch held).
+- No `Set Game Recommended Config failed` toast (pre3 factory-level skip held).
+- No `Install Dependencies failed` toast (pre4 factory-level skip works).
+- Wine booted from on-disk components/container, game ran.
+
+### Online-path equivalence — verified by code review
+
+User asked whether online launches still behave like stock 3.7.4. The three patches each gate the original code on a `NetworkUtils.r()` check (returns true when network is available); on the true branch the original instructions execute byte-for-byte unchanged.
+
+- `GameConfigDownloadTask.executeInternal`: `if-nez v2, :bh_offline_continue` jumps past the early-return-Unit → falls through to the unmodified original body. Server-side fetch, `SetupTaskContext` population, dep-component download all run as on stock.
+- `SetupTaskFactory.g()` SetGameRecommConfigTask wrapper: `if-eqz v2, :bh_skip_recomm_task` falls through to the original 3-instruction construct+add → task ends up in the launch list and runs normally.
+- `SetupTaskFactory.g()` DependencyInstallTask wrapper: same pattern, same outcome — task in the list, runs normally.
+
+Runtime cost online is one `NetworkUtils.r()` invocation per gated site (in-memory ConnectivityManager check, sub-µs). No state changes. No fields, methods, or signatures touched.
+
+Self-healing property: when a user comes back online after an offline window, the next launch hits the full pipeline and re-syncs anything the server might have updated (recommendation deltas, dep version bumps). The offline window doesn't accumulate drift.
+
+### Status
+
+- Branch: `fix/offline-launch-imported-games`, HEAD `6b730e165`.
+- Pre4 build: [run 26197458106](https://github.com/The412Banner/BannerHub/actions/runs/26197458106) ✅. Artifact: `BannerHub-fix-offline-launch-imported-games-Normal.apk` (~138 MB).
+- **Offline launch device-verified working on imported PC games (GTA V).**
+- **Online path verified equivalent to stock 3.7.4 (code review).**
+- Ready to merge to `main` and cut **v3.7.5 stable** per [[feedback-stable-release-checklist]] on user direction. Pending: README update + release-notes draft + v3.7.5 tag → `build.yml` auto-publishes 9 variants + GH Release.
 
 ---
 

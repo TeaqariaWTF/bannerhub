@@ -14597,3 +14597,43 @@ The following URLs appear in license files, open-source attribution notices, and
 | `https://docs.python.org/2/library/time.html#time.strftime` | `google/protobuf/timestamp.proto` | Python time.strftime documentation in protobuf timestamp comments |
 
 **Classification:** All are attribution URLs in license files or documentation comments in protobuf protocol definition files. None are callable API endpoints. The `publicsuffix.org` data is bundled locally in OkHttp — no runtime HTTP fetch occurs.
+
+
+---
+
+## §414 — Offline Launch Patch (v3.7.5)
+
+**Patched class:** `apktool_out_base/smali_classes8/com/xj/winemu/setup/tasks/GameConfigDownloadTask.smali` (also `apktool_out/...` in `build-quick.yml`).
+
+**Why:** Pre-3.7.5, every PC-emu launch went through `SetupTaskFactory.f()` which unconditionally prepended `GameConfigDownloadTask` to the task list. That task POSTs `simulator/executeScript` to fetch the per-game `GameEnvConfigEntity` and throws `PcEmuSetupException.GameConfigDownloadException` when the POST fails. Offline = throw = `setup_exception_game_config_download_failed` toast = launch aborts. Affected every game source except `SteamDownload` (which had a partial offline bypass in `SteamGameByPcEmuLaunchStrategy$execute$3.smali` line ~692, but only for the Steam login handshake — the config-download task still ran for Steam games too and would also have failed offline if the Steam-login bypass weren't already there).
+
+**What the patch does:** Injects a network check at the start of `executeInternal`'s label-0 entry (right after `:cond_3` / `ResultKt.b(p2)`). Calls `Lcom/blankj/utilcode/util/NetworkUtils;->r()Z`. If false (offline), returns `Lkotlin/Unit;->a` immediately, so `SetupTaskManager` advances to the next task. Downstream tasks (`DependencyInstallTask`, `ContainerInstallTask`, etc.) each already check whether their target is on disk and skip if so → offline relaunch of any previously-set-up game now succeeds with the last-known component/container set.
+
+**Smali patch (8 inserted lines):**
+
+```smali
+    :cond_3
+    invoke-static {p2}, Lkotlin/ResultKt;->b(Ljava/lang/Object;)V
+
+    # BannerHub: skip game-config download when offline so imported PC games launch with last-known setup
+    invoke-static {}, Lcom/blankj/utilcode/util/NetworkUtils;->r()Z
+    move-result v2
+    if-nez v2, :bh_offline_continue
+    sget-object v2, Lkotlin/Unit;->a:Lkotlin/Unit;
+    return-object v2
+    :bh_offline_continue
+    .line 66 / 67 / 68
+    sget-object p2, Lcom/xj/winemu/setup/core/SetupLogger;->a:Lcom/xj/winemu/setup/core/SetupLogger;
+```
+
+Register choice (`v2`): v2 holds the coroutine `label` int at this point (just consumed by `if-eqz v2, :cond_3`, known to be 0 on this branch) and is unconditionally overwritten by the very next instruction in the original method (`iget-object v2, p0, ...->d:WineActivityData`). Reusing it requires no `.locals` bump and clobbers nothing live.
+
+**Anchor uniqueness:** `GameConfigDownloadTask.smali` contains two `:cond_3` labels (one per coroutine state machine), so the anchor includes the `SetupLogger;->a:Lcom/xj/winemu/setup/core/SetupLogger;` line which only appears in the first one.
+
+**Coexistence with the existing Steam-offline patch:** Steam games hit BOTH this new short-circuit (in `GameConfigDownloadTask`) AND the existing login-bypass (in `SteamGameByPcEmuLaunchStrategy$execute$3.smali`). Order in `SetupTaskFactory.f()` is `ConfigDownload → SteamworksDownload → SteamInputCheck`, so the new skip takes effect first; the login-bypass still fires for the Steam-specific stuff that runs after. No regression on Steam.
+
+**Known limitations:**
+
+1. First-ever offline launch of a never-set-up game still fails — DependencyInstallTask / ContainerInstallTask have nothing on disk to fall back to. The patch only fixes the "second-and-later offline launch" case.
+2. Stale-config risk: changing per-game settings (Box64 variant, container, etc.) and then going offline before relaunching once online means the offline launch uses the previous components. Workaround: relaunch once online after changing settings.
+3. `executeScript`-driven recommendations (e.g. server-pushed dependency hints for new component versions) are skipped offline. Practical impact is nil for games that were already working; for new-release tuning it just defers to the next online launch.

@@ -4,6 +4,88 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## 2026-05-20 — Offline launch for imported PC games (v3.7.5 target)
+
+User report against stable v3.7.4: with the device in airplane mode / no internet, launching any imported PC game fails with the toast `Game configuration file download failed: ...` (Compose Resources key `setup_exception_game_config_download_failed`). Steam library games launch fine offline because `SteamGameByPcEmuLaunchStrategy$execute$3.smali` already carries a no-network short-circuit around the login step (line ~692), but the other four `InstalledGameSource` variants (`PcGameHubMgrImport`, `LocalImport`, `GameHubSvrDownload`, `UnKnow`) have no equivalent.
+
+### Root cause
+
+`SetupTaskFactory.f()` (the per-launch task-list builder) unconditionally inserts `GameConfigDownloadTask` first, regardless of source. That task's `executeInternal` (smali method `g()`) calls `PcGamePresetConfigRepository.z(gameId, gameType, InstalledGameSource)` → `EnvLayerRepository.j/k()` → `Post simulator/executeScript`. Offline → POST throws → repository returns null `GameEnvConfigEntity` → task throws `PcEmuSetupException.GameConfigDownloadException` → launch aborts before any Wine setup runs. All four non-Steam sources hit this exact failure.
+
+### Fix (Option 2 from user) — universal offline skip in `GameConfigDownloadTask.executeInternal`
+
+Surgical smali insert at the label-0 entry of the coroutine state machine. After `:cond_3` / `ResultKt.b(p2)` and before the first `iget-object v2, p0, ...->d:WineActivityData`, call `NetworkUtils.r()` (blankj utility, returns true when network is available — verified against the existing Steam-side use at `SteamGameByPcEmuLaunchStrategy$execute$3.smali:692`). If false, `return-object Lkotlin/Unit;->a` immediately. `SetupTaskManager` treats the task as completed and the launch proceeds to the next task in the pipeline (DependencyInstallTask, ContainerInstallTask, etc.), each of which already short-circuits when its target is already on disk. Net effect: any game that was successfully set up at least once with internet now launches with that exact set of components and container offline.
+
+Register reuse: the patch uses `v2` for the boolean result. v2 holds the coroutine label int at this point (we just finished `if-eqz v2, :cond_3` so v2 is known to be 0 on this branch) and is unconditionally clobbered by the very next instruction in the original method (`iget-object v2, p0, ...->d:WineActivityData`), so reusing it for the bool result is safe and requires no `.locals` bump.
+
+Patch is anchor-based python (matches the established BannerHub style — Stub Upgrade Check, Grant Root Access, BhVibration, etc.). Added as a new `Apply Offline Launch smali patch` step in both `.github/workflows/build.yml` (targets `apktool_out_base/`, prepare-job rule per [[feedback_bannerhub_buildyml_paths]]) and `.github/workflows/build-quick.yml` (targets `apktool_out/`). 8 inserted smali lines per file, anchor uniqueness verified (only the `SetupLogger;->a` reference distinguishes the first `:cond_3` from the second one further down in the same file). Local dry-run on `apktool_out/` confirms the anchor matches and the diff is exactly 8 inserted lines in the correct place.
+
+### Trade-offs to note before promoting to stable
+
+- **Stale config risk**: if you change a per-game setting (e.g. switch Box64 variant, change container) and then go offline before relaunching once online, the offline launch will use the previous on-disk setup, not the new config. Workaround: re-launch once with network after changing settings.
+- **First-ever launch still fails offline**: a game that has never been set up at all has no on-disk components, so DependencyInstallTask / ContainerInstallTask will still fail downstream. This patch only covers the "second-and-later" offline launch case.
+- **Steam path unchanged**: Steam games already had partial offline support via the login-bypass patch; this new patch adds a redundant short-circuit on the same Steam path (the GameConfigDownloadTask is also in the Steam task list per `SetupTaskFactory.f()` order: ConfigDownload → SteamworksDownload → SteamInputCheck). No regression expected for Steam.
+
+### Status
+
+- Branch: `fix/offline-launch-imported-games` off `main` (= v3.7.4 stable HEAD `30eb014d8`).
+- Build pending; will trigger `build-quick.yml` workflow_dispatch on the branch.
+- Pre-release per [[feedback_bannerhub_prerelease]] — v3.7.5-pre1 artifact-only, no GH Release.
+- Device test plan: airplane-mode an imported PC game that previously launched online; expect Wine to boot and the game to start without the `Game configuration file download failed` toast. Sanity-check on a Steam game offline too (should remain working).
+
+### Iteration: pre1 device test surfaced a second offline failure → pre2 fix
+
+Device test of v3.7.5-pre1 (GTA V on airplane mode) cleared the `Game configuration file download failed` toast (initial patch worked), but the next setup task `SetGameRecommConfigTask` then failed with `Task 'Set Game Recommended Config' failed`. Root cause: `SetGameRecommConfigTask.executeInternal` reads the `GameEnvConfigEntity` from `SetupTaskContext.a()` and throws `IllegalStateException("Game environment config not found in context")` when null — but the entity is only ever populated by `GameConfigDownloadTask`, which we now skip offline. So the second task always fails offline.
+
+First attempt: patched `SetGameRecommConfigTask.smali` at the task's `executeInternal` label-0 entry, same `NetworkUtils.r()` early-return-Unit pattern as `GameConfigDownloadTask`. **CI failed with `FileNotFoundError: 'apktool_out/smali_classes12/com/xj/winemu/setup/tasks/SetGameRecommConfigTask.smali'`** — the file doesn't exist at patch time because both `build.yml` and `build-quick.yml` deliberately do `rm -rf apktool_out{,_base}/smali_classes12` in their "Remove uncompilable apktool artifacts" / equivalent step, then `unzip -p $APK classes12.dex > classes12.dex` to inject the prebuilt classes12.dex back at packaging time. This is the long-standing dex-index-limit workaround — apktool can't reassemble classes12 because the dex would exceed the index limit, so it's shipped unmodified from the original APK. **Any patch targeting a smali file under `smali_classes12/` is silently a no-op at best and a build failure at worst.** Adding to memory as a permanent gotcha.
+
+Pivot: patch the **factory** instead of the task. `SetupTaskFactory.g()` lives in `smali_classes2` (reassembled), and that's where the task list is built. Wrapping the SetGameRecommConfigTask construct+add in a `NetworkUtils.r()` check (skip-add when false) means `SetupTaskManager` never sees the task to run, with the same net effect.
+
+Anchor: the 3-instruction sequence inside `SetupTaskFactory.g()` (`invoke-virtual ...->h(...)SetGameRecommConfigTask` + `move-result-object v2` + `invoke-interface ...List;->add(v0, v2)`). Unique to this call site. Register `v2` is free at this point (`.locals 3`, v0 = ArrayList being built, v1 = PcEmuSetupRepository, v2 = scratch). 6-line insertion wraps the original three instructions inside a conditional skip; the replacement preserves the original 3 instructions byte-for-byte on the online branch. Local dry-run confirms anchor matches and diff is +6 lines.
+
+Downstream tasks in `SetupTaskFactory.g()` (PC-game setup list) after SetGameRecommConfigTask are: `ImageFsInstallTask`, `ContainerInstallTask`, `ComponentsInstallTask`, `DependencyInstallTask`. These are install-from-disk tasks — each should short-circuit when its target is already present (which it must be, since the game launched online before). If pre2 surfaces a third failure, we patch that task next; the pattern is the same.
+
+### Iteration 2: pre3 device test → `DependencyInstallTask` also fails offline → pre4 fix
+
+Pre3 (with both `GameConfigDownloadTask`-skip and the factory-level `SetGameRecommConfigTask`-skip) cleared the first two failure modes — but `DependencyInstallTask` now toasts `Task 'Install Dependencies' failed`. So tasks 2-4 (`ImageFsInstallTask`, `ContainerInstallTask`, `ComponentsInstallTask`) did short-circuit on disk-present as predicted, but `DependencyInstallTask` does not.
+
+`DependencyInstallTask`'s main class lives in `smali_classes9` (reassembled, so a direct task-level patch would also be feasible), but for consistency with the SetGameRecommConfigTask fix and to avoid touching another file, the pre4 patch wraps the factory's `c()` call + `List.add` in the same `NetworkUtils.r()` skip-add idiom inside `SetupTaskFactory.g()`. Same anchor pattern (3-instruction block: invoke-virtual `c()` + `move-result-object p0` + `invoke-interface List.add(v0, p0)`), same `v2` scratch register, +6 lines per workflow. Local dry-run confirms anchor matches and diff is exactly 6 added lines.
+
+After pre4, `SetupTaskFactory.g()` offline emits a list with just `ImageFsInstallTask` + `ContainerInstallTask` + `ComponentsInstallTask` — all three short-circuit on disk-present, so the list completes successfully and Wine boots. There is no task 6 in the list.
+
+Caveat: if any dependency was newly added by a server-pushed recommendation (which would have required an online launch to apply), it'll be missing offline. But for the steady-state case (game launched online at least once, no settings changed since), all deps are on disk and skipping is a no-op.
+
+### Pre4 device test — PASS (2026-05-20)
+
+User installed `/storage/emulated/0/Download/BannerHub-pre4-offline/BannerHub-fix-offline-launch-imported-games-Normal.apk` (CI [run 26197458106](https://github.com/The412Banner/BannerHub/actions/runs/26197458106) off branch HEAD `6b730e165`), enabled airplane mode, launched a previously-online-launched imported PC game (GTA V).
+
+- No `Game configuration file download failed` toast (pre1 patch held).
+- No `Set Game Recommended Config failed` toast (pre3 factory-level skip held).
+- No `Install Dependencies failed` toast (pre4 factory-level skip works).
+- Wine booted from on-disk components/container, game ran.
+
+### Online-path equivalence — verified by code review
+
+User asked whether online launches still behave like stock 3.7.4. The three patches each gate the original code on a `NetworkUtils.r()` check (returns true when network is available); on the true branch the original instructions execute byte-for-byte unchanged.
+
+- `GameConfigDownloadTask.executeInternal`: `if-nez v2, :bh_offline_continue` jumps past the early-return-Unit → falls through to the unmodified original body. Server-side fetch, `SetupTaskContext` population, dep-component download all run as on stock.
+- `SetupTaskFactory.g()` SetGameRecommConfigTask wrapper: `if-eqz v2, :bh_skip_recomm_task` falls through to the original 3-instruction construct+add → task ends up in the launch list and runs normally.
+- `SetupTaskFactory.g()` DependencyInstallTask wrapper: same pattern, same outcome — task in the list, runs normally.
+
+Runtime cost online is one `NetworkUtils.r()` invocation per gated site (in-memory ConnectivityManager check, sub-µs). No state changes. No fields, methods, or signatures touched.
+
+Self-healing property: when a user comes back online after an offline window, the next launch hits the full pipeline and re-syncs anything the server might have updated (recommendation deltas, dep version bumps). The offline window doesn't accumulate drift.
+
+### Status
+
+- Branch: `fix/offline-launch-imported-games`, HEAD `6b730e165`.
+- Pre4 build: [run 26197458106](https://github.com/The412Banner/BannerHub/actions/runs/26197458106) ✅. Artifact: `BannerHub-fix-offline-launch-imported-games-Normal.apk` (~138 MB).
+- **Offline launch device-verified working on imported PC games (GTA V).**
+- **Online path verified equivalent to stock 3.7.4 (code review).**
+- Ready to merge to `main` and cut **v3.7.5 stable** per [[feedback-stable-release-checklist]] on user direction. Pending: README update + release-notes draft + v3.7.5 tag → `build.yml` auto-publishes 9 variants + GH Release.
+
+---
+
 ### [v3.7.4] — STABLE: preload-free vibration / x86_64 + Box64 launch-death fix (2026-05-16)
 **Tag:** `v3.7.4` (clean stable tag → `build.yml` push trigger → all 9 variants + auto-published GitHub Release)  |  **Tag commit:** `9c3bc0d98` (== device-confirmed `v3.7.4-pre1`; main HEAD, identical 0-ahead/0-behind)
 

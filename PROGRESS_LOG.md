@@ -5272,3 +5272,15 @@ User goal: let v6 users and 3.7.5 users share a voice session. **Verdict: it wor
 **Recommended design (not the long-id hack):** a dedicated identity-free **"room code" mode on both builds** (short `bh…` code, *displayed* + shareable). v6 gets **Create room code** + **Join by code** (3.7.5 already has both); cross-build always goes through code mode; v6's Steam-native friend/party calls stay unchanged. v6's existing share-call guest-browser-join probably already has a code/token path to extend.
 
 **NEXT (tomorrow):** clone **The412Banner/bannerhub-revanced** (not cloned locally) and verify on the v6 side: (a) SteamID-pair separator → `VOICE_ID_RE` validity [gate #2]; (b) how v6 renders roster peers / unknown-id filtering [gate #3]; (c) where v6 builds the `/voice/room` URL + the share-call token path → scope the v6 patch. Then build the room-code mode on v6, device-test cross-build, and only after that merge `voice-chat` → main + cut the 3.7.x release.
+
+---
+
+## 2026-06-12 — v3.8.0-pre1 device test FAILED → pre2 (gameId resolution fix)
+
+**pre1 test (PUBG variant `com.tencent.ig`, gameId 10434, logcat `/sdcard/Download/bh_v380pre1_pulse_test_20260612.txt`):** UI saved the pref (`setRecordingMode: gameId=10434 → true`) but at PA boot in `:wine` (pid 24947): `sinkLine: no active gameId resolved, using stock sink line` → stock MMAP path, recording silent.
+
+**Root cause (base_decompiled-verified):** 5.3.5's WineActivity launch intent has no `"gameId"` String extra (WinEmuServiceImpl does no `putExtra(String,String)`). The game data is a `WineActivityData` Parcelable held in `WineActivity;->u:Lcom/xj/winemu/api/bean/WineActivityData;`; gameId = its String field `a` (getter `e()`, fed to `WineInGameSettings` whose ctor Intrinsics-checks param name `"gameId"` and opens `pc_emu_setting_kv_<id>` — matches the mmkv mapped in the :wine proc in the log). The intent-extra walk borrowed from BhVibrationController never fires on this base (per-game vibration likely also silently degrades to global defaults — separate follow-up).
+
+**pre2:** `BhAudioController.resolveActiveGameId()` now finds the live WineActivity, locates its `WineActivityData`-typed field by TYPE (hierarchy walk), reads String field `a`; old intent-extra read kept as fallback. All `extension/*.java` recompile clean vs android-34 jar locally. Tag `v3.8.0-pre2` (build-quick auto-fires on `v*-pre*` tag push).
+
+> **Note (2026-06-18):** these two audio commits (`v3.8.0-pre1`/`pre2`) were cherry-picked onto `voice-chat` so the eventual 3.8.0 stable carries both the in-game voice chat and the per-game PC Audio Settings.

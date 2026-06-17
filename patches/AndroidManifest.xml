@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.hardware.usb.host"/>
     <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
@@ -157,6 +158,7 @@
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="app.revanced.extension.gamehub.EpicLoginActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="app.revanced.extension.gamehub.EpicGamesActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="app.revanced.extension.gamehub.BhGameConfigsActivity" android:screenOrientation="sensorLandscape" android:windowSoftInputMode="adjustResize"/>
+        <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="app.revanced.extension.gamehub.BhVoiceChatSettingsActivity" android:screenOrientation="sensorLandscape" android:windowSoftInputMode="adjustResize"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="com.xj.winemu.vibration.BhVibrationSettingsActivity" android:screenOrientation="sensorLandscape" android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="app.revanced.extension.gamehub.GogGameDetailActivity" android:screenOrientation="sensorLandscape"/>
         <activity android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize" android:name="app.revanced.extension.gamehub.EpicGameDetailActivity" android:screenOrientation="sensorLandscape"/>

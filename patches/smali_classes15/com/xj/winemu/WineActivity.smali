@@ -8520,6 +8520,9 @@
 .method public onDestroy()V
     .locals 2
 
+    # ── BannerHub: tear down the in-game voice pill / call ──
+    invoke-static {}, Lcom/xj/winemu/sidebar/BhVoiceOverlay;->detach()V
+
     .line 1
     .line 2
     .line 3
@@ -8725,6 +8728,9 @@
     :cond_1
     # ── BannerHub: inject/sync HUD overlay on every resume ──
     invoke-static {p0}, Lcom/xj/winemu/sidebar/BhHudInjector;->injectOrUpdate(Landroid/app/Activity;)V
+
+    # ── BannerHub: attach in-game voice pill (no-op unless nickname claimed + activated) ──
+    invoke-static {p0}, Lcom/xj/winemu/sidebar/BhVoiceOverlay;->attach(Landroid/app/Activity;)V
 
     sget-object p0, Lcom/xj/winemu/external/PcInGameDelegateManager;->a:Lcom/xj/winemu/external/PcInGameDelegateManager;
 
